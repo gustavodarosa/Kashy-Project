@@ -5,17 +5,11 @@ const cashaddr = require('cashaddrjs');
 const crypto = require('crypto');
 const mongoose = require('mongoose'); // Required if interacting directly with User model here
 const User = require('../models/user'); // Adjust path as needed
+const { FULCRUM_SERVERS } = require('../config/fullcrumConfig'); // Adjust path if needed
 
 // ======= CONFIGURATIONS ======= //
 // Consider moving these to environment variables
-const FULCRUM_SERVERS = [
-    { host: 'fulcrum.greyh.at', port: 50002, protocol: 'ssl' },    
-    { host: 'electrum.imaginary.cash', port: 50002, protocol: 'ssl' },    
-    { host: 'bch.imaginary.cash', port: 50002, protocol: 'ssl' },    
-    { host: 'electroncash.dk', port: 60002, protocol: 'ssl' },    
-    { host: 'bch.soul-dev.com', port: 50002, protocol: 'ssl' },
-    
-];
+
 const RECONNECT_DELAY_MS = 10000; // 10 seconds
 const ELECTRUM_PROTOCOL_VERSION = '1.4'; // Common version
 
@@ -61,6 +55,7 @@ class SpvMonitorService {
         this.isConnecting = true;
         clearTimeout(this.reconnectTimeout);
         console.log('SPV: Attempting to connect to Fulcrum server...');
+        let potentialClient = null;
 
         for (const server of FULCRUM_SERVERS) {
             try {
@@ -101,7 +96,7 @@ class SpvMonitorService {
 
             } catch (err) {
                 console.warn(`SPV: ⚠️ Failed to connect or handshake with ${server.host}: ${err.message}. Trying next...`);
-                if (potentialClient) await potentialClient.close(); // Ensure client is closed
+                if (potentialClient) await potentialClient.close();
             }
         }
 

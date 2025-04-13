@@ -1,16 +1,8 @@
 // testFulcrumConnection.js
 const ElectrumClient = require('electrum-client');
+const { FULCRUM_SERVERS } = require('./src/config/fullcrumConfig');
 
-// --- Configuration (Copied from your spvMonitorService.js) ---
-const FULCRUM_SERVERS = [
-    { host: 'fulcrum.greyh.at', port: 50002, protocol: 'ssl' },    
-    { host: 'electrum.imaginary.cash', port: 50002, protocol: 'ssl' },
-    // Add new ones to test here
-    { host: 'bch.imaginary.cash', port: 50002, protocol: 'ssl' },    
-    { host: 'electroncash.dk', port: 60002, protocol: 'ssl' },    
-    { host: 'bch.soul-dev.com', port: 50002, protocol: 'ssl' },
-    // Add any other servers you want to test
-];
+
 const ELECTRUM_PROTOCOL_VERSION = '1.4';
 const CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
 
