@@ -80,18 +80,24 @@ async function verify() {
             console.error(`❌ FAILURE: Derived address (${derivedAddress}) has an INVALID BCH format.`);
         }
 
-        // Verification Step 3: Check balance using Blockchair API
+        // Verification Step 3: Check balance and transactions using Blockchair API
         try {
-            console.log(`Checking balance for ${derivedAddress} using Blockchair API...`);
+            console.log(`Fetching balance and transactions for ${derivedAddress} using Blockchair API...`);
             const response = await axios.get(`${BLOCKCHAIR_API}/dashboards/address/${derivedAddress}`);
-            const balanceData = response.data.data[derivedAddress].address;
+            const addressData = response.data.data[derivedAddress].address;
+            const transactions = response.data.data[derivedAddress].transactions;
 
-            const confirmed = balanceData.balance / 1e8; // Convert satoshis to BCH
-            const unconfirmed = balanceData.unconfirmed_balance / 1e8; // Convert satoshis to BCH
+            const confirmed = addressData.balance ; // Convert satoshis to BCH
+            const unconfirmed = addressData.unconfirmed_balance / 1e8; // Convert satoshis to BCH
 
             console.log(`✅ SUCCESS: Balance check successful. Balance: ${confirmed} BCH (Unconfirmed: ${unconfirmed} BCH)`);
+
+            console.log('Transactions:');
+            transactions.forEach((tx, index) => {
+                console.log(`${index + 1}. Transaction ID: ${tx}`);
+            });
         } catch (balanceError) {
-            console.error(`❌ FAILURE: Error checking balance for derived address: ${balanceError.message}`);
+            console.error(`❌ FAILURE: Error fetching balance and transactions for derived address: ${balanceError.message}`);
         }
 
         // Update user document if bchAddress was missing
