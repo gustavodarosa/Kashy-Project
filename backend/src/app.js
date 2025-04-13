@@ -1,18 +1,23 @@
 const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
-const { errorHandler } = require('./middlewares/errorHandler');
+const userRoutes = require('./routes/userRoutes');
+
+const errorHandler = require('./middlewares/errorHandler');
+require('dotenv').config(); // Load env vars
 
 const app = express();
 
-// Middlewares globais
-app.use(cors());
-app.use(express.json());
+// Middleware
+app.use(cors()); // Apply CORS
+app.use(express.json()); // Crucial for parsing JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Optional, for form data
+app.use('/api/users', userRoutes);
 
-// Rotas principais
-app.use(routes);
+// Mount API routes
+app.use('/api', routes); // Make sure this line exists and is correct
 
-// Middleware de tratamento de erros
+// Global error handler (should be last)
 app.use(errorHandler);
 
-module.exports = app;
+module.exports = app; // Export the app instance

@@ -1,28 +1,11 @@
-const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 
-// Mock de usuários em memória
-const users = [
-  {
-    id: 1,
-    name: 'Bruce Wayne',
-    email: 'bruce@wayne.com',
-    password: bcrypt.hashSync('batman123', 10), // Senha criptografada
-  },
-  {
-    id: 2,
-    name: 'Clark Kent',
-    email: 'clark@kent.com',
-    password: bcrypt.hashSync('superman123', 10), // Senha criptografada
-  },
-];
+const userSchema = new mongoose.Schema({
+  googleId: { type: String, sparse: true },
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  encryptedMnemonic: { type: String },
+  encryptedDerivationPath: { type: String },
+}, { timestamps: true });
 
-/**
- * Encontra um usuário pelo email.
- * @param {string} email
- * @returns {object|null} Usuário ou null se não encontrado.
- */
-function findUserByEmail(email) {
-  return users.find(user => user.email === email);
-}
-
-module.exports = { findUserByEmail };
+module.exports = mongoose.model('User', userSchema);

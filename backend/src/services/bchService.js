@@ -1,126 +1,182 @@
-const BCHJS = require('@psf/bch-js');
-const axios = require('axios');
+require('dotenv').config(); // Load environment variables
+// Correct import name based on package.json (usually 'bitcoincashjs-lib' or similar if using older versions, but @psf/bch-js is common now)
+const BCHJS = require('@psf/bch-js'); // Assuming this is the correct package name installed
 
-// Inicializa o BCHJS para testnet (pode ser alterado para mainnet)
-const bchjs = new BCHJS({ restURL: 'https://testnet3.fullstack.cash/v3/' });
+// --- Configuration ---
+const isTestnet = process.env.BCH_NETWORK === 'testnet';
+const network = isTestnet ? 'testnet' : 'mainnet';
+const BCH_MAINNET_API_URL = process.env.BCH_MAINNET_API || 'https://free-main.fullstack.cash/v3/';
+const BCH_TESTNET_API_URL = process.env.BCH_TESTNET_API || 'https://free-test.fullstack.cash/v3/';
+
+// Instance for REST API interactions (keep this)
+const bchjs = new BCHJS({ restURL: isTestnet ? BCH_TESTNET_API_URL : BCH_MAINNET_API_URL });
+
+const DEFAULT_DERIVATION_PATH = "m/44'/145'/0'/0/0";
+// --- End Configuration ---
 
 /**
- * Gera um novo par de chaves (privada/pública) e retorna o endereço BCH.
- * @returns {object} - Contém a chave privada (WIF), chave pública e endereço BCH.
+ * Generates a new BCH address and wallet details using bch-js.
+ * @returns {object} - Contains mnemonic, private key (WIF), public key, and address.
  */
 async function generateAddress() {
   try {
-    const mnemonic = bchjs.Mnemonic.generate(128); // Gera uma frase mnemônica
-    const rootSeed = await bchjs.Mnemonic.toSeed(mnemonic);
-    const hdNode = bchjs.HDNode.fromSeed(rootSeed, 'testnet'); // Use 'mainnet' para mainnet
+    const mnemonic = bchjs.Mnemonic.generate();
+    const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+    const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
+    const childNode = masterHDNode.derivePath(DEFAULT_DERIVATION_PATH);
+    const cashAddress = bchjs.HDNode.toCashAddress(childNode);
 
-    const keyPair = bchjs.HDNode.toKeyPair(hdNode);
-    const wif = bchjs.HDNode.toWIF(hdNode); // Chave privada no formato WIF
-    const publicKey = bchjs.HDNode.toPublicKey(hdNode);
-    const address = bchjs.HDNode.toCashAddress(hdNode);
-
-    return { mnemonic, wif, publicKey: publicKey.toString('hex'), address };
+    return {
+      mnemonic: mnemonic,
+      wif: bchjs.HDNode.toWIF(childNode),
+      publicKey: bchjs.HDNode.toPublicKey(childNode).toString('hex'),
+      address: cashAddress,
+      derivationPath: DEFAULT_DERIVATION_PATH,
+    };
   } catch (error) {
-    console.error('Erro ao gerar endereço:', error.message);
-    throw new Error('Erro ao gerar endereço BCH.');
+    console.error('Error generating address with bch-js:', error);
+    throw new Error(`Error generating BCH address: ${error.message}`);
   }
 }
 
 /**
- * Valida se um endereço BCH é válido.
- * @param {string} address - O endereço BCH a ser validado.
- * @returns {boolean} - Retorna true se o endereço for válido, caso contrário false.
+ * Validates if a BCH address is valid using bch-js.
+ * @param {string} address - The BCH address to validate.
+ * @returns {boolean} - Returns true if the address is valid, otherwise false.
  */
 function validateAddress(address) {
   try {
-    return bchjs.Address.isCashAddress(address);
+    // --- Use static method from BCHJS.Address ---
+    return BCHJS.Address.isCashAddress(address);
   } catch (error) {
-    console.error('Erro ao validar endereço:', error.message);
+    console.error('Error validating address with bch-js:', error.message);
     return false;
   }
 }
 
 /**
- * Retorna o saldo do endereço BCH.
- * @param {string} address - O endereço BCH.
- * @returns {object} - Saldo do endereço (mockado ou via API pública).
+ * Gets the balance of a BCH address using bch-js (via REST instance).
+ * @param {string} address - The BCH address.
+ * @returns {Promise<object>} - Balance of the address in BCH.
  */
 async function getBalance(address) {
   try {
-    const response = await axios.get(`https://testnet3.fullstack.cash/v3/address/details/${address}`);
+    // --- Use static method for conversion, REST instance for query ---
+    const cashAddress = BCHJS.Address.toCashAddress(address); // Use BCHJS.Address
+    const balanceResult = await bchjs.Electrumx.balance(cashAddress); // Use bchjs instance
+
+    if (!balanceResult || !balanceResult.success || !balanceResult.balance) {
+        console.error('Invalid balance response structure:', balanceResult);
+        throw new Error('Failed to retrieve valid balance structure.');
+    }
+    const confirmedSatoshis = balanceResult.balance.confirmed;
+    const unconfirmedSatoshis = balanceResult.balance.unconfirmed;
     return {
-      balance: response.data.balance,
-      unconfirmedBalance: response.data.unconfirmedBalance,
+      balance: confirmedSatoshis / 1e8,
+      unconfirmedBalance: unconfirmedSatoshis / 1e8,
     };
   } catch (error) {
-    console.error('Erro ao obter saldo:', error.message);
-    throw new Error('Erro ao obter saldo do endereço BCH.');
+    console.error(`Error getting balance for ${address} with bch-js:`, error);
+    if (error.message && error.message.includes('Network Error')) {
+         throw new Error('Network error while getting BCH balance. Check API server connection.');
+    }
+    if (error.message && error.message.includes('Invalid BCH address')) {
+         throw new Error('Invalid BCH address format provided for balance check.');
+    }
+    throw new Error(`Error getting BCH address balance: ${error.message}`);
   }
 }
 
 /**
- * Envia BCH de uma carteira para outra.
- * @param {string} fromWif - A chave privada (WIF) da carteira de origem.
- * @param {string} toAddress - O endereço BCH de destino.
- * @param {number} amount - O valor a ser enviado (em BCH).
- * @returns {string} - ID da transação (txid).
+ * Sends BCH from one wallet to another using bch-js.
+ * @param {string} fromWif - The private key (WIF) of the sender's wallet.
+ * @param {string} toAddress - The recipient's BCH address.
+ * @param {number} amountBCH - The amount to send (in BCH).
+ * @returns {Promise<string>} - Transaction ID (txid).
  */
-async function sendTransaction(fromWif, toAddress, amount) {
+async function sendTransaction(fromWif, toAddress, amountBCH) {
   try {
-    const ecPair = bchjs.ECPair.fromWIF(fromWif, 'testnet'); // Use 'mainnet' para mainnet
-    const fromAddress = bchjs.ECPair.toCashAddress(ecPair);
-
-    // Obtém UTXOs (Unspent Transaction Outputs) do endereço de origem
-    const utxosResponse = await axios.get(`https://testnet3.fullstack.cash/v3/address/utxo/${fromAddress}`);
-    const utxos = utxosResponse.data.utxos;
-
-    if (utxos.length === 0) {
-      throw new Error('Saldo insuficiente.');
+    if (!fromWif || !toAddress || amountBCH <= 0) {
+      throw new Error('Invalid input for sendTransaction: WIF, toAddress, and positive amount required.');
+    }
+    // --- Use static method for validation ---
+    if (!BCHJS.Address.isCashAddress(toAddress)) { // Use BCHJS.Address
+        throw new Error(`Invalid recipient address: ${toAddress}`);
     }
 
-    // Cria uma transação
-    const transactionBuilder = new bchjs.TransactionBuilder('testnet');
-    let originalAmount = 0;
+    const amountSatoshis = Math.round(amountBCH * 1e8);
 
-    utxos.forEach((utxo) => {
-      transactionBuilder.addInput(utxo.txid, utxo.vout);
-      originalAmount += utxo.satoshis;
+    // --- Use static methods for keypair/address derivation ---
+    const keyPair = BCHJS.ECPair.fromWIF(fromWif); // Use BCHJS.ECPair
+    const fromAddress = BCHJS.ECPair.toCashAddress(keyPair); // Use BCHJS.ECPair
+
+    // --- Use REST instance for UTXOs ---
+    const utxosResponse = await bchjs.Electrumx.utxo(fromAddress); // Use bchjs instance
+     if (!utxosResponse || !utxosResponse.success || !utxosResponse.utxos) {
+        console.error('Invalid UTXO response structure:', utxosResponse);
+        throw new Error('Failed to retrieve valid UTXO structure.');
+    }
+    const utxos = utxosResponse.utxos;
+    if (utxos.length === 0) throw new Error('No spendable UTXOs found.');
+
+    // --- Use TransactionBuilder class from BCHJS ---
+    const transactionBuilder = new BCHJS.TransactionBuilder(network); // Use BCHJS.TransactionBuilder
+
+    let totalInputSatoshis = 0;
+    utxos.forEach(utxo => {
+      totalInputSatoshis += utxo.value;
+      transactionBuilder.addInput(utxo.tx_hash, utxo.tx_pos);
     });
 
-    const satoshisToSend = bchjs.BitcoinCash.toSatoshi(amount);
-    const fee = 250; // Taxa estimada (em satoshis)
-    const change = originalAmount - satoshisToSend - fee;
+    // --- Use static method for byte count ---
+    const byteCount = BCHJS.BitcoinCash.getByteCount( // Use BCHJS.BitcoinCash
+        { P2PKH: utxos.length }, { P2PKH: 2 }
+    );
+    const feeSatoshis = byteCount;
 
-    if (change < 0) {
-      throw new Error('Saldo insuficiente para cobrir a transação e a taxa.');
+    if (totalInputSatoshis < amountSatoshis + feeSatoshis) {
+      throw new Error(
+        `Insufficient funds. Required: ${amountSatoshis + feeSatoshis} satoshis, Available: ${totalInputSatoshis} satoshis.`
+      );
     }
 
-    // Adiciona saída para o destinatário
-    transactionBuilder.addOutput(toAddress, satoshisToSend);
-
-    // Adiciona saída para o troco (se houver)
-    if (change > 0) {
-      transactionBuilder.addOutput(fromAddress, change);
+    transactionBuilder.addOutput(toAddress, amountSatoshis);
+    const changeSatoshis = totalInputSatoshis - amountSatoshis - feeSatoshis;
+    if (changeSatoshis > 546) {
+      transactionBuilder.addOutput(fromAddress, changeSatoshis);
     }
 
-    // Assina cada entrada
-    utxos.forEach((utxo, index) => {
-      transactionBuilder.sign(index, ecPair, null, transactionBuilder.hashTypes.SIGHASH_ALL, utxo.satoshis);
-    });
+    let inputIndex = 0;
+    for (const utxo of utxos) {
+      transactionBuilder.sign(
+        inputIndex, keyPair, undefined,
+        transactionBuilder.hashTypes.SIGHASH_ALL, utxo.value
+      );
+      inputIndex++;
+    }
 
-    // Constrói e transmite a transação
     const tx = transactionBuilder.build();
-    const txHex = tx.toHex();
+    const hex = tx.toHex();
 
-    const broadcastResponse = await axios.post('https://testnet3.fullstack.cash/v3/rawtransactions/sendRawTransaction', {
-      hex: txHex,
-    });
+    // --- Use REST instance for broadcasting ---
+    const txid = await bchjs.RawTransactions.sendRawTransaction(hex); // Use bchjs instance
+    return txid;
 
-    return broadcastResponse.data;
   } catch (error) {
-    console.error('Erro ao enviar transação:', error.message);
-    throw new Error('Erro ao enviar transação BCH.');
+    console.error('Error sending transaction with bch-js:', error);
+    if (error.message && (error.message.includes('Insufficient funds') || error.message.includes('No spendable UTXOs'))) {
+        throw error;
+    }
+    if (error.response && error.response.data && error.response.data.error) {
+        throw new Error(`Error broadcasting transaction: ${error.response.data.error}`);
+    }
+    throw new Error(`Error sending BCH transaction: ${error.message}`);
   }
 }
 
-module.exports = { generateAddress, validateAddress, getBalance, sendTransaction };
+module.exports = {
+    generateAddress,
+    validateAddress,
+    getBalance,
+    sendTransaction,
+};
