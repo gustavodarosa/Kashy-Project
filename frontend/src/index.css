@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+
+  --color-bg-primary: #19181D;
+  --color-bg-secondary: #1F1E22;
+  --color-bg-tertiary: #28272b;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0aec0;
+  --color-accent: #f59e0b;
+  --color-accent-hover: #d97706;
+  --color-border: #4a5568;
+  --color-success: #10b981;
+  --color-success-hover: #059669; 
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626; 
+  --color-chart-primary: rgb(206, 55, 45);
+  --color-text-on-accent: #ffffff; 
+  --color-text-on-accent-hover: #000000;
+  --color-auth-bg: var(--color-accent); 
+  --color-auth-form-bg: var(--color-bg-secondary); 
+  --color-auth-text-primary: var(--color-text-primary); 
+  --color-auth-input-icon: var(--color-text-secondary); 
+  --color-auth-input-bg: var(--color-bg-primary); 
+  --color-auth-input-border: var(--color-border); 
+  --color-auth-link: var(--color-accent); 
+  --color-auth-link-hover: var(--color-accent-hover); 
+}
+
+

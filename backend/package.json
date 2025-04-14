@@ -122,7 +122,7 @@
   },
   "scripts": {
     "test": "jest",
-    "start": "node src/server.js",
+    "start": "node src/server.ts",
     "dev": "nodemon src/server.js"
   },
   "keywords": [],
