@@ -1,9 +1,8 @@
 import { Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined,  ShoppingBasket,
-     NotepadText,Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, 
-     PackageOpen} from 'lucide-react';
+     NotepadText,Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell} from 'lucide-react';
 import { useSidebar } from '../../hooks/usersidebar'; 
 import { useState, useEffect } from 'react';
-import { DashboardTab, WalletTab, VendasTab, ClientesTab, ProdutosTab, RelatoriosTab , OfertasTab, SettingsTab } from './tabs'; 
+import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab , OfertasTab, SettingsTab, TransacoesTab } from './tabs'; 
 import { useNavigate } from 'react-router-dom';
 
 export function Dashboard() {
@@ -117,7 +116,8 @@ export function Dashboard() {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'carteira', label: 'Wallet', icon: <Wallet /> },
         { id: 'produtos', label: 'Produtos', icon: <Package /> },
-        { id: 'vendas', label: 'Vendas', icon: <ShoppingBasket /> },
+        { id: 'pedidos', label: 'pedidos', icon: <ShoppingBasket /> },
+        { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
         { id: 'clientes', label: 'Clientes', icon: <Users /> },
         { id: 'relatorios', label: 'Relatórios', icon: <NotepadText /> },
         { id: 'ofertas', label: 'Ofertas', icon: <Megaphone /> },
@@ -129,7 +129,8 @@ export function Dashboard() {
             case 'dashboard': return <DashboardTab />;
             case 'carteira': return <WalletTab />;
             case 'produtos': return <ProdutosTab />;
-            case 'vendas': return <VendasTab />;
+            case 'pedidos': return <PedidosTab />;
+            case 'transacoes': return <TransacoesTab />;
             case 'clientes': return <ClientesTab />;
             case 'relatorios': return <RelatoriosTab />;
             case 'ofertas': return <OfertasTab />;
@@ -146,9 +147,7 @@ export function Dashboard() {
                 <div className="flex items-center gap-4 justify-center h-16 px-2 flex-shrink-0">
                     {isOpen ? (
                         <>
-                            
-                            <h1 className="hidden sm:block text-lg sm:text-xl font-bold whitespace-nowrap overflow-hidden">Dashboard</h1>
-                           
+                           <h1 className="text-lg ml- sm:ml-17 sm:text-xl font-bold">Dashboard</h1>
                             <button onClick={toggleSidebar} className="sm:ml-auto flex-shrink-0">
                                 <ChevronLeft className="text-white h-7 w-7 sm:h-8 sm:w-8" />
                             </button>
@@ -190,7 +189,7 @@ export function Dashboard() {
                             type="text"
                             id="search"
                             placeholder="Pesquisar..."
-                            className="w-full pl-10 pr-4 py-2 border border-white rounded-lg bg-[var(--color-bg-tertiary)] text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white text-sm sm:text-base"
+                            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-tertiary)] text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white text-sm sm:text-base"
                         />
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
@@ -277,8 +276,6 @@ export function Dashboard() {
                 <div className="fixed inset-0  bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-[var(--color-bg-primary)] text-white border border-gray-700 p-5 sm:p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 scale-100">
                         <h2 className="text-xl font-semibold mb-6 text-center text-amber-400">Editar Perfil</h2>
-
-                       
                         <div className="mb-5">
                             <label htmlFor="profileImageInput" className="block text-sm font-medium mb-2 text-white">Selecionar Nova Imagem</label>
                             <input
@@ -289,8 +286,6 @@ export function Dashboard() {
                                 className="block w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
                             />
                         </div>
-
-                       
                         {selectedImage && (
                             <div className="mb-6 border border-gray-600 rounded-lg p-3 bg-[var(--color-bg-tertiary)]">
                                 <p className="text-sm mb-2 text-white">Preview:</p>
@@ -309,8 +304,6 @@ export function Dashboard() {
                                 </div>
                             </div>
                         )}
-
-                      
                         <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8">
                             <button
                                 onClick={() => {

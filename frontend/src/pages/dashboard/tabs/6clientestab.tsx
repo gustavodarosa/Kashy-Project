@@ -1,22 +1,17 @@
 import { useState, useEffect } from 'react';
 import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
-type Product = {
+type User = {
   _id: string;
-  name: string;
-  description: string;
-  priceBRL: number;
-  priceBCH: number;
-  quantity: number;
-  sku: string;
-  category: string;
+  email: string;
+  role: 'user' | 'merchant';
   isActive: boolean;
   createdAt: string;
 };
 
-export function ProdutosTab() {
-  // Estado para os produtos
-  const [products, setProducts] = useState<Product[]>([]);
+export function ClientesTab() {
+  // Estado para os usuários
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -27,105 +22,66 @@ export function ProdutosTab() {
   
   // Estado para busca/filtro
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
   // Estado para o formulário
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    priceBRL: 0,
-    priceBCH: 0,
-    quantity: 0,
-    sku: '',
-    category: 'outros',
+    email: '',
+    role: 'user' as 'user' | 'merchant',
     isActive: true
   });
 
-  // Categorias de produtos
-  const categories = [
-    { value: 'alimentos', label: 'Alimentos' },
-    { value: 'bebidas', label: 'Bebidas' },
-    { value: 'eletronicos', label: 'Eletrônicos' },
-    { value: 'vestuario', label: 'Vestuário' },
-    { value: 'servicos', label: 'Serviços' },
-    { value: 'outros', label: 'Outros' }
-  ];
-
   // Simulação de fetch de dados
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchUsers = async () => {
       try {
         setLoading(true);
         // Simulando uma chamada API
         await new Promise(resolve => setTimeout(resolve, 800));
         
         // Dados mockados
-        const mockProducts: Product[] = Array.from({ length: 25 }, (_, i) => ({
-          _id: `prod-${i}`,
-          name: `Produto ${i + 1}`,
-          description: `Descrição do produto ${i + 1}`,
-          priceBRL: Math.random() * 100 + 10,
-          priceBCH: (Math.random() * 100 + 10) * 0.0001,
-          quantity: Math.floor(Math.random() * 100),
-          sku: `SKU-${1000 + i}`,
-          category: categories[Math.floor(Math.random() * categories.length)].value,
+        const mockUsers: User[] = Array.from({ length: 25 }, (_, i) => ({
+          _id: `user-${i}`,
+          email: `usuario${i}@exemplo.com`,
+          role: i % 3 === 0 ? 'merchant' : 'user',
           isActive: i % 5 !== 0, // 1 em cada 5 inativo
           createdAt: new Date(Date.now() - i * 86400000).toISOString()
         }));
         
-        // Aplicar filtros
-        const filteredProducts = mockProducts.filter(product => {
-          const matchesSearch = 
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-          
-          const matchesCategory = 
-            selectedCategory === 'all' || product.category === selectedCategory;
-          
-          return matchesSearch && matchesCategory;
-        });
+        // Aplicar filtro de busca
+        const filteredUsers = mockUsers.filter(user =>
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.role.toLowerCase().includes(searchTerm.toLowerCase())
+        );
         
         // Paginação
         const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+        const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
         
-        setProducts(paginatedProducts);
-        setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
+        setUsers(paginatedUsers);
+        setTotalPages(Math.ceil(filteredUsers.length / itemsPerPage));
         setError(null);
       } catch (err) {
-        setError('Erro ao carregar produtos');
+        setError('Erro ao carregar usuários');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory]);
+    fetchUsers();
+  }, [currentPage, searchTerm]);
 
   // Manipuladores de formulário
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
     
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-              type === 'number' ? parseFloat(value) || 0 : 
-              value
+      [name]: type === 'checkbox' ? checked : value
     }));
-
-    // Calcular automaticamente o preço em BCH quando BRL é alterado
-    if (name === 'priceBRL') {
-      const brlValue = parseFloat(value) || 0;
-      setFormData(prev => ({
-        ...prev,
-        priceBCH: brlValue * 0.0001 // Simulação de conversão
-      }));
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,209 +90,110 @@ export function ProdutosTab() {
       // Simulando chamada API
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      if (currentProduct) {
-        // Atualizar produto existente
-        setProducts(prev => prev.map(p => 
-          p._id === currentProduct._id ? { ...p, ...formData } : p
+      if (currentUser) {
+        // Atualizar usuário existente
+        setUsers(prev => prev.map(u => 
+          u._id === currentUser._id ? { ...u, ...formData } : u
         ));
       } else {
-        // Adicionar novo produto
-        const newProduct: Product = {
-          _id: `prod-${Date.now()}`,
-          ...formData,
+        // Adicionar novo usuário
+        const newUser: User = {
+          _id: `user-${Date.now()}`,
+          email: formData.email,
+          role: formData.role,
+          isActive: formData.isActive,
           createdAt: new Date().toISOString()
         };
-        setProducts(prev => [newProduct, ...prev]);
+        setUsers(prev => [newUser, ...prev]);
       }
       
       resetForm();
     } catch (err) {
-      console.error('Erro ao salvar produto:', err);
+      console.error('Erro ao salvar usuário:', err);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      priceBRL: 0,
-      priceBCH: 0,
-      quantity: 0,
-      sku: '',
-      category: 'outros',
+      email: '',
+      role: 'user',
       isActive: true
     });
-    setCurrentProduct(null);
+    setCurrentUser(null);
     setIsFormOpen(false);
   };
 
-  const handleEdit = (product: Product) => {
-    setCurrentProduct(product);
+  const handleEdit = (user: User) => {
+    setCurrentUser(user);
     setFormData({
-      name: product.name,
-      description: product.description,
-      priceBRL: product.priceBRL,
-      priceBCH: product.priceBCH,
-      quantity: product.quantity,
-      sku: product.sku,
-      category: product.category,
-      isActive: product.isActive
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive
     });
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (productId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
+  const handleDelete = async (userId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
       try {
         // Simulando chamada API
         await new Promise(resolve => setTimeout(resolve, 300));
-        setProducts(prev => prev.filter(p => p._id !== productId));
+        setUsers(prev => prev.filter(u => u._id !== userId));
       } catch (err) {
-        console.error('Erro ao excluir produto:', err);
+        console.error('Erro ao excluir usuário:', err);
       }
     }
   };
 
-  // Formatação de valores monetários
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatBCH = (value: number) => {
-    return value.toFixed(6) + ' BCH';
-  };
-
+  // Formatação de dados
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
-      <h2 className="text-2xl font-bold mb-6">Dashboard de Produtos</h2>
+      <h2 className="text-2xl font-bold mb-6">Dashboard de CRUD Usuários</h2>
       
       {/* Barra de ações */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-64">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-          
-          <select
-            value={selectedCategory}
+        <div className="relative w-full md:w-64">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar usuários..."
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={searchTerm}
             onChange={(e) => {
-              setSelectedCategory(e.target.value);
+              setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full md:w-48 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todas categorias</option>
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value}>{cat.label}</option>
-            ))}
-          </select>
+          />
         </div>
         
         <button
           onClick={() => setIsFormOpen(true)}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
         >
-          <FiPlus /> Novo Produto
+          <FiPlus /> Novo Usuário
         </button>
       </div>
       
       {/* Formulário modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
-              {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
+              {currentUser ? 'Editar Usuário' : 'Adicionar Usuário'}
             </h3>
             
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Nome*</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Descrição</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Preço (BRL)*</label>
+                  <label className="block text-sm font-medium mb-1">Email</label>
                   <input
-                    type="number"
-                    name="priceBRL"
-                    value={formData.priceBRL}
-                    onChange={handleInputChange}
-                    min="0.01"
-                    step="0.01"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Preço (BCH)</label>
-                  <input
-                    type="number"
-                    name="priceBCH"
-                    value={formData.priceBCH}
-                    onChange={handleInputChange}
-                    min="0.000001"
-                    step="0.000001"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Quantidade*</label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">SKU*</label>
-                  <input
-                    type="text"
-                    name="sku"
-                    value={formData.sku}
+                    type="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -344,16 +201,15 @@ export function ProdutosTab() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Categoria*</label>
+                  <label className="block text-sm font-medium mb-1">Tipo</label>
                   <select
-                    name="category"
-                    value={formData.category}
+                    name="role"
+                    value={formData.role}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
+                    <option value="user">Usuário</option>
+                    <option value="merchant">Comerciante</option>
                   </select>
                 </div>
                 
@@ -384,7 +240,7 @@ export function ProdutosTab() {
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
                 >
-                  {currentProduct ? 'Atualizar' : 'Salvar'}
+                  {currentUser ? 'Atualizar' : 'Salvar'}
                 </button>
               </div>
             </form>
@@ -392,20 +248,20 @@ export function ProdutosTab() {
         </div>
       )}
       
-      {/* Tabela de produtos */}
+      {/* Tabela de usuários */}
       <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4">Carregando produtos...</p>
+            <p className="mt-4">Carregando usuários...</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400">
             <p>{error}</p>
           </div>
-        ) : products.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="p-8 text-center text-gray-400">
-            <p>Nenhum produto encontrado</p>
+            <p>Nenhum usuário encontrado</p>
           </div>
         ) : (
           <>
@@ -413,61 +269,51 @@ export function ProdutosTab() {
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-750">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nome</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Estoque</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Categoria</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tipo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data de Criação</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-gray-800 divide-y divide-gray-700">
-                  {products.map((product) => (
-                    <tr key={product._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">{product.name}</div>
-                        <div className="text-xs text-gray-400">{product.sku}</div>
-                      </td>
+                  {users.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
-                        <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
+                        <div className="text-sm font-medium">{user.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.quantity > 10 
-                            ? 'bg-green-100 text-green-800' 
-                            : product.quantity > 0 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-red-100 text-red-800'
+                          user.role === 'merchant' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {product.quantity} unidades
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {categories.find(c => c.value === product.category)?.label || 'Outros'}
+                          {user.role === 'merchant' ? 'Comerciante' : 'Usuário'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.isActive 
+                          user.isActive 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {product.isActive ? 'Ativo' : 'Inativo'}
+                          {user.isActive ? 'Ativo' : 'Inativo'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                        {formatDate(user.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-3">
                           <button
-                            onClick={() => handleEdit(product)}
+                            onClick={() => handleEdit(user)}
                             className="text-blue-400 hover:text-blue-300 transition-colors"
                             title="Editar"
                           >
                             <FiEdit size={18} />
                           </button>
                           <button
-                            onClick={() => handleDelete(product._id)}
+                            onClick={() => handleDelete(user._id)}
                             className="text-red-400 hover:text-red-300 transition-colors"
                             title="Excluir"
                           >
@@ -481,7 +327,7 @@ export function ProdutosTab() {
               </table>
             </div>
             
-            {/* Paginação (igual ao componente de usuários) */}
+            {/* Paginação */}
             <div className="px-6 py-4 flex items-center justify-between border-t border-gray-700">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
@@ -504,7 +350,7 @@ export function ProdutosTab() {
                 <div>
                   <p className="text-sm text-gray-400">
                     Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
-                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> de{' '}
+                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, users.length)}</span> de{' '}
                     <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
                   </p>
                 </div>

@@ -5,11 +5,12 @@
   --color-bg-primary: #19181D;
   --color-bg-secondary: #1F1E22;
   --color-bg-tertiary: #28272b;
+  --color-shadow: #0a090a;
   --color-text-primary: #ffffff;
   --color-text-secondary: #a0aec0;
   --color-accent: #f59e0b;
   --color-accent-hover: #d97706;
-  --color-border: #4a5568;
+  --color-border: #303030;
   --color-success: #10b981;
   --color-success-hover: #059669; 
   --color-danger: #ef4444;

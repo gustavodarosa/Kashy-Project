@@ -19,19 +19,13 @@ const Register = () => {
     setMessage("");
 
     try {
-      const response = await fetch("http://localhost:3000/api/users/register", {
+      const response = await fetch("http://localhost:5000/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
-         
+        body: JSON.stringify({ username, email, password }), 
       });
-
-      const errorData = await response.json();
-console.log("Erro do backend:", errorData);
-setMessage(errorData.message || "Erro ao cadastrar usuário.");
-      
 
       if (response.ok) {
         setMessage("Usuário cadastrado com sucesso!");
@@ -60,7 +54,7 @@ setMessage(errorData.message || "Erro ao cadastrar usuário.");
         <h2 className="text-3xl font-bold text-center">Crie sua conta</h2>
 
         {message && (
-          <div className="text-red-500 text-sm w-4/5 text-center">{message}</div>
+          <div className="text-green-700 text-sm w-4/5 text-center">{message}</div>
         )}
 
         <div className="relative w-4/5">
