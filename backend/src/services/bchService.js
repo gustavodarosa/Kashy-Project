@@ -18,26 +18,24 @@ const DEFAULT_DERIVATION_PATH = "m/44'/145'/0'/0/0";
  * Generates a new BCH address and wallet details using bch-js.
  * @returns {object} - Contains mnemonic, private key (WIF), public key, and address.
  */
-async function generateAddress() {
+const generateAddress = async () => {
   try {
-    const mnemonic = bchjs.Mnemonic.generate();
-    const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
-    const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
-    const childNode = masterHDNode.derivePath(DEFAULT_DERIVATION_PATH);
-    const cashAddress = bchjs.HDNode.toCashAddress(childNode);
+    const mnemonic = bchjs.Mnemonic.generate(128); // Gera uma frase mnemônica
+    const rootSeed = await bchjs.Mnemonic.toSeed(mnemonic);
+    const hdNode = bchjs.HDNode.fromSeed(rootSeed);
+    const childNode = bchjs.HDNode.derivePath(hdNode, "m/44'/145'/0'/0/0");
+    const address = bchjs.HDNode.toCashAddress(childNode);
 
     return {
-      mnemonic: mnemonic,
-      wif: bchjs.HDNode.toWIF(childNode),
-      publicKey: bchjs.HDNode.toPublicKey(childNode).toString('hex'),
-      address: cashAddress,
-      derivationPath: DEFAULT_DERIVATION_PATH,
+      mnemonic,
+      derivationPath: "m/44'/145'/0'/0/0",
+      address,
     };
   } catch (error) {
-    console.error('Error generating address with bch-js:', error);
-    throw new Error(`Error generating BCH address: ${error.message}`);
+    console.error('Erro ao gerar endereço BCH:', error);
+    throw new Error('Erro ao gerar endereço BCH.');
   }
-}
+};
 
 /**
  * Validates if a BCH address is valid using bch-js.
@@ -61,29 +59,27 @@ function validateAddress(address) {
  */
 async function getBalance(address) {
   try {
-    // --- Use static method for conversion, REST instance for query ---
-    const cashAddress = BCHJS.Address.toCashAddress(address); // Use BCHJS.Address
-    const balanceResult = await bchjs.Electrumx.balance(cashAddress); // Use bchjs instance
+    // Converte o endereço para formato CashAddress
+    const cashAddress = bchjs.Address.toCashAddress(address);
+
+    // Obtém o saldo usando a API ElectrumX
+    const balanceResult = await bchjs.Electrumx.balance(cashAddress);
 
     if (!balanceResult || !balanceResult.success || !balanceResult.balance) {
-        console.error('Invalid balance response structure:', balanceResult);
-        throw new Error('Failed to retrieve valid balance structure.');
+      console.error('Resposta de saldo inválida:', balanceResult);
+      throw new Error('Falha ao obter estrutura de saldo válida.');
     }
+
     const confirmedSatoshis = balanceResult.balance.confirmed;
     const unconfirmedSatoshis = balanceResult.balance.unconfirmed;
+
     return {
-      balance: confirmedSatoshis / 1e8,
+      balance: confirmedSatoshis / 1e8, // Converte satoshis para BCH
       unconfirmedBalance: unconfirmedSatoshis / 1e8,
     };
   } catch (error) {
-    console.error(`Error getting balance for ${address} with bch-js:`, error);
-    if (error.message && error.message.includes('Network Error')) {
-         throw new Error('Network error while getting BCH balance. Check API server connection.');
-    }
-    if (error.message && error.message.includes('Invalid BCH address')) {
-         throw new Error('Invalid BCH address format provided for balance check.');
-    }
-    throw new Error(`Error getting BCH address balance: ${error.message}`);
+    console.error(`Erro ao obter saldo para ${address} com bch-js:`, error);
+    throw new Error(`Erro ao obter saldo do endereço BCH: ${error.message}`);
   }
 }
 
@@ -173,6 +169,7 @@ async function sendTransaction(fromWif, toAddress, amountBCH) {
     throw new Error(`Error sending BCH transaction: ${error.message}`);
   }
 }
+
 
 module.exports = {
     generateAddress,

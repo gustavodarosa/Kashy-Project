@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
 const userRoutes = require('./routes/userRoutes');
+const walletRoutes = require('./routes/walletRoutes'); // Certifique-se de que o arquivo existe
 
 const errorHandler = require('./middlewares/errorHandler');
 require('dotenv').config(); // Load env vars
@@ -13,7 +14,7 @@ app.use(cors()); // Apply CORS
 app.use(express.json()); // Crucial for parsing JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Optional, for form data
 app.use('/api/users', userRoutes);
-
+app.use('/api/wallet', walletRoutes);
 // Mount API routes
 app.use('/api', routes); // Make sure this line exists and is correct
 
