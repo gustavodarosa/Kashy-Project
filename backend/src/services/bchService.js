@@ -92,81 +92,56 @@ async function getBalance(address) {
  */
 async function sendTransaction(fromWif, toAddress, amountBCH) {
   try {
-    if (!fromWif || !toAddress || amountBCH <= 0) {
-      throw new Error('Invalid input for sendTransaction: WIF, toAddress, and positive amount required.');
-    }
-    // --- Use static method for validation ---
-    if (!BCHJS.Address.isCashAddress(toAddress)) { // Use BCHJS.Address
-        throw new Error(`Invalid recipient address: ${toAddress}`);
-    }
+    const keyPair = BCHJS.ECPair.fromWIF(fromWif);
+    const fromAddress = BCHJS.ECPair.toCashAddress(keyPair);
 
-    const amountSatoshis = Math.round(amountBCH * 1e8);
-
-    // --- Use static methods for keypair/address derivation ---
-    const keyPair = BCHJS.ECPair.fromWIF(fromWif); // Use BCHJS.ECPair
-    const fromAddress = BCHJS.ECPair.toCashAddress(keyPair); // Use BCHJS.ECPair
-
-    // --- Use REST instance for UTXOs ---
-    const utxosResponse = await bchjs.Electrumx.utxo(fromAddress); // Use bchjs instance
-     if (!utxosResponse || !utxosResponse.success || !utxosResponse.utxos) {
-        console.error('Invalid UTXO response structure:', utxosResponse);
-        throw new Error('Failed to retrieve valid UTXO structure.');
-    }
+    // Obter UTXOs e construir a transação
+    const utxosResponse = await bchjs.Electrumx.utxo(fromAddress);
     const utxos = utxosResponse.utxos;
-    if (utxos.length === 0) throw new Error('No spendable UTXOs found.');
 
-    // --- Use TransactionBuilder class from BCHJS ---
-    const transactionBuilder = new BCHJS.TransactionBuilder(network); // Use BCHJS.TransactionBuilder
-
+    const transactionBuilder = new BCHJS.TransactionBuilder('mainnet');
     let totalInputSatoshis = 0;
+
     utxos.forEach(utxo => {
       totalInputSatoshis += utxo.value;
       transactionBuilder.addInput(utxo.tx_hash, utxo.tx_pos);
     });
 
-    // --- Use static method for byte count ---
-    const byteCount = BCHJS.BitcoinCash.getByteCount( // Use BCHJS.BitcoinCash
-        { P2PKH: utxos.length }, { P2PKH: 2 }
-    );
+    const amountSatoshis = Math.round(amountBCH * 1e8);
+    const byteCount = BCHJS.BitcoinCash.getByteCount({ P2PKH: utxos.length }, { P2PKH: 2 });
     const feeSatoshis = byteCount;
 
     if (totalInputSatoshis < amountSatoshis + feeSatoshis) {
-      throw new Error(
-        `Insufficient funds. Required: ${amountSatoshis + feeSatoshis} satoshis, Available: ${totalInputSatoshis} satoshis.`
-      );
+      throw new Error('Saldo insuficiente.');
     }
 
     transactionBuilder.addOutput(toAddress, amountSatoshis);
+
     const changeSatoshis = totalInputSatoshis - amountSatoshis - feeSatoshis;
     if (changeSatoshis > 546) {
       transactionBuilder.addOutput(fromAddress, changeSatoshis);
     }
 
     let inputIndex = 0;
-    for (const utxo of utxos) {
+    utxos.forEach(utxo => {
       transactionBuilder.sign(
-        inputIndex, keyPair, undefined,
-        transactionBuilder.hashTypes.SIGHASH_ALL, utxo.value
+        inputIndex,
+        keyPair,
+        undefined,
+        transactionBuilder.hashTypes.SIGHASH_ALL,
+        utxo.value
       );
       inputIndex++;
-    }
+    });
 
     const tx = transactionBuilder.build();
     const hex = tx.toHex();
+    const txid = await bchjs.RawTransactions.sendRawTransaction(hex);
 
-    // --- Use REST instance for broadcasting ---
-    const txid = await bchjs.RawTransactions.sendRawTransaction(hex); // Use bchjs instance
-    return txid;
-
+    return { txid, fromAddress, toAddress, amountBCH };
   } catch (error) {
-    console.error('Error sending transaction with bch-js:', error);
-    if (error.message && (error.message.includes('Insufficient funds') || error.message.includes('No spendable UTXOs'))) {
-        throw error;
-    }
-    if (error.response && error.response.data && error.response.data.error) {
-        throw new Error(`Error broadcasting transaction: ${error.response.data.error}`);
-    }
-    throw new Error(`Error sending BCH transaction: ${error.message}`);
+    console.error('Erro ao enviar transação:', error);
+    throw new Error('Erro ao enviar transação.');
   }
 }
 

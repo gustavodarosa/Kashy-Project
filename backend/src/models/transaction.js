@@ -4,41 +4,42 @@ const mongoose = require('mongoose');
 const transactionSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Link to the User model
+        ref: 'User',
         required: true,
-        index: true, // Index for faster lookups by user
+        index: true,
     },
     txid: {
         type: String,
         required: true,
-        index: true, // Index for potential lookups by txid
+        index: true,
     },
     type: {
         type: String,
-        enum: ['incoming', 'outgoing', 'internal'], // Type of transaction relative to the user's wallet
+        enum: ['incoming', 'outgoing', 'internal'],
         required: true,
     },
     amountSatoshis: {
-        type: Number, // Store the net amount change for the user in satoshis
+        type: Number,
         required: true,
     },
     address: {
-        type: String, // The user's address involved in this tx
+        type: String, // The user's address involved in this transaction
         required: true,
     },
     blockHeight: {
-        type: Number, // Block height when confirmed (-1 or 0 for unconfirmed/mempool)
+        type: Number,
         required: true,
     },
     timestamp: {
-        type: Date, // Timestamp of the block or detection time
+        type: Date,
         required: true,
-        default: Date.now,
-        index: true, // Index for sorting by time
     },
-    // Add other fields if needed, e.g., fee, specific inputs/outputs involved
-}, {
-    timestamps: true // Adds createdAt and updatedAt automatically
+    fromAddress: {
+        type: String,
+    },
+    toAddress: {
+        type: String,
+    },
 });
 
 // Optional: Compound index to prevent duplicate transaction entries per user

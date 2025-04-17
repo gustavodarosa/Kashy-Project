@@ -342,11 +342,13 @@ class SpvMonitorService {
                             const newDbTransaction = new Transaction({
                                 userId: user._id,
                                 txid: txid,
-                                address: bchAddress,
-                                blockHeight: blockHeight || 0, // Use 0 for mempool/unconfirmed
-                                timestamp: new Date(), // Timestamp of detection
-                                amountSatoshis: absoluteAmountSatoshis, // Store the absolute batch amount change
-                                type: batchType, // Store the overall batch type
+                                type: batchType,
+                                amountSatoshis: absoluteAmountSatoshis,
+                                address: bchAddress, // Ensure the user's BCH address is set here
+                                blockHeight: blockHeight || 0,
+                                timestamp: new Date(),
+                                fromAddress: txInfo.fromAddress || null, // Optional field
+                                toAddress: bchAddress, // Optional field
                             });
 
                             await newDbTransaction.save();

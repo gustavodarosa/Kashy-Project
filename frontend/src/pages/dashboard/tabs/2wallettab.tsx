@@ -11,6 +11,8 @@ type Transaction = {
   amountBCH: number;
   amountBRL: number;
   address: string;
+  fromAddress?: string; // Adicione o campo fromAddress
+
   txid?: string; // Changed from txHash to match backend model
   timestamp: string;
   // Adjusted status based on backend model (may not exist directly on tx, inferred?)
@@ -96,10 +98,10 @@ export function WalletTab() {
       // Map backend transaction type ('incoming'/'outgoing') to frontend ('received'/'sent')
       const fetchedTransactions: Transaction[] = (data.transactions || []).map((tx: any) => ({
         ...tx,
-        type: tx.type === 'incoming' ? 'received' : tx.type === 'outgoing' ? 'sent' : tx.type, // Map types
-        // Ensure status is handled (maybe derive from blockHeight?)
-        status: tx.blockHeight && tx.blockHeight > 0 ? 'confirmed' : 'pending', // Example derivation
-        txHash: tx.txid, // Map txid to txHash if needed by UI, or use txid directly
+        type: tx.type === 'incoming' ? 'received' : tx.type === 'outgoing' ? 'sent' : tx.type,
+        status: tx.blockHeight && tx.blockHeight > 0 ? 'confirmed' : 'pending',
+        txid: tx.txid, // Use txid from backend
+        fromAddress: tx.fromAddress, // Include fromAddress
       }));
       // --- End Adaptation ---
 
@@ -235,7 +237,6 @@ export function WalletTab() {
 
   // --- Função para copiar endereço ---
   const copyToClipboard = () => {
-    // ... (copyToClipboard function remains the same) ...
     if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress)
       .then(() => {
@@ -249,7 +250,6 @@ export function WalletTab() {
 
   // --- Funções de formatação ---
   const formatCurrency = (value: number | undefined) => {
-    // ... (formatCurrency function remains the same) ...
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -257,12 +257,10 @@ export function WalletTab() {
   };
 
   const formatBCH = (value: number | undefined) => {
-    // ... (formatBCH function remains the same) ...
     return (value || 0).toFixed(8) + ' BCH';
   };
 
   const formatDate = (dateString: string) => {
-    // ... (formatDate function remains the same) ...
     try {
       return new Date(dateString).toLocaleString('pt-BR');
     } catch {
@@ -271,7 +269,6 @@ export function WalletTab() {
   };
 
   const formatAddress = (address: string | undefined) => {
-    // ... (formatAddress function remains the same) ...
     if (!address || address.length < 10) return address || 'N/A';
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
@@ -281,7 +278,6 @@ export function WalletTab() {
   const BRL_PER_BCH = balance.totalBCH && balance.totalBRL ? balance.totalBRL / balance.totalBCH : 7000;
 
   const handleAmountChange = (value: string, type: 'BCH' | 'BRL') => {
-    // ... (handleAmountChange function remains the same) ...
     const numericValue = parseFloat(value) || 0;
     if (type === 'BCH') {
       setSendForm({
@@ -339,7 +335,6 @@ export function WalletTab() {
       )}
 
       {/* Cards de Saldo */}
-      {/* ... (Card rendering logic remains the same, using state values) ... */}
        {loading && !balance.totalSatoshis ? ( // Show skeleton only on initial load
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-pulse">
             <div className="bg-[var(--color-bg-secondary)] h-32 rounded-lg p-6"></div>
@@ -394,7 +389,6 @@ export function WalletTab() {
 
 
       {/* Ações Rápidas */}
-      {/* ... (Buttons rendering logic remains the same) ... */}
        <div className="flex flex-wrap gap-4 mb-8">
         <button
           onClick={() => setSendModalOpen(true)}
@@ -420,7 +414,6 @@ export function WalletTab() {
 
 
       {/* Histórico Recente */}
-      {/* ... (Transaction list rendering logic remains the same, using state values) ... */}
        <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
         <h3 className="text-xl font-semibold mb-4">Transações Recentes</h3>
 
@@ -446,56 +439,65 @@ export function WalletTab() {
           <div className="text-gray-400 text-center py-8">Nenhuma transação encontrada.</div>
         ) : (
           <div className="space-y-4">
-            {transactions.map((tx) => (
-              <div key={tx._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg transition-colors">
+            {transactions.map((tx, index) => ( // Added index parameter
+              <div
+                key={tx._id || `tx-fallback-${index}`} // Use _id if available, otherwise fallback to index
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg transition-colors"
+              >
                 <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                  <div className={`flex-shrink-0 p-3 rounded-full ${
-                    tx.type === 'received' ? 'bg-green-900 text-green-400' : 'bg-blue-900 text-blue-400'
-                  }`}>
+                  <div
+                    className={`flex-shrink-0 p-3 rounded-full ${
+                      tx.type === 'received' ? 'bg-green-900 text-green-400' : 'bg-blue-900 text-blue-400'
+                    }`}
+                  >
                     {tx.type === 'received' ? <FiArrowDown size={20} /> : <FiArrowUp size={20} />}
                   </div>
                   <div>
                     <p className="font-medium text-sm sm:text-base">
                       {tx.type === 'received' ? 'Recebido de' : 'Enviado para'}
-                      <span className="ml-1 font-mono text-blue-400">{formatAddress(tx.address)}</span>
+                      <span className="ml-1 font-mono text-blue-400">
+                        {/* Use fromAddress for received, address for sent */}
+                        {tx.type === 'received'
+  ? (tx.fromAddress ? formatAddress(tx.fromAddress) : 'Origem Desconhecida') // Check if fromAddress exists
+  : formatAddress(tx.address)
+}
+                      </span>
                     </p>
                     <p className="text-xs sm:text-sm text-gray-400">{formatDate(tx.timestamp)}</p>
-                    {tx.txid && ( // Use txid here
-                       <a
-                         href={`https://explorer.bitcoinabc.org/tx/${tx.txid}`} // Link to explorer using txid
-                         target="_blank"
-                         rel="noopener noreferrer"
-                         className="text-xs text-gray-500 hover:text-blue-400 break-all"
-                         title={tx.txid}
-                       >
-                         Hash: {formatAddress(tx.txid)}
-                       </a>
+                    {tx.txid && (
+                      <a
+                        href={`https://explorer.bitcoinabc.org/tx/${tx.txid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-500 hover:text-blue-400 break-all"
+                        title={tx.txid}
+                      >
+                        Hash: {formatAddress(tx.txid)}
+                      </a>
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col items-end ml-auto sm:ml-0 pl-16 sm:pl-0">
-                   <p className={`font-bold text-sm sm:text-base ${
+                  <p
+                    className={`font-bold text-sm sm:text-base ${
                       tx.type === 'received' ? 'text-green-400' : 'text-blue-400'
-                    }`}>
-                      {tx.type === 'received' ? '+' : '-'}{formatBCH(tx.amountBCH)} {/* Added sign */}
-                   </p>
-                   <p className="text-xs sm:text-sm text-gray-400">
-                      {formatCurrency(tx.amountBRL)}
-                   </p>
-                   <div className="mt-1">
-                      {/* Derive status based on blockHeight */}
-                      {tx.blockHeight && tx.blockHeight > 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                          Confirmado ({tx.confirmations || '✓'})
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                          Pendente ({tx.confirmations || 0} conf.)
-                        </span>
-                      )}
-                      {/* Add failed status if backend provides it */}
-                      {/* {tx.status === 'failed' && (...)} */}
-                   </div>
+                    }`}
+                  >
+                    {tx.type === 'received' ? '+' : '-'}
+                    {formatBCH(tx.amountBCH)}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-400">{formatCurrency(tx.amountBRL)}</p>
+                  <div className="mt-1">
+                    {tx.blockHeight && tx.blockHeight > 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Confirmado ({tx.confirmations || '✓'})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        Pendente ({tx.confirmations || 0} conf.)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -505,7 +507,6 @@ export function WalletTab() {
 
 
       {/* --- Modal de Envio --- */}
-      {/* ... (Send Modal rendering logic remains the same) ... */}
        {sendModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl">
@@ -652,7 +653,6 @@ export function WalletTab() {
 
 
       {/* --- Modal de Recebimento --- */}
-      {/* ... (Receive Modal rendering logic remains the same) ... */}
        {receiveModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md shadow-xl">
@@ -718,4 +718,4 @@ export function WalletTab() {
 
     </div>
   );
-}
+} // Removed extra closing brace here

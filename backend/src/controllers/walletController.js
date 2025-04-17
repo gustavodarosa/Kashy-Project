@@ -6,48 +6,41 @@ const Transaction = require('../models/transaction'); // <-- Import the Transact
 
 const getWalletData = async (req, res) => {
     try {
-        const userId = req.user.id; // Get user ID from authenticated token payload
+        const userId = req.user.id;
         const user = await User.findById(userId);
 
         if (!user) {
             return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
 
-        // --- Get Balance from User Model ---
         const balanceSatoshis = user.balance || 0;
 
-        // --- Get Transactions from Database ---
         const userTransactions = await Transaction.find({ userId: userId })
-            .sort({ timestamp: -1 }) // Sort by most recent first
-            .limit(50); // Limit to the latest 50 transactions (or implement pagination)
+            .sort({ timestamp: -1 })
+            .limit(50);
 
-        // --- Prepare Response Data ---
-        const SATOSHIS_PER_BCH = 100000000;
-        // WARNING: Hardcoding BRL rate is bad practice. Use a real-time API in production.
-        const BRL_PER_BCH_EXAMPLE = 3500; // Example rate
+            const transactions = userTransactions.map(tx => ({
+                txid: tx.txid,
+                type: tx.type,
+                amountSatoshis: tx.amountSatoshis,
+                amountBCH: tx.amountSatoshis / 1e8,
+                timestamp: tx.timestamp,
+                blockHeight: tx.blockHeight,
+                fromAddress: tx.fromAddress || 'N/A', // Certifique-se de incluir o fromAddress
+                toAddress: tx.toAddress,
+              }));
 
         const walletData = {
             balance: {
                 totalSatoshis: balanceSatoshis,
-                totalBCH: balanceSatoshis / SATOSHIS_PER_BCH,
-                totalBRL: (balanceSatoshis / SATOSHIS_PER_BCH) * BRL_PER_BCH_EXAMPLE,
-                // Add confirmed/unconfirmed if you store them separately on the User model
+                totalBCH: balanceSatoshis / 1e8,
+                totalBRL: (balanceSatoshis / 1e8) * 3500, // Exemplo de taxa BRL
             },
-            // Map transactions to a cleaner format if desired, or send as is
-            transactions: userTransactions.map(tx => ({
-                txid: tx.txid,
-                type: tx.type,
-                amountSatoshis: tx.amountSatoshis,
-                amountBCH: tx.amountSatoshis / SATOSHIS_PER_BCH,
-                timestamp: tx.timestamp,
-                blockHeight: tx.blockHeight,
-                // Add other fields from the Transaction model if needed
-            })),
+            transactions,
             address: user.bchAddress,
         };
 
         res.status(200).json(walletData);
-
     } catch (error) {
         console.error('Erro ao obter dados da carteira:', error);
         res.status(500).json({ message: 'Erro ao obter dados da carteira.', error: error.message });
