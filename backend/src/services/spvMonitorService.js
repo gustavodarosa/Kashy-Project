@@ -8,10 +8,9 @@ const User = require('../models/user');
 // Ensure this path is correct and the model requires amount/type
 const Transaction = require('../models/transaction'); // Assuming filename is transaction.js based on context
 const { FULCRUM_SERVERS } = require('../config/fullcrumConfig');
-// const BCHJS = require('@psf/bch-js'); // <-- REMOVED external API dependency
+// const { io } = require('../server'); // <-- REMOVED THIS LINE (Circular Dependency)
 
 // --- Configuration ---
-// REMOVED bchjs REST API config
 const RECONNECT_DELAY_MS = 10000;
 const ELECTRUM_PROTOCOL_VERSION = '1.4';
 
@@ -65,6 +64,13 @@ class SpvMonitorService {
         this.reconnectTimeout = null;
         this.isConnecting = false;
         this.isRunning = false;
+        this.io = null; // <-- Property to hold the io instance
+    }
+
+    // --- Method to set the io instance (Dependency Injection) ---
+    setIoServer(ioInstance) {
+        this.io = ioInstance;
+        console.log("SPV: Socket.IO server instance received.");
     }
 
     // --- Connection Management ---
@@ -247,9 +253,10 @@ class SpvMonitorService {
     async handleSubscriptionUpdate(scriptHash, status) {
         const subInfo = this.subscriptions.get(scriptHash);
         if (!subInfo) {
-            console.warn(`SPV: Received update for untracked scriptHash: ${scriptHash}`);
-            return;
+          console.warn(`SPV: Atualização recebida para scriptHash não rastreado: ${scriptHash}`);
+          return;
         }
+
         // Only process if status has actually changed
         if (status === subInfo.lastStatus) {
             // console.log(`SPV: Status unchanged for ${subInfo.bchAddress} (${scriptHash}). Skipping update.`);
@@ -257,8 +264,23 @@ class SpvMonitorService {
         }
         console.log(`SPV: 🚨 Status change detected for ${subInfo.bchAddress} (User: ${subInfo.userId}). Old: ${subInfo.lastStatus}, New: ${status}`);
         subInfo.lastStatus = status; // Update status *before* processing
+
+        // Process wallet info update (this saves to DB)
         await this.updateUserWalletInfo(subInfo.userId, subInfo.bchAddress, scriptHash);
-     }
+
+        // --- Emit WebSocket event AFTER processing ---
+        // Use this.io (injected instance) and check if it's set
+        if (this.io) {
+            console.log(`SPV: Emitting 'walletUpdate' to user room: ${subInfo.userId}`);
+            // Emit to the room named after the userId
+            this.io.to(subInfo.userId).emit('walletUpdate', {
+                message: `Wallet update detected for ${subInfo.bchAddress}`
+                // Payload is simple, client should refetch data via API
+            });
+        } else {
+            console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");
+        }
+      }
 
     async updateUserWalletInfo(userId, bchAddress, scriptHash) {
         console.log(`SPV: Updating wallet info for User: ${userId}, Address: ${bchAddress}`);
@@ -368,10 +390,10 @@ class SpvMonitorService {
                 await user.save();
                 console.log(`SPV: ✅ User ${userId} document updated successfully (Balance Changed: ${balanceChanged}, Processed Txs Changed: ${processedIdsChanged}).`);
 
-                if (newTxProcessedCount > 0) {
-                    console.log(`SPV: NOTIFICATION: ${newTxProcessedCount} new transaction record(s) saved for user ${userId}`);
-                    // Implement actual notification logic here if needed (e.g., WebSocket push)
-                }
+                // NOTE: WebSocket emission is now handled in handleSubscriptionUpdate AFTER this function completes
+                // if (newTxProcessedCount > 0) {
+                //     console.log(`SPV: NOTIFICATION: ${newTxProcessedCount} new transaction record(s) saved for user ${userId}`);
+                // }
             } else {
                  console.log(`SPV: No balance change or new processed txids found for ${bchAddress}.`);
             }
@@ -382,6 +404,8 @@ class SpvMonitorService {
              if (this.subscriptions.has(scriptHash)) {
                  this.subscriptions.get(scriptHash).lastStatus = null;
              }
+             // Re-throw the error if needed, or handle appropriately
+             // throw error;
         }
     } // End updateUserWalletInfo
 
@@ -460,10 +484,10 @@ class SpvMonitorService {
 // Create and export a single instance of the service
 const spvMonitorServiceInstance = new SpvMonitorService();
 
+// Export methods including the setter for dependency injection
 module.exports = {
     start: () => spvMonitorServiceInstance.start(),
     stop: () => spvMonitorServiceInstance.stop(),
     addSubscription: (userId, bchAddress) => spvMonitorServiceInstance.addSubscription(userId, bchAddress),
-    // Optionally expose the instance itself if needed elsewhere (use with caution)
-    // getInstance: () => spvMonitorServiceInstance
+    setIoServer: (ioInstance) => spvMonitorServiceInstance.setIoServer(ioInstance) // Expose the setter
 };

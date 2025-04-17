@@ -1,70 +1,77 @@
 import { useState, useEffect } from 'react';
 import { FiArrowUp, FiArrowDown, FiCopy, FiDollarSign, FiCode, FiClock, FiRefreshCw } from 'react-icons/fi';
-// Se você for usar QR Code real, precisará de uma biblioteca como qrcode.react
-// import QRCode from 'qrcode.react';
+import { io, Socket } from 'socket.io-client'; // Import socket.io client
+// import QRCode from 'qrcode.react'; // Keep commented if not using
 
-// --- Tipos (mantidos do seu código original) ---
+// --- Tipos ---
 type Transaction = {
   _id: string;
-  type: 'received' | 'sent';
+  // Adjusted type based on backend model (may include 'internal', 'unknown')
+  type: 'received' | 'sent' | 'incoming' | 'outgoing' | 'internal' | 'unknown';
   amountBCH: number;
-  amountBRL: number; // Assumindo que o backend retorna isso também
-  address: string; // Endereço da contraparte
-  txHash?: string; // Adicionado: Hash da transação na blockchain
+  amountBRL: number;
+  address: string;
+  txid?: string; // Changed from txHash to match backend model
   timestamp: string;
+  // Adjusted status based on backend model (may not exist directly on tx, inferred?)
+  // Let's assume status comes from somewhere or we derive it
   status: 'pending' | 'confirmed' | 'failed';
   confirmations?: number;
+  blockHeight?: number; // Added from backend model
 };
 
 type WalletBalance = {
   totalBCH: number;
-  availableBCH: number;
-  pendingBCH: number;
-  totalBRL: number; // Valor total estimado em BRL
+  availableBCH?: number; // Make optional if not always present
+  pendingBCH?: number;  // Make optional if not always present
+  totalBRL: number;
+  totalSatoshis?: number; // Added from backend response
 };
 
-// --- Constante para a URL da API (Melhor prática: usar variáveis de ambiente) ---
+// --- Constantes ---
 const API_BASE_URL = 'http://localhost:3000/api';
+const WEBSOCKET_URL = 'http://localhost:3000'; // Your backend URL
 
 export function WalletTab() {
-  // --- Estados (mantidos e ajustados) ---
+  // --- Estados ---
   const [balance, setBalance] = useState<WalletBalance>({
     totalBCH: 0,
-    availableBCH: 0,
-    pendingBCH: 0,
     totalBRL: 0,
+    totalSatoshis: 0,
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string>(''); // Será preenchido pela API
+  const [walletAddress, setWalletAddress] = useState<string>('');
   const [sendModalOpen, setSendModalOpen] = useState<boolean>(false);
   const [receiveModalOpen, setReceiveModalOpen] = useState<boolean>(false);
   const [sendForm, setSendForm] = useState({
     address: '',
     amountBCH: '',
-    amountBRL: '', // Mantido para UI, mas não enviado diretamente
+    amountBRL: '',
     fee: 'medium' as 'low' | 'medium' | 'high',
   });
-  const [isSending, setIsSending] = useState<boolean>(false); // Estado para feedback de envio
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [socket, setSocket] = useState<Socket | null>(null); // State for the socket instance
 
   // --- Função para buscar dados da carteira ---
   const fetchWalletData = async () => {
+    // Only set loading if not already loading to avoid flicker on WebSocket update
+    if (!loading) setLoading(true);
+    // Don't clear error immediately, let new fetch overwrite or succeed
+    // setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const token = localStorage.getItem('token');
-  
       if (!token) {
         throw new Error('Usuário não autenticado. Faça login novamente.');
       }
-  
+
       const response = await fetch(`${API_BASE_URL}/wallet`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (!response.ok) {
         let errorMsg = 'Erro ao carregar dados da carteira';
         try {
@@ -73,48 +80,120 @@ export function WalletTab() {
         } catch (parseError) {}
         throw new Error(errorMsg);
       }
-  
+
       const data = await response.json();
-      setBalance(data.balance);
-      setTransactions(data.transactions);
+
+      // --- Adapt parsing based on actual backend response ---
+      const fetchedBalance: WalletBalance = {
+        totalBCH: data.balance?.totalBCH || 0,
+        totalBRL: data.balance?.totalBRL || 0,
+        totalSatoshis: data.balance?.totalSatoshis || 0,
+        // Add available/pending if your backend provides them
+        availableBCH: data.balance?.availableBCH, // Example
+        pendingBCH: data.balance?.pendingBCH,   // Example
+      };
+
+      // Map backend transaction type ('incoming'/'outgoing') to frontend ('received'/'sent')
+      const fetchedTransactions: Transaction[] = (data.transactions || []).map((tx: any) => ({
+        ...tx,
+        type: tx.type === 'incoming' ? 'received' : tx.type === 'outgoing' ? 'sent' : tx.type, // Map types
+        // Ensure status is handled (maybe derive from blockHeight?)
+        status: tx.blockHeight && tx.blockHeight > 0 ? 'confirmed' : 'pending', // Example derivation
+        txHash: tx.txid, // Map txid to txHash if needed by UI, or use txid directly
+      }));
+      // --- End Adaptation ---
+
+      setBalance(fetchedBalance);
+      setTransactions(fetchedTransactions);
       setWalletAddress(data.address);
+      setError(null); // Clear error on successful fetch
+
     } catch (err: any) {
       console.error('Erro em fetchWalletData:', err);
       setError(err.message || 'Ocorreu um erro inesperado.');
+      // Don't clear data on error, keep showing old data if available
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Efeito para buscar dados iniciais ---
+  // --- Efeito para buscar dados iniciais E configurar WebSocket ---
   useEffect(() => {
+    // 1. Fetch initial data
     fetchWalletData();
-    // Configura um intervalo para atualizar os dados periodicamente (opcional)
-    // const intervalId = setInterval(fetchWalletData, 60000); // Atualiza a cada 60 segundos
-    // return () => clearInterval(intervalId); // Limpa o intervalo ao desmontar
-  }, []); // Array vazio garante que rode apenas na montagem inicial
+
+    // 2. Setup WebSocket
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn("WebSocket: No token found, cannot connect.");
+      setError("Autenticação necessária para atualizações em tempo real."); // Inform user
+      return; // Don't try to connect without token
+    }
+
+    // Connect to the WebSocket server, passing the token for authentication
+    // Use { transports: ['websocket'] } if you want to force WebSocket only
+    const newSocket = io(WEBSOCKET_URL, {
+      auth: { token }, // Send token for backend authentication
+      reconnectionAttempts: 5, // Limit reconnection attempts
+    });
+
+    newSocket.on('connect', () => {
+      console.log('WebSocket connected:', newSocket.id);
+      setSocket(newSocket); // Store the socket instance in state
+      setError(null); // Clear potential connection errors on successful connect
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.log('WebSocket disconnected:', reason);
+      setSocket(null); // Clear socket instance
+      // Optionally inform the user or attempt manual reconnect later
+      if (reason !== 'io client disconnect') { // Don't show error if disconnected manually
+         setError("Desconectado das atualizações em tempo real. Tentando reconectar...");
+      }
+    });
+
+    newSocket.on('connect_error', (err) => {
+      console.error('WebSocket connection error:', err.message);
+      setError(`Erro na conexão real-time: ${err.message}`);
+      setSocket(null);
+    });
+
+    // --- Listen for the 'walletUpdate' event from the backend ---
+    newSocket.on('walletUpdate', (data) => {
+      console.log('Wallet update received via WebSocket:', data);
+      // When an update is received, refetch the wallet data
+      fetchWalletData();
+      // Optionally, show a subtle notification to the user
+      // showToast("Carteira atualizada!");
+    });
+
+    // --- Cleanup function ---
+    return () => {
+      console.log('Disconnecting WebSocket...');
+      newSocket.disconnect(); // Disconnect when component unmounts
+      setSocket(null);
+    };
+
+  }, []); // Empty array: Run only on mount and clean up on unmount
 
   // --- Função para lidar com o envio de BCH ---
   const handleSendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSending(true); // Ativa o estado de envio
-    setError(null); // Limpa erros anteriores
+    setIsSending(true);
+    setError(null);
 
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Usuário não autenticado. Faça login novamente.');
-      }
+      if (!token) throw new Error('Usuário não autenticado.');
 
-      // Validação básica do formulário
       const amountToSend = parseFloat(sendForm.amountBCH);
-      if (isNaN(amountToSend) || amountToSend <= 0) {
-        throw new Error('Quantidade inválida.');
-      }
-      if (!sendForm.address.trim()) {
-        throw new Error('Endereço de destino é obrigatório.');
-      }
-      // Adicione mais validações se necessário (ex: formato do endereço BCH)
+      if (isNaN(amountToSend) || amountToSend <= 0) throw new Error('Quantidade inválida.');
+      if (!sendForm.address.trim()) throw new Error('Endereço de destino é obrigatório.');
+
+      // --- Use amount in SATOSHIS if backend expects it ---
+      // const amountSatoshis = Math.round(amountToSend * 1e8);
+      // if (amountSatoshis <= 546) throw new Error('Quantidade muito baixa (abaixo do dust limit).');
+      // --- End Satoshis ---
 
       const response = await fetch(`${API_BASE_URL}/wallet/send`, {
         method: 'POST',
@@ -124,7 +203,7 @@ export function WalletTab() {
         },
         body: JSON.stringify({
           address: sendForm.address,
-          amount: sendForm.amountBCH, // Envia a quantidade em BCH
+          amount: sendForm.amountBCH, // Send amount as BCH string (or amountSatoshis if backend expects that)
           fee: sendForm.fee,
         }),
       });
@@ -133,30 +212,30 @@ export function WalletTab() {
         let errorMsg = 'Erro ao enviar BCH';
         try {
           const errorData = await response.json();
-          errorMsg = errorData.message || errorMsg; // Usa a mensagem do backend se disponível
-        } catch (parseError) {
-          // Mantém a mensagem genérica
-        }
+          errorMsg = errorData.message || errorMsg;
+        } catch (parseError) {}
         throw new Error(errorMsg);
       }
 
-      // Sucesso!
-      alert('Transação enviada com sucesso!'); // Considere usar Toasts/Notificações
+      const result = await response.json(); // Get txid from response if available
+      alert(`Transação enviada com sucesso! TXID: ${result.txid || 'N/A'}`);
       setSendModalOpen(false);
-      setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' }); // Limpa o formulário
-      fetchWalletData(); // Atualiza os dados da carteira após o envio
+      setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' });
+      // No need to call fetchWalletData here, WebSocket update should trigger it
+      // fetchWalletData();
 
     } catch (err: any) {
       console.error("Erro em handleSendSubmit:", err);
-      setError(err.message || 'Ocorreu um erro inesperado ao enviar.'); // Mostra o erro no estado
-      alert(err.message || 'Erro ao enviar BCH'); // Mantém o alert por enquanto
+      setError(err.message || 'Ocorreu um erro inesperado ao enviar.');
+      // Error is now shown within the modal
     } finally {
-      setIsSending(false); // Desativa o estado de envio
+      setIsSending(false);
     }
   };
 
   // --- Função para copiar endereço ---
   const copyToClipboard = () => {
+    // ... (copyToClipboard function remains the same) ...
     if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress)
       .then(() => {
@@ -168,20 +247,22 @@ export function WalletTab() {
       });
   };
 
-  // --- Funções de formatação (mantidas) ---
-  const formatCurrency = (value: number) => {
+  // --- Funções de formatação ---
+  const formatCurrency = (value: number | undefined) => {
+    // ... (formatCurrency function remains the same) ...
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(value || 0);
   };
 
-  const formatBCH = (value: number) => {
-    // Evita NaN e formata com 8 casas decimais para BCH
+  const formatBCH = (value: number | undefined) => {
+    // ... (formatBCH function remains the same) ...
     return (value || 0).toFixed(8) + ' BCH';
   };
 
   const formatDate = (dateString: string) => {
+    // ... (formatDate function remains the same) ...
     try {
       return new Date(dateString).toLocaleString('pt-BR');
     } catch {
@@ -189,15 +270,18 @@ export function WalletTab() {
     }
   };
 
-  const formatAddress = (address: string) => {
+  const formatAddress = (address: string | undefined) => {
+    // ... (formatAddress function remains the same) ...
     if (!address || address.length < 10) return address || 'N/A';
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
-  // --- Simulação de Cotação (Idealmente viria do backend ou API externa) ---
-  const BRL_PER_BCH = balance.totalBCH > 0 ? balance.totalBRL / balance.totalBCH : 7000; // Cotação estimada
+  // --- Simulação de Cotação ---
+  // Use state value if available, otherwise estimate
+  const BRL_PER_BCH = balance.totalBCH && balance.totalBRL ? balance.totalBRL / balance.totalBCH : 7000;
 
   const handleAmountChange = (value: string, type: 'BCH' | 'BRL') => {
+    // ... (handleAmountChange function remains the same) ...
     const numericValue = parseFloat(value) || 0;
     if (type === 'BCH') {
       setSendForm({
@@ -219,29 +303,44 @@ export function WalletTab() {
     <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Minha Carteira Bitcoin Cash</h2>
-        <button
-          onClick={fetchWalletData}
-          disabled={loading}
-          className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Atualizar dados"
-        >
-          <FiRefreshCw className={` ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        {/* Display WebSocket connection status */}
+        <div className="flex items-center gap-2 text-sm">
+           {socket?.connected ? (
+              <span className="flex items-center gap-1 text-green-400">
+                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Real-time ON
+              </span>
+           ) : error && error.includes("conexão") ? (
+              <span className="flex items-center gap-1 text-red-400">
+                 <span className="w-2 h-2 rounded-full bg-red-500"></span> Real-time OFF
+              </span>
+           ) : (
+              <span className="flex items-center gap-1 text-yellow-400">
+                 <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Conectando...
+              </span>
+           )}
+           <button
+             onClick={fetchWalletData} // Keep manual refresh
+             disabled={loading}
+             className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed"
+             title="Atualizar dados"
+           >
+             <FiRefreshCw className={` ${loading ? 'animate-spin' : ''}`} />
+           </button>
+        </div>
       </div>
 
-      {/* Exibição de Erro Global */}
-      {error && !sendModalOpen && ( // Não mostra erro global se o modal de envio estiver aberto (ele terá seu próprio feedback)
+      {/* Exibição de Erro Global (excluding connection errors shown above) */}
+      {error && !error.includes("conexão") && !sendModalOpen && (
         <div className="bg-red-800 border border-red-600 text-white px-4 py-3 rounded relative mb-6" role="alert">
           <strong className="font-bold">Erro: </strong>
           <span className="block sm:inline">{error}</span>
-          <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setError(null)}>
-            <svg className="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Fechar</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
-          </span>
+          <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
         </div>
       )}
 
       {/* Cards de Saldo */}
-      {loading && !balance.totalBCH ? ( // Mostra skeleton apenas no carregamento inicial
+      {/* ... (Card rendering logic remains the same, using state values) ... */}
+       {loading && !balance.totalSatoshis ? ( // Show skeleton only on initial load
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-pulse">
             <div className="bg-[var(--color-bg-secondary)] h-32 rounded-lg p-6"></div>
             <div className="bg-[var(--color-bg-secondary)] h-32 rounded-lg p-6"></div>
@@ -262,39 +361,44 @@ export function WalletTab() {
               </div>
             </div>
           </div>
-          {/* Disponível */}
-          <div className="bg-green-900 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-gray-300 text-sm font-medium">Disponível</h3>
-                <p className="text-2xl font-bold mt-2">{formatBCH(balance.availableBCH)}</p>
-              </div>
-              <div className="bg-green-800 p-3 rounded-full">
-                {/* Ícone pode ser melhorado, talvez um check? */}
-                <FiArrowDown size={24} />
-              </div>
-            </div>
-          </div>
-          {/* Pendente */}
-          <div className="bg-yellow-600 rounded-lg p-6 shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-gray-300 text-sm font-medium">Pendente</h3>
-                <p className="text-2xl font-bold mt-2">{formatBCH(balance.pendingBCH)}</p>
-              </div>
-              <div className="bg-yellow-500 p-3 rounded-full">
-                <FiClock size={24} />
+          {/* Disponível (Show if available) */}
+          {balance.availableBCH !== undefined && (
+            <div className="bg-green-900 rounded-lg p-6 shadow-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-gray-300 text-sm font-medium">Disponível</h3>
+                  <p className="text-2xl font-bold mt-2">{formatBCH(balance.availableBCH)}</p>
+                </div>
+                <div className="bg-green-800 p-3 rounded-full">
+                  <FiArrowDown size={24} />
+                </div>
               </div>
             </div>
-          </div>
+          )}
+          {/* Pendente (Show if available and > 0) */}
+          {balance.pendingBCH !== undefined && balance.pendingBCH > 0 && (
+            <div className="bg-yellow-600 rounded-lg p-6 shadow-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-gray-300 text-sm font-medium">Pendente</h3>
+                  <p className="text-2xl font-bold mt-2">{formatBCH(balance.pendingBCH)}</p>
+                </div>
+                <div className="bg-yellow-500 p-3 rounded-full">
+                  <FiClock size={24} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
+
       {/* Ações Rápidas */}
-      <div className="flex flex-wrap gap-4 mb-8">
+      {/* ... (Buttons rendering logic remains the same) ... */}
+       <div className="flex flex-wrap gap-4 mb-8">
         <button
           onClick={() => setSendModalOpen(true)}
-          disabled={loading || balance.availableBCH <= 0}
+          disabled={loading || (balance.availableBCH ?? balance.totalBCH) <= 0} // Use available if present
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-800 px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FiArrowUp /> Enviar BCH
@@ -314,11 +418,13 @@ export function WalletTab() {
         </button>
       </div>
 
+
       {/* Histórico Recente */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
+      {/* ... (Transaction list rendering logic remains the same, using state values) ... */}
+       <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
         <h3 className="text-xl font-semibold mb-4">Transações Recentes</h3>
 
-        {loading && transactions.length === 0 ? ( // Skeleton apenas no carregamento inicial sem dados
+        {loading && transactions.length === 0 ? ( // Skeleton only on initial load
           <div className="space-y-4 animate-pulse">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]">
@@ -354,15 +460,15 @@ export function WalletTab() {
                       <span className="ml-1 font-mono text-blue-400">{formatAddress(tx.address)}</span>
                     </p>
                     <p className="text-xs sm:text-sm text-gray-400">{formatDate(tx.timestamp)}</p>
-                    {tx.txHash && (
+                    {tx.txid && ( // Use txid here
                        <a
-                         href={`https://explorer.bitcoinabc.org/tx/${tx.txHash}`} // Exemplo de link para explorador
+                         href={`https://explorer.bitcoinabc.org/tx/${tx.txid}`} // Link to explorer using txid
                          target="_blank"
                          rel="noopener noreferrer"
                          className="text-xs text-gray-500 hover:text-blue-400 break-all"
-                         title={tx.txHash}
+                         title={tx.txid}
                        >
-                         Hash: {formatAddress(tx.txHash)}
+                         Hash: {formatAddress(tx.txid)}
                        </a>
                     )}
                   </div>
@@ -371,48 +477,42 @@ export function WalletTab() {
                    <p className={`font-bold text-sm sm:text-base ${
                       tx.type === 'received' ? 'text-green-400' : 'text-blue-400'
                     }`}>
-                      {tx.type === 'received' ? '+' : ''}{formatBCH(tx.amountBCH)}
+                      {tx.type === 'received' ? '+' : '-'}{formatBCH(tx.amountBCH)} {/* Added sign */}
                    </p>
                    <p className="text-xs sm:text-sm text-gray-400">
                       {formatCurrency(tx.amountBRL)}
                    </p>
                    <div className="mt-1">
-                      {tx.status === 'confirmed' && (
+                      {/* Derive status based on blockHeight */}
+                      {tx.blockHeight && tx.blockHeight > 0 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                           Confirmado ({tx.confirmations || '✓'})
                         </span>
-                      )}
-                      {tx.status === 'pending' && (
+                      ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                           Pendente ({tx.confirmations || 0} conf.)
                         </span>
                       )}
-                      {tx.status === 'failed' && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                          Falhou
-                        </span>
-                      )}
+                      {/* Add failed status if backend provides it */}
+                      {/* {tx.status === 'failed' && (...)} */}
                    </div>
                 </div>
               </div>
             ))}
-
-            {/* Link para histórico completo (se houver uma página dedicada) */}
-            {/* <button className="w-full mt-4 bg-[var(--color-bg-tertiary)] py-2 hover:bg-zinc-700 rounded-lg transition-colors">
-              Ver histórico completo
-            </button> */}
           </div>
         )}
       </div>
 
+
       {/* --- Modal de Envio --- */}
-      {sendModalOpen && (
+      {/* ... (Send Modal rendering logic remains the same) ... */}
+       {sendModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Enviar Bitcoin Cash</h3>
               <button
-                onClick={() => !isSending && setSendModalOpen(false)} // Não permite fechar enquanto envia
+                onClick={() => !isSending && setSendModalOpen(false)}
                 className="text-gray-400 hover:text-white disabled:opacity-50"
                 disabled={isSending}
               >
@@ -443,7 +543,6 @@ export function WalletTab() {
                       required
                       disabled={isSending}
                     />
-                    {/* Botão QR Code (funcionalidade a implementar) */}
                     <button
                       type="button"
                       disabled
@@ -461,8 +560,8 @@ export function WalletTab() {
                     <label className="block text-sm font-medium mb-1">Quantidade (BCH)</label>
                     <input
                       type="number"
-                      step="0.00000001" // 8 casas decimais
-                      min="0.000001" // Valor mínimo razoável
+                      step="0.00000001"
+                      min="0.000001"
                       value={sendForm.amountBCH}
                       onChange={(e) => handleAmountChange(e.target.value, 'BCH')}
                       className="w-full px-3 py-2 rounded bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] text-sm"
@@ -484,11 +583,10 @@ export function WalletTab() {
                     />
                   </div>
                 </div>
-                 {/* Botão Usar Saldo Máximo */}
                  <button
                     type="button"
-                    onClick={() => handleAmountChange(balance.availableBCH.toString(), 'BCH')}
-                    disabled={isSending || balance.availableBCH <= 0}
+                    onClick={() => handleAmountChange((balance.availableBCH ?? balance.totalBCH).toString(), 'BCH')} // Use available if present
+                    disabled={isSending || (balance.availableBCH ?? balance.totalBCH) <= 0}
                     className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Usar saldo disponível (descontando taxa estimada)
@@ -514,7 +612,6 @@ export function WalletTab() {
                       </button>
                     ))}
                   </div>
-                  {/* Estimativa de taxa/tempo (simplificada) */}
                   <p className="text-xs text-gray-400 mt-1">
                     {sendForm.fee === 'low' && 'Confirmação mais lenta, menor custo.'}
                     {sendForm.fee === 'medium' && 'Confirmação balanceada.'}
@@ -536,7 +633,7 @@ export function WalletTab() {
                 <button
                   type="submit"
                   disabled={isSending || !sendForm.address || !sendForm.amountBCH || parseFloat(sendForm.amountBCH) <= 0}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]" // min-width para evitar mudança de tamanho
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                 >
                   {isSending ? (
                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -553,8 +650,10 @@ export function WalletTab() {
         </div>
       )}
 
+
       {/* --- Modal de Recebimento --- */}
-      {receiveModalOpen && (
+      {/* ... (Receive Modal rendering logic remains the same) ... */}
+       {receiveModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-6">
@@ -568,15 +667,9 @@ export function WalletTab() {
             </div>
 
             <div className="text-center">
-              {/* QR Code */}
+              {/* QR Code Placeholder */}
               <div className="bg-white p-4 rounded-lg inline-block mb-6 shadow-md">
                 {walletAddress ? (
-                  // <QRCode
-                  //   value={walletAddress} // Usa o endereço real
-                  //   size={192} // Tamanho do QR Code
-                  //   level={"H"} // Nível de correção de erro
-                  //   includeMargin={true}
-                  // />
                    <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500">
                      <FiCode size={64} /> <span className="ml-2 text-xs">QR Code aqui</span>
                    </div>
@@ -622,6 +715,7 @@ export function WalletTab() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -1,34 +1,101 @@
 // src/server.js
 require('dotenv').config();
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken'); // Make sure jwt is required
+const User = require('./models/user'); // Import User model
+
 const app = require('./app');
 const connectDB = require('./config/db');
-const spvMonitorService = require('./services/spvMonitorService'); // Import
+const spvService = require('./services/spvMonitorService'); // Import the service object
 const mongoose = require('mongoose');
 
 const PORT = process.env.PORT || 3000;
 
+// --- Create HTTP server and Socket.IO instance ---
+const server = http.createServer(app); // Use http server with Express app
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow your frontend origin (replace '*' in production)
+    methods: ["GET", "POST"]
+  }
+});
+
+// --- Store connected users (simple example, consider Redis for production) ---
+const connectedUsers = new Map(); // Map<userId, Set<socketId>> (Allow multiple connections per user)
+
+// --- Socket.IO Authentication Middleware ---
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    console.error("Socket Auth Error: No token provided");
+    return next(new Error('Authentication error: No token provided'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Attach user info to the socket object
+    socket.userId = decoded.id; // Assuming JWT payload has 'id'
+
+    // Optional: Verify user exists in DB
+    const user = await User.findById(socket.userId);
+    if (!user) {
+        console.error(`Socket Auth Error: User ${socket.userId} not found`);
+        return next(new Error('Authentication error: User not found'));
+    }
+    next(); // Proceed
+  } catch (err) {
+    console.error("Socket Auth Error:", err.message);
+    return next(new Error('Authentication error: Invalid token'));
+  }
+});
+
+// --- Socket.IO Connection Logic ---
+io.on('connection', (socket) => {
+  const userId = socket.userId; // Get userId attached by middleware
+  console.log(`🔌 WebSocket connected: ${socket.id} (User: ${userId})`);
+
+  // Join the user-specific room
+  socket.join(userId);
+  console.log(`User ${userId} joined room ${userId}`);
+
+  // Track connected sockets per user
+  if (!connectedUsers.has(userId)) {
+    connectedUsers.set(userId, new Set());
+  }
+  connectedUsers.get(userId).add(socket.id);
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log(`🔌 WebSocket disconnected: ${socket.id} (User: ${userId})`);
+    if (connectedUsers.has(userId)) {
+        connectedUsers.get(userId).delete(socket.id);
+        // Optional: Clean up the Set if it becomes empty
+        if (connectedUsers.get(userId).size === 0) {
+            connectedUsers.delete(userId);
+        }
+    }
+    // Socket.IO handles leaving rooms automatically
+  });
+});
+
+// --- Inject io instance into the SPV Service ---
+spvService.setIoServer(io); // Call the setter method
+
+// --- Server Start Logic ---
 const startServer = async () => {
   try {
     console.log('Connecting to MongoDB...');
     await connectDB();
     console.log('MongoDB Connected.');
 
-    // --- DEBUGGING LINES ---
-    console.log('--- Debugging spvMonitorService ---');
-    console.log('Type:', typeof spvMonitorService);
-    console.log('Value:', spvMonitorService);
-    if (spvMonitorService && typeof spvMonitorService === 'object') {
-        console.log('Keys:', Object.keys(spvMonitorService));
-        console.log('Has start function?', typeof spvMonitorService.start === 'function');
-    }
-    console.log('--- End Debugging ---');
-    // --- END DEBUGGING LINES ---
+    // Remove the debugging logs for spvMonitorService if no longer needed
 
     console.log('Starting SPV Monitor Service...');
-    await spvMonitorService.start(); // Line 26 (now maybe line 33 or so)
+    await spvService.start(); // Call start from the imported service object
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    // --- Use server.listen (the http server) NOT app.listen ---
+    server.listen(PORT, () => {
+      console.log(`🚀 Server (with WebSockets) running on port ${PORT}`);
     });
 
   } catch (error) {
@@ -39,4 +106,36 @@ const startServer = async () => {
 
 startServer();
 
-// ... graceful shutdown ...
+// Export server and io if needed by other modules (e.g., tests)
+// module.exports = { server, io }; // Removed the direct export from spvMonitorService import
+
+// --- Graceful Shutdown (Optional but Recommended) ---
+const gracefulShutdown = () => {
+    console.log('Initiating graceful shutdown...');
+    io.close(async () => { // Close Socket.IO connections first
+      console.log('Socket.IO connections closed.');
+      server.close(async () => { // Then close HTTP server
+        console.log('HTTP server closed.');
+        try {
+          await spvService.stop(); // Stop SPV service
+        } catch (spvErr) {
+          console.error("Error stopping SPV service:", spvErr);
+        }
+        try {
+          await mongoose.disconnect(); // Disconnect DB
+          console.log('MongoDB disconnected.');
+        } catch (dbErr) {
+          console.error("Error disconnecting MongoDB:", dbErr);
+        }
+        process.exit(0);
+      });
+    });
+    // Force shutdown after timeout
+    setTimeout(() => {
+      console.error('Could not close connections gracefully, forcing shutdown.');
+      process.exit(1);
+    }, 10000); // 10 seconds timeout
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
