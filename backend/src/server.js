@@ -191,7 +191,8 @@ app.get('/api/user/:id', authMiddleware, async (req, res) => {
 
     res.status(200).json({
       username: user.username,
-      profileImage: user.profileImage, // Retorna a imagem de perfil
+      profileImage: user.profileImage,
+      email: user.email,
     });
   } catch (error) {
     console.error('Erro ao buscar dados do usuário:', error);
