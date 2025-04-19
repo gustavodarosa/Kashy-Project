@@ -4,11 +4,12 @@ const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken'); // Make sure jwt is required
 const User = require('./models/user'); // Import User model
-
+const { authMiddleware } = require('./middlewares/authMiddleware');
 const app = require('./app');
 const connectDB = require('./config/db');
 const spvService = require('./services/spvMonitorService'); // Import the service object
 const mongoose = require('mongoose');
+const express = require('express');
 
 const PORT = process.env.PORT || 3000;
 
@@ -139,3 +140,61 @@ const gracefulShutdown = () => {
 
   process.on('SIGTERM', gracefulShutdown);
   process.on('SIGINT', gracefulShutdown);
+
+  // Rota para atualizar a imagem de perfil
+app.post('/api/update-profile-image', authMiddleware, async (req, res) => {
+  const { username, profileImage } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id); // ID do usuário autenticado
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    // Atualiza o username e a imagem de perfil
+    user.username = username || user.username;
+    user.profileImage = profileImage || user.profileImage;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Imagem de perfil atualizada com sucesso.',
+      profileImage: user.profileImage,
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar imagem de perfil:', error);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
+});
+
+// Rota para obter o username do usuário autenticado
+app.get('/api/user/username', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id); // ID do usuário autenticado
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    res.status(200).json({ username: user.username });
+  } catch (error) {
+    console.error('Erro ao obter username:', error);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
+});
+
+// Rota para obter dados do usuário por ID
+app.get('/api/user/:id', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    res.status(200).json({
+      username: user.username,
+      profileImage: user.profileImage, // Retorna a imagem de perfil
+    });
+  } catch (error) {
+    console.error('Erro ao buscar dados do usuário:', error);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
+});

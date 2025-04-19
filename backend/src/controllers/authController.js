@@ -41,6 +41,7 @@ class AuthController {
       res.status(201).json({
         _id: savedUser._id,
         email: savedUser.email,
+        username: savedUser.username, 
         bchAddress: savedUser.bchAddress,
         message: 'Usuário registrado com sucesso.',
       });
@@ -68,6 +69,7 @@ class AuthController {
       // Inclui o campo redirectTo na resposta
       res.status(200).json({
         token,
+        userId: user._id, // Ensure this is included in the response
         message: 'Login realizado com sucesso!',
         redirectTo: '/DashboardHome', // URL para redirecionar o usuário
       });

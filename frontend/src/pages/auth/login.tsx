@@ -58,7 +58,7 @@ const Login = () => {
         const data = await response.json();
         setMessage(data.message || "Login realizado com sucesso!");
         localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.username); 
+        localStorage.setItem("username", data.username);
         localStorage.setItem("userId", data.userId); 
         window.location.href = data.redirectTo || "/";
       } else {
