@@ -1,97 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiSun, FiBell, FiLock, FiGlobe, FiHardDrive, FiDownload, FiTrash2 } from 'react-icons/fi';
+import { useLanguage } from '../../../hooks/useLanguage';
+import { t, LanguageKey, translations } from '../../../utils/languages';
+import { ThemeKey, themes } from '../../../utils/themes';
 
-// Temas existentes (mantido do código anterior)
-const themes = {
-  default: {
-    name: 'Tema Escuro',
-    colors: {
-      '--color-bg-primary': '#19181D',
-      '--color-bg-secondary': '#1F1E22',
-      '--color-bg-tertiary': '#28272b',
-      '--color-shadow': '#404040',
-      '--color-text-primary': '#ffffff',
-      '--color-text-secondary': '#a0aec0',
-      '--color-accent': '#0f0f0f',
-      '--color-accent-hover': '#0f0f0f',
-      '--color-border': '#303030',
-      
-    },
-  },
-  Bluetheme: {
-    name: 'Tema Azul',
-    colors: {
-      '--color-bg-primary': '#0f2540',
-      '--color-bg-secondary': '#1a3a5f',
-      '--color-bg-tertiary': '#1f3c63',
-      '--color-shadow': '#2a91bf',
-      '--color-text-primary': '#e0f2fe',
-      '--color-text-secondary': '#94a3b8',
-      '--color-accent': '#38bdf8',
-      '--color-accent-hover': '#0ea5e9',
-      '--color-border': '#244770',
-
-    },
-  },
-  Greentheme: {
-    name: 'Tema Verde',
-    colors: {
-      '--color-bg-primary': '#1F3E2F',
-      '--color-bg-secondary': '#2A523A',
-      '--color-bg-tertiary': '#356348',
-      '--color-shadow': '#28a87a',
-      '--color-text-primary': '#ffffff',
-      '--color-text-secondary': '#9ca3af',
-      '--color-accent': '#34d399',
-      '--color-accent-hover': '#10b981',
-      '--color-border': '#3c7553',
- 
-    },
-  },
-  Redtheme: {
-    name: 'Tema Vermelho',
-    colors: {
-      '--color-bg-primary': '#371418',
-      '--color-bg-secondary': '#62272D',
-      '--color-bg-tertiary': '#502127',
-      '--color-shadow': '#9e2f3e',
-      '--color-text-primary': '#ffffff',
-      '--color-text-secondary': '#d1d5db',
-      '--color-accent': '#692f36',
-      '--color-accent-hover': '#f97316',
-      '--color-border': '#853941',
-
-    },
-  },
-};
-
-type ThemeKey = keyof typeof themes;
-
-const applyTheme = (themeKey: ThemeKey) => {
-  const theme = themes[themeKey];
-  const root = document.documentElement;
-  Object.entries(theme.colors).forEach(([key, value]) => {
-    root.style.setProperty(key, value);
-  });
-  localStorage.setItem('dashboardTheme', themeKey);
-};
-
-const loadTheme = (): ThemeKey => {
-  const savedTheme = localStorage.getItem('dashboardTheme') as ThemeKey | null;
-  const defaultThemeKey: ThemeKey = 'default';
-  const themeKey = savedTheme && themes[savedTheme] ? savedTheme : defaultThemeKey;
-  applyTheme(themeKey);
-  return themeKey;
-};
+// Tipo auxiliar para as chaves de cores
+type ThemeColorKey = keyof typeof themes.default.colors;
 
 export function SettingsTab() {
-  const [activeTheme, setActiveTheme] = useState<ThemeKey>(loadTheme);
+  const { language, changeLanguage } = useLanguage();
+  const [activeTheme, setActiveTheme] = useState<ThemeKey>(loadTheme());
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     promotions: false,
   });
-  const [language, setLanguage] = useState(localStorage.getItem('language') || 'pt-BR');
   const [security, setSecurity] = useState({
     twoFactorAuth: false,
     passwordChangeRequired: false,
@@ -101,164 +24,160 @@ export function SettingsTab() {
     analytics: true,
   });
 
+  useEffect(() => {
+    applyTheme(activeTheme);
+  }, [activeTheme]);
+
+  function loadTheme(): ThemeKey {
+    const savedTheme = localStorage.getItem('dashboardTheme') as ThemeKey | null;
+    return savedTheme && themes[savedTheme] ? savedTheme : 'default';
+  }
+
+  function applyTheme(themeKey: ThemeKey) {
+    const theme = themes[themeKey];
+    if (!theme) {
+      console.error(`Tema "${themeKey}" não encontrado.`);
+      return;
+    }
+    const root = document.documentElement;
+    (Object.entries(theme.colors) as [ThemeColorKey, string][]).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
+    localStorage.setItem('dashboardTheme', themeKey);
+  }
+
   const handleThemeChange = (themeKey: ThemeKey) => {
     applyTheme(themeKey);
     setActiveTheme(themeKey);
   };
 
- 
-
   const handleNotificationChange = (type: keyof typeof notifications) => {
-    setNotifications(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
-  };
-
-  const handleLanguageChange = (lang: string) => {
-    setLanguage(lang);
-    localStorage.setItem('language', lang);
-    // Implemente a lógica para mudar o idioma da aplicação
+    setNotifications(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
   const handleSecurityChange = (type: keyof typeof security) => {
-    setSecurity(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+    setSecurity(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
   const handleDataPreferenceChange = (type: keyof typeof dataPreferences) => {
-    setDataPreferences(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+    setDataPreferences(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
+  const timezonesForCurrentLanguage = translations[language]?.language?.timezones || translations['pt-BR'].language.timezones;
+
+  // Chaves de cores para mostrar nos temas
+  const themeColorKeys: ThemeColorKey[] = [
+    '--color-bg-primary',
+    '--color-accent',
+    '--color-text-primary',
+    '--color-border'
+  ];
+
   return (
-    <div className="space-y-8 p-6">
-      <h2 className="text-2xl text-[var(--color-text-primary)] font-bold">Configurações</h2>
+    <div className="space-y-8 p-6 bg-[var(--color-bg-primary)] min-h-screen">
+      <h2 className="text-2xl text-[var(--color-text-primary)] font-bold">
+        {t('settingsTitle', language)}
+      </h2>
 
       {/* Seção de Aparência */}
-      <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)] ">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
-          <FiSun /> Aparência
-        </h3>
-          <div>
-            <p className="font-medium text-[var(--color-text-primary)] mb-3">Tema de Cores</p>
-            <p className="text-sm text-[var(--color-text-secondary)] mb-4">Escolha uma paleta de cores para personalizar a aparência do dashboard.</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {(Object.keys(themes) as ThemeKey[]).map((key) => {
-                const theme = themes[key];
-                const isActive = activeTheme === key;
-                return (
-                  <div
-                    key={key}
-                    onClick={() => handleThemeChange(key)}
-                    className={`p-4 rounded-lg cursor-pointer border-2 transition-all duration-200 ${
-                      isActive
-                        ? 'border-[var(--color-accent)] scale-105 shadow-lg'
-                        : 'border-transparent hover:border-[var(--color-accent)] hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: theme.colors['--color-bg-tertiary'] }}
-                  >
-                    <p className="font-medium mb-3 text-center text-[var(--color-text-primary)]" style={{ color: theme.colors['--color-text-primary'] }}>{theme.name}</p>
-                    <div className="flex justify-center space-x-2">
-                      <div className="w-6 h-6 rounded-full border-1 " style={{ backgroundColor: theme.colors['--color-bg-primary'] }}></div>
-                      <div className="w-6 h-6 rounded-full border-1 " style={{ backgroundColor: theme.colors['--color-bg-secondary'] }}></div>
-                      <div className="w-6 h-6 rounded-full border-1 " style={{ backgroundColor: theme.colors['--color-accent'] }}></div>
-                      <div className="w-6 h-6 rounded-full border-1 " style={{ backgroundColor: theme.colors['--color-border'] }}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-     
-
-      {/* Seção de Notificações */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
-          <FiBell /> Notificações
+          <FiSun /> {t('appearance.title', language)}
         </h3>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Notificações por Email</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Receber alertas importantes por email</p>
-            </div>
-            <button
-              onClick={() => handleNotificationChange('email')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                notifications.email ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  notifications.email ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Notificações Push</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Receber alertas no dispositivo</p>
-            </div>
-            <button
-              onClick={() => handleNotificationChange('push')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                notifications.push ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  notifications.push ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Promoções e Ofertas</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Receber comunicações de marketing</p>
-            </div>
-            <button
-              onClick={() => handleNotificationChange('promotions')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                notifications.promotions ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  notifications.promotions ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+        <div>
+          <p className="font-medium text-[var(--color-text-primary)] mb-3">
+            {t('appearance.colorTheme', language)}
+          </p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+            {t('appearance.description', language)}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {(Object.keys(themes) as ThemeKey[]).map((key) => {
+              const theme = themes[key];
+              const isActive = activeTheme === key;
+              return (
+                <div
+                  key={key}
+                  onClick={() => handleThemeChange(key)}
+                  className={`p-4 rounded-lg cursor-pointer border-2 transition-all duration-200 ${
+                    isActive
+                      ? 'border-[var(--color-accent)] scale-105 shadow-md shadow-[color:var(--color-shadow)]'
+                      : 'border-transparent hover:border-[var(--color-accent)] hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: theme.colors['--color-bg-secondary'] }}
+                >
+                  <p className="font-medium mb-3 text-center" style={{ color: theme.colors['--color-text-primary'] }}>
+                    {t(`appearance.themes.${key}`, language)}
+                  </p>
+                  <div className="flex justify-center space-x-2">
+                    {themeColorKeys.map((colorKey) => (
+                      <div
+                        key={colorKey}
+                        className="w-6 h-6 rounded-full border border-[var(--color-border)]"
+                        style={{ backgroundColor: theme.colors[colorKey] }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Seção de Idioma e Região */}
+      {/* Seção de Notificações */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
-          <FiGlobe /> Idioma e Região
+          <FiBell /> {t('notificationsSection.title', language)}
         </h3>
-        
+
+        <div className="space-y-4">
+          {[
+            { key: 'email', label: t('notificationsSection.email', language), desc: t('notificationsSection.emailDesc', language) },
+            { key: 'push', label: t('notificationsSection.push', language), desc: t('notificationsSection.pushDesc', language) },
+            { key: 'promotions', label: t('notificationsSection.promotions', language), desc: t('notificationsSection.promotionsDesc', language) }
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
+              </div>
+              <button
+                onClick={() => handleNotificationChange(item.key as keyof typeof notifications)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-secondary)] ${
+                  notifications[item.key as keyof typeof notifications]
+                    ? 'bg-[var(--color-accent)]'
+                    : 'bg-gray-400 dark:bg-gray-600'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Seção de Idioma */}
+      <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
+        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+          <FiGlobe /> {t('language.title', language)}
+        </h3>
+
         <div className="space-y-4">
           <div>
             <label htmlFor="language" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
-              Idioma
+              {t('language.language', language)}
             </label>
             <select
               id="language"
               value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
+              onChange={(e) => changeLanguage(e.target.value as LanguageKey)}
               className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] block w-full p-2.5"
             >
               <option value="pt-BR">Português (Brasil)</option>
@@ -266,18 +185,18 @@ export function SettingsTab() {
               <option value="en-US">English</option>
             </select>
           </div>
-          
+
           <div>
             <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
-              Fuso Horário
+              {t('language.timezone', language)}
             </label>
             <select
               id="timezone"
               className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] block w-full p-2.5"
             >
-              <option value="America/Sao_Paulo">(GMT-03:00) Brasília</option>
-              <option value="America/New_York">(GMT-05:00) Nova York</option>
-              <option value="Europe/London">(GMT+00:00) Londres</option>
+              {Object.entries(timezonesForCurrentLanguage).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -286,107 +205,101 @@ export function SettingsTab() {
       {/* Seção de Segurança */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
-          <FiLock /> Segurança
+          <FiLock /> {t('security.title', language)}
         </h3>
-        
+
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Autenticação de Dois Fatores (2FA)</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Adicione uma camada extra de segurança à sua conta</p>
-            </div>
-            <button
-              onClick={() => handleSecurityChange('twoFactorAuth')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                security.twoFactorAuth ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  security.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
+          {[
+            {
+              key: 'twoFactorAuth',
+              label: t('security.twoFactor', language),
+              desc: t('security.twoFactorDesc', language)
+            },
+            {
+              key: 'passwordChangeRequired',
+              label: t('security.passwordChange', language),
+              desc: t('security.passwordChangeDesc', language)
+            }
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
+              </div>
+              <button
+                onClick={() => handleSecurityChange(item.key as keyof typeof security)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-secondary)] ${
+                  security[item.key as keyof typeof security]
+                    ? 'bg-[var(--color-accent)]'
+                    : 'bg-gray-400 dark:bg-gray-600'
                 }`}
-              />
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Alteração Obrigatória de Senha</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Exigir alteração de senha a cada 90 dias</p>
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    security[item.key as keyof typeof security] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
-            <button
-              onClick={() => handleSecurityChange('passwordChangeRequired')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                security.passwordChangeRequired ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  security.passwordChangeRequired ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          
-          <div className="pt-4">
-            <button className="text-white hover:underline flex items-center gap-2">
-              <FiLock /> Alterar Senha
+          ))}
+
+          <div className="pt-4 border-t border-[var(--color-border)] mt-4">
+            <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
+              <FiLock /> {t('security.changePassword', language)}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Seção de Dados e Privacidade */}
+      {/* Seção de Dados */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
-          <FiHardDrive /> Dados e Privacidade
+          <FiHardDrive /> {t('data.title', language)}
         </h3>
-        
+
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Backup Automático</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Salvar automaticamente cópias de segurança dos seus dados</p>
-            </div>
-            <button
-              onClick={() => handleDataPreferenceChange('autoBackup')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                dataPreferences.autoBackup ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  dataPreferences.autoBackup ? 'translate-x-6' : 'translate-x-1'
+          {[
+            {
+              key: 'autoBackup',
+              label: t('data.backup', language),
+              desc: t('data.backupDesc', language)
+            },
+            {
+              key: 'analytics',
+              label: t('data.analytics', language),
+              desc: t('data.analyticsDesc', language)
+            }
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
+              </div>
+              <button
+                onClick={() => handleDataPreferenceChange(item.key as keyof typeof dataPreferences)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 focus:ring-offset-[var(--color-bg-secondary)] ${
+                  dataPreferences[item.key as keyof typeof dataPreferences]
+                    ? 'bg-[var(--color-accent)]'
+                    : 'bg-gray-400 dark:bg-gray-600'
                 }`}
-              />
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-[var(--color-text-primary)]">Compartilhar Dados para Análise</p>
-              <p className="text-sm text-[var(--color-text-secondary)]">Ajudar a melhorar a plataforma com dados anônimos</p>
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    dataPreferences[item.key as keyof typeof dataPreferences] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
-            <button
-              onClick={() => handleDataPreferenceChange('analytics')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                dataPreferences.analytics ? 'bg-[var(--color-accent)]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  dataPreferences.analytics ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+          ))}
+
+          <div className="pt-4 space-y-3 border-t border-[var(--color-border)] mt-4">
+            <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
+              <FiDownload /> {t('data.export', language)}
             </button>
-          </div>
-          
-          <div className="pt-4 space-y-3">
-            <button className="text-white hover:underline flex items-center gap-2">
-              <FiDownload /> Exportar Meus Dados
-            </button>
-            <button className="text-[var(--color-danger)] hover:underline flex items-center gap-2">
-              <FiTrash2 /> Excluir Minha Conta
+            <button className="text-red-500 hover:text-red-400 transition-colors flex items-center gap-2">
+              <FiTrash2 /> {t('data.delete', language)}
             </button>
           </div>
         </div>

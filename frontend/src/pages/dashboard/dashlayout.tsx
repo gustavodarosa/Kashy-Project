@@ -1,5 +1,5 @@
 import { Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined,  ShoppingBasket,
-    NotepadText,Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell} from 'lucide-react';
+    NotepadText,Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X} from 'lucide-react';
 import { useSidebar } from '../../hooks/usersidebar'; 
 import { useState, useEffect } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab , OfertasTab, SettingsTab, TransacoesTab } from './tabs'; 
@@ -13,20 +13,24 @@ export function Dashboard() {
    const [selectedImage, setSelectedImage] = useState<string | null>(null);
    const [savedImage, setSavedImage] = useState<string | null>(null);
    const [username, setUsername] = useState<string | null>(null);
+   const [email, setEmail] = useState<string | null>(null);
 
    const navigate = useNavigate();
 
    const handleLogout = () => {
        localStorage.removeItem("token");
        localStorage.removeItem("username");
+       localStorage.removeItem("email");
        localStorage.removeItem("userId");
        navigate('/');
    };
 
    useEffect(() => {
        const storedUsername = localStorage.getItem('username');
+       const storedEmail = localStorage.getItem('email');
        const userId = localStorage.getItem('userId');
        setUsername(storedUsername);
+       setEmail(storedEmail);
 
        if (!userId) {
            console.error('ID do usuário não encontrado no localStorage.');
@@ -275,53 +279,76 @@ export function Dashboard() {
 
                        {/* User Dropdown */}
                        {showUserDropdown && (
-                           <div className="absolute right-0 mt-2 w-48 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-gray-700">
-                              
-                               <button
-                                   onClick={() => {
-                                       setShowProfileModal(true);
-                                       setShowUserDropdown(false);
-                                   }}
-                                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                               >
-                                   <Edit className="mr-2 h-4 w-4" />
-                                   Editar Perfil
-                               </button>
-                               <button
-                                   onClick={() => {
-                                       setActiveTab('settings'); 
-                                       setShowUserDropdown(false); 
-                                   }}
-                                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                               >
-                                   <Settings className="mr-2 h-4 w-4" />
-                                   Configurações 
-                               </button>
-                               <button
-                                   onClick={() => {
-                                       setShowProfileModal(true);
-                                       setShowUserDropdown(false);
-                                   }}
-                                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                               >
-                                   <Bell className="mr-2 h-4 w-4" />
-                                   Notificações
-                               </button>
-                               <button
-                                   onClick={handleLogout}
-                                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                               >
-                                   <UserPlus className="mr-2 h-4 w-4" />
-                                   Trocar de conta
-                               </button>
-                               <button
-                                   onClick={handleLogout}
-                                   className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                               >
-                                   <LogOut className="mr-2 h-4 w-4" />
-                                   Sair
-                               </button>
-                           </div>
+                            <div className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]">
+
+                                <div className="flex justify-end px-2 pt-2">
+                                    <button
+                                        onClick={() => setShowUserDropdown(false)}
+                                        className="text-white border-transparent border-2 hover:border-zinc-600 hover:bg-zinc-700 rounded-full p-2 transition-colors"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
+                                    {savedImage ? (
+                                        <img
+                                            src={savedImage}
+                                            alt="User Preview"
+                                            className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500"
+                                        />
+                                    ) : (
+                                        <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
+                                    )}
+                                    <span className="font-medium text-center">{username || "Usuário"}</span>
+                                    
+                                    <span className="text-xs ">{email || "Conta padrão"}</span>
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        setShowProfileModal(true);
+                                        setShowUserDropdown(false);
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar Perfil
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setActiveTab('settings');
+                                        setShowUserDropdown(false);
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                >
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    Configurações
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowProfileModal(true);
+                                        setShowUserDropdown(false);
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                >
+                                    <Bell className="mr-2 h-4 w-4" />
+                                    Notificações
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                >
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Trocar de conta
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                >
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    Sair
+                                </button>
+                            </div>
                        )}
                    </div>
                </header>
