@@ -10,6 +10,7 @@ const connectDB = require('./config/db');
 const spvService = require('./services/spvMonitorService'); // Import the service object
 const mongoose = require('mongoose');
 const express = require('express');
+const logger = require('./utils/logger'); // Importe o logger
 
 const PORT = process.env.PORT || 3000;
 
@@ -85,22 +86,18 @@ spvService.setIoServer(io); // Call the setter method
 // --- Server Start Logic ---
 const startServer = async () => {
   try {
-    console.log('Connecting to MongoDB...');
+    logger.info('Connecting to MongoDB...');
     await connectDB();
-    console.log('MongoDB Connected.');
+    logger.info('MongoDB Connected.');
 
-    // Remove the debugging logs for spvMonitorService if no longer needed
+    logger.info('Starting SPV Monitor Service...');
+    await spvService.start();
 
-    console.log('Starting SPV Monitor Service...');
-    await spvService.start(); // Call start from the imported service object
-
-    // --- Use server.listen (the http server) NOT app.listen ---
     server.listen(PORT, () => {
-      console.log(`🚀 Server (with WebSockets) running on port ${PORT}`);
+      logger.info(`🚀 Server (with WebSockets) running on port ${PORT}`);
     });
-
   } catch (error) {
-    console.error('FATAL: Failed to start server:', error);
+    logger.error(`FATAL: Failed to start server: ${error.message}`);
     process.exit(1);
   }
 };
@@ -196,6 +193,53 @@ app.get('/api/user/:id', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao buscar dados do usuário:', error);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
+});
+
+app.put('/api/user/update-username', authMiddleware, async (req, res) => {
+  const { username } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    user.username = username || user.username;
+    await user.save();
+
+    res.status(200).json({ message: 'Username atualizado com sucesso.', username: user.username });
+  } catch (error) {
+    console.error('Erro ao atualizar username:', error);
+    res.status(500).json({ message: 'Erro interno no servidor.' });
+  }
+});
+
+app.put('/api/user/update-password', authMiddleware, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    logger.info(`User ID: ${req.user.id} - Attempting to update password.`);
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      logger.warn(`User ID: ${req.user.id} - Not found.`);
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      logger.warn(`User ID: ${req.user.id} - Invalid current password.`);
+      return res.status(400).json({ message: 'Senha atual incorreta.' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    logger.info(`User ID: ${req.user.id} - Password updated successfully.`);
+    res.status(200).json({ message: 'Senha atualizada com sucesso.' });
+  } catch (error) {
+    logger.error(`User ID: ${req.user.id} - Error updating password: ${error.message}`);
     res.status(500).json({ message: 'Erro interno no servidor.' });
   }
 });

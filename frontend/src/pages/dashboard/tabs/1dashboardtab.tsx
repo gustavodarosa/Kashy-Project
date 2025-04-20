@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiActivity, FiShoppingCart, FiBox, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CryptoChart } from '../../../components/CryptoChart';
 
 const salesData = [
   { name: 'Seg', value: 400 },
@@ -39,7 +40,6 @@ export function DashboardTab() {
   const [timeRange, setTimeRange] = useState('week');
   const [blockchainStatus, setBlockchainStatus] = useState('online');
   
-  // Simulação de verificação de status da blockchain
   const checkBlockchainStatus = () => {
     setBlockchainStatus('checking');
     setTimeout(() => {
@@ -187,10 +187,10 @@ export function DashboardTab() {
         </div>
       </div>
 
-      {/* Seções Detalhadas */}
+      {/* Seções de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Gráfico de Faturamento */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow col-span-1">
+        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Faturamento</h2>
             <div className="flex gap-2">
@@ -264,47 +264,16 @@ export function DashboardTab() {
           </div>
         </div>
 
-        {/* Produtos Mais Vendidos */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow col-span-1">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Produtos Mais Vendidos</h2>
-          
-          <div className="space-y-4">
-            {topProducts.map((product) => (
-              <div key={product.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                    <FiBox className="text-gray-600 dark:text-gray-300" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-[var(--color-text-primary)]">{product.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-                      {product.sold} vendidos • R$ {product.revenue.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {product.trend === 'up' ? (
-                    <span className="text-green-500 flex items-center">
-                      <FiTrendingUp /> +15%
-                    </span>
-                  ) : product.trend === 'down' ? (
-                    <span className="text-red-500 flex items-center">
-                      <FiTrendingUp className="transform rotate-180" /> -5%
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">-</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Gráfico de Criptomoedas */}
+        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+          <CryptoChart />
         </div>
       </div>
 
       {/* Segunda Linha de Seções Detalhadas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Transações Recentes */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow col-span-1">
+        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Transações Recentes</h2>
           
           <div className="space-y-4">
@@ -343,7 +312,7 @@ export function DashboardTab() {
         </div>
 
         {/* Alerta de Estoque */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow col-span-1">
+        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Alerta de Estoque</h2>
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">

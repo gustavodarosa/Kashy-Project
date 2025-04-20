@@ -1,6 +1,6 @@
 import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
-    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X
+    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil
 } from 'lucide-react';
 import { useSidebar } from '../../hooks/usersidebar';
 import { useState, useEffect } from 'react';
@@ -46,7 +46,7 @@ export function Dashboard() {
             if (!userId || !token) {
                 console.error('Usuário não autenticado ou ID do usuário não encontrado.');
                 localStorage.clear();
-                navigate('/'); 
+                navigate('/');
                 return;
             }
 
@@ -65,7 +65,7 @@ export function Dashboard() {
                 } else if (response.status === 401) {
                     console.error('Token inválido ou expirado. Redirecionando para login.');
                     localStorage.clear();
-                    navigate('/'); 
+                    navigate('/');
                 } else {
                     console.error('Erro ao buscar dados do usuário:', response.statusText);
                 }
@@ -80,7 +80,7 @@ export function Dashboard() {
     const handleSaveImage = async () => {
         if (!selectedImage) return;
 
-        const token = localStorage.getItem('token'); 
+        const token = localStorage.getItem('token');
         if (!token) {
             alert('Usuário não autenticado.');
             return;
@@ -94,13 +94,13 @@ export function Dashboard() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    profileImage: selectedImage, 
+                    profileImage: selectedImage,
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setSavedImage(data.profileImage); 
+                setSavedImage(data.profileImage);
                 setShowProfileModal(false);
                 setSelectedImage(null);
                 alert('Imagem salva com sucesso!');
@@ -132,7 +132,7 @@ export function Dashboard() {
     useEffect(() => {
         const fetchUsername = async () => {
             try {
-                const token = localStorage.getItem('token'); 
+                const token = localStorage.getItem('token');
                 if (!token) {
                     console.error('Usuário não autenticado.');
                     return;
@@ -341,15 +341,26 @@ export function Dashboard() {
                                     </button>
                                 </div>
                                 <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
-                                    {savedImage ? (
-                                        <img
-                                            src={savedImage}
-                                            alt="User Preview"
-                                            className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500"
+                                    <div
+                                        className="relative group"
+                                        onClick={() => {
+                                            setShowProfileModal(true);
+                                            setShowUserDropdown(false);
+                                        }}
+                                    >
+                                        {savedImage ? (
+                                            <img
+                                                src={savedImage}
+                                                alt="User Preview"
+                                                className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500 hover:opacity-50"
+                                            />
+                                        ) : (
+                                            <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
+                                        )}
+                                        <Pencil
+                                            className="absolute inset-0 m-auto h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
                                         />
-                                    ) : (
-                                        <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
-                                    )}
+                                    </div>
                                     <span className="font-medium text-center">{username || "Usuário"}</span>
                                     <span className="text-xs text-gray-400">{email || "Conta padrão"}</span> {/* Exibe o e-mail */}
                                 </div>
@@ -411,27 +422,29 @@ export function Dashboard() {
 
             {/* Profile Edit Modal */}
             {showProfileModal && (
-                <div className="fixed inset-0  bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-[var(--color-bg-primary)] text-white border border-gray-700 p-5 sm:p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 scale-100">
-                        <h2 className="text-xl font-semibold mb-6 text-center text-amber-400">Editar Perfil</h2>
-                        <div className="mb-5">
-                            <label htmlFor="profileImageInput" className="block text-sm font-medium mb-2 text-white">Selecionar Nova Imagem</label>
+                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-[var(--color-bg-primary)] text-white border border-[var(--color-border)] p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100">
+                        <h2 className="text-2xl font-bold mb-6 text-center text-amber-400">Editar Perfil</h2>
+                        <div className="mb-6">
+                            <label htmlFor="profileImageInput" className="block text-sm font-medium mb-3 text-gray-300">
+                                Selecionar Nova Imagem
+                            </label>
                             <input
                                 id="profileImageInput"
                                 type="file"
                                 accept="image/jpeg, image/png, image/webp, image/gif"
                                 onChange={handleFileChange}
-                                className="block w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
                             />
                         </div>
                         {selectedImage && (
-                            <div className="mb-6 border border-gray-600 rounded-lg p-3 bg-[var(--color-bg-tertiary)]">
-                                <p className="text-sm mb-2 text-white">Preview:</p>
-                                <div className="flex justify-center items-center flex-col gap-2">
+                            <div className="mb-6 border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-bg-tertiary)]">
+                                <p className="text-sm mb-3 text-gray-300">Preview:</p>
+                                <div className="flex justify-center items-center flex-col gap-3">
                                     <img
                                         src={selectedImage}
                                         alt="Preview"
-                                        className="w-28 h-28 sm:w-32 sm:h-32 object-cover rounded-full border-2 border-gray-500"
+                                        className="w-32 h-32 sm:w-36 sm:h-36 object-cover rounded-full border-4 border-amber-500 shadow-lg"
                                     />
                                     <button
                                         onClick={() => setSelectedImage(null)}
@@ -442,20 +455,22 @@ export function Dashboard() {
                                 </div>
                             </div>
                         )}
-                        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-8">
+                        <div className="flex flex-col sm:flex-row justify-end gap-4 mt-8">
                             <button
                                 onClick={() => {
                                     setShowProfileModal(false);
                                     setSelectedImage(null);
                                 }}
-                                className="bg-red-700 hover:bg-red-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-gray-500 w-full sm:w-auto"
+                                className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-red-500 w-full sm:w-auto"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSaveImage}
                                 disabled={!selectedImage}
-                                className={`bg-green-700 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-green-500 ${!selectedImage ? 'opacity-50 cursor-not-allowed' : ''} w-full sm:w-auto`}
+                                className={`bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-green-500 ${
+                                    !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
+                                } w-full sm:w-auto`}
                             >
                                 Salvar Imagem
                             </button>

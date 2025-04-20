@@ -44,6 +44,15 @@ type TranslationKeys = {
     passwordChange: string;
     passwordChangeDesc: string;
     changePassword: string;
+    changeUsernamePassword?: string;
+    newUsername?: string;
+    enterNewUsername?: string;
+    updateUsername?: string;
+    currentPassword?: string;
+    newPassword?: string;
+    enterCurrentPassword?: string;
+    enterNewPassword?: string;
+    updatePassword?: string;
   };
   data: {
     title: string;
@@ -101,7 +110,16 @@ export const translations: Record<LanguageKey, TranslationKeys> = {
       twoFactorDesc: 'Adicione uma camada extra de segurança à sua conta',
       passwordChange: 'Alteração Obrigatória de Senha',
       passwordChangeDesc: 'Exigir alteração de senha a cada 90 dias',
-      changePassword: 'Alterar Senha'
+      changePassword: 'Alterar Senha',
+      changeUsernamePassword: 'Alterar Username e Senha',
+      newUsername: 'Novo Username',
+      enterNewUsername: 'Digite seu novo username...',
+      updateUsername: 'Atualizar Username',
+      currentPassword: 'Senha Atual',
+      newPassword: 'Nova Senha',
+      enterCurrentPassword: 'Digite sua senha atual...',
+      enterNewPassword: 'Digite sua nova senha...',
+      updatePassword: 'Atualizar Senha'
     },
     data: {
       title: 'Dados e Privacidade',

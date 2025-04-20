@@ -23,6 +23,9 @@ export function SettingsTab() {
     autoBackup: true,
     analytics: true,
   });
+  const [newUsername, setNewUsername] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     applyTheme(activeTheme);
@@ -244,12 +247,112 @@ export function SettingsTab() {
             </div>
           ))}
 
-          <div className="pt-4 border-t border-[var(--color-border)] mt-4">
-            <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
-              <FiLock /> {t('security.changePassword', language)}
-            </button>
-          </div>
+          
         </div>
+      </div>
+
+      <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
+        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+          <FiLock /> {t('security.changeUsernamePassword', language)}
+        </h3>
+
+        {/* Formulário para alterar o username */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const response = await fetch('http://localhost:3000/api/user/update-username', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ username: newUsername }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                alert(data.message);
+              } else {
+                alert('Erro ao atualizar username.');
+              }
+            } catch (error) {
+              console.error('Erro ao conectar ao servidor:', error);
+            }
+          }}
+          className="space-y-4"
+        >
+          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+            {t('security.newUsername', language)}
+          </label>
+          <input
+            type="text"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
+            placeholder={t('security.enterNewUsername', language)}
+          />
+          <button
+            type="submit"
+            className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)]"
+          >
+            {t('security.updateUsername', language)}
+          </button>
+        </form>
+
+        {/* Formulário para alterar a senha */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const response = await fetch('http://localhost:3000/api/user/update-password', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify({ currentPassword, newPassword }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                alert(data.message);
+              } else {
+                alert('Erro ao atualizar senha.');
+              }
+            } catch (error) {
+              console.error('Erro ao conectar ao servidor:', error);
+            }
+          }}
+          className="space-y-4 mt-6"
+        >
+          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+            {t('security.currentPassword', language)}
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
+            placeholder={t('security.enterCurrentPassword', language)}
+          />
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mt-4">
+            {t('security.newPassword', language)}
+          </label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
+            placeholder={t('security.enterNewPassword', language)}
+          />
+          <button
+            type="submit"
+            className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)] mt-4"
+          >
+            {t('security.updatePassword', language)}
+          </button>
+        </form>
       </div>
 
       {/* Seção de Dados */}
