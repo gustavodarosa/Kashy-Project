@@ -9,28 +9,17 @@ const bcrypt = require('bcrypt'); // Ensure bcrypt is imported
 // --- Register User Function ---
 // This function handles the logic previously tested in userRoutes.test.js
 exports.registerUser = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  // ... (validation and existing user check) ...
 
-  const { email, password } = req.body; // Include password
-  const encryptionKey = process.env.ENCRYPTION_KEY;
+  // --- Get username from request body ---
+  const { email, password, username } = req.body; // <-- Add username here
 
-  if (!encryptionKey) {
-    console.error("FATAL: ENCRYPTION_KEY environment variable is not set.");
-    return res.status(500).json({ message: 'Server configuration error.' });
-  }
+  // ... (encryption key check) ...
 
   try {
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    // ... (find existing user) ...
 
-    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const walletDetails = await bchService.generateAddress();
     const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, encryptionKey);
     const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, encryptionKey);
@@ -38,22 +27,23 @@ exports.registerUser = async (req, res, next) => {
     user = new User({
       googleId: null,
       email: email,
-      password: hashedPassword, // Save the hashed password
+      password: hashedPassword,
+      username: username, // <-- ADD USERNAME HERE
       encryptedMnemonic: encryptedMnemonic,
       encryptedDerivationPath: encryptedDerivationPath,
-      bchAddress: walletDetails.address // Ensure this is populated
-  });
+      bchAddress: walletDetails.address
+    });
     const savedUser = await user.save();
 
     res.status(201).json({
       _id: savedUser._id,
       email: savedUser.email,
+      username: savedUser.username, // <-- Include in response if desired
       bchAddress: savedUser.bchAddress,
       message: 'User registered successfully.'
     });
   } catch (error) {
-    console.error('Error during user registration:', error);
-    res.status(500).json({ message: 'Failed to register user.' });
+    // ... (error handling) ...
   }
 };
 

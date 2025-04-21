@@ -439,9 +439,9 @@ export function WalletTab() {
           <div className="text-gray-400 text-center py-8">Nenhuma transação encontrada.</div>
         ) : (
           <div className="space-y-4">
-            {transactions.map((tx, index) => ( // Added index parameter
+            {transactions.map((tx, index) => (
               <div
-                key={tx._id || `tx-fallback-${index}`} // Use _id if available, otherwise fallback to index
+                key={tx._id || `tx-fallback-${index}`} // Use _id se disponível, senão use o índice
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg transition-colors"
               >
                 <div className="flex items-center gap-4 mb-2 sm:mb-0">
@@ -456,11 +456,9 @@ export function WalletTab() {
                     <p className="font-medium text-sm sm:text-base">
                       {tx.type === 'received' ? 'Recebido de' : 'Enviado para'}
                       <span className="ml-1 font-mono text-blue-400">
-                        {/* Use fromAddress for received, address for sent */}
                         {tx.type === 'received'
-  ? (tx.fromAddress ? formatAddress(tx.fromAddress) : 'Origem Desconhecida') // Check if fromAddress exists
-  : formatAddress(tx.address)
-}
+                          ? (tx.fromAddress ? formatAddress(tx.fromAddress) : 'Origem Desconhecida')
+                          : formatAddress(tx.address)}
                       </span>
                     </p>
                     <p className="text-xs sm:text-sm text-gray-400">{formatDate(tx.timestamp)}</p>
@@ -718,4 +716,4 @@ export function WalletTab() {
 
     </div>
   );
-} // Removed extra closing brace here
+}
