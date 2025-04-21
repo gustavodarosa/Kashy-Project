@@ -281,7 +281,10 @@ class SpvMonitorService {
         if (this.io) {
             console.log(`SPV: Emitting 'walletUpdate' to user room: ${subInfo.userId}`);
             this.io.to(subInfo.userId).emit('walletUpdate', {
-                message: `Wallet update detected for ${subInfo.bchAddress}`
+                message: `Pagamento detectado para o endereço ${subInfo.bchAddress}`,
+                address: subInfo.bchAddress,
+                userId: subInfo.userId,
+                status: status // Adicione mais informações, se necessário
             });
         } else {
             console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");
@@ -551,6 +554,8 @@ class SpvMonitorService {
 
 // --- Export Singleton Instance ---
 const spvMonitorServiceInstance = new SpvMonitorService();
+
+spvMonitorServiceInstance.handleSubscriptionUpdate('testScriptHash', 'newStatus');
 
 module.exports = {
     start: () => spvMonitorServiceInstance.start(),
