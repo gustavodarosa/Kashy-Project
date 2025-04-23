@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { FiArrowUp, FiArrowDown, FiCopy, FiDollarSign, FiCode, FiClock, FiRefreshCw } from 'react-icons/fi';
-import { io, Socket } from 'socket.io-client'; // Import socket.io client
-// import QRCode from 'qrcode.react'; // Keep commented if not using
+import { io, Socket } from 'socket.io-client'; 
+import { toast } from 'react-toastify'; 
+import QRCode from 'react-qr-code'; 
+import { useNotification } from '../../../context/NotificationContext';
 
 // --- Tipos ---
 type Transaction = {
@@ -35,6 +37,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
 const WEBSOCKET_URL = 'http://localhost:3000'; // Your backend URL
 
 export function WalletTab() {
+  const { addNotification } = useNotification();
   // --- Estados ---
   const [balance, setBalance] = useState<WalletBalance>({
     totalBCH: 0,
@@ -55,6 +58,9 @@ export function WalletTab() {
   });
   const [isSending, setIsSending] = useState<boolean>(false);
   const [socket, setSocket] = useState<Socket | null>(null); // State for the socket instance
+  const [notifications, setNotifications] = useState<
+    { id: string; message: string; timestamp: string }[]
+  >([]);
 
   // --- Função para buscar dados da carteira ---
   const fetchWalletData = async () => {
@@ -161,13 +167,7 @@ export function WalletTab() {
     });
 
     // --- Listen for the 'walletUpdate' event from the backend ---
-    newSocket.on('walletUpdate', (data) => {
-      console.log('Wallet update received via WebSocket:', data);
-      // When an update is received, refetch the wallet data
-      fetchWalletData();
-      // Optionally, show a subtle notification to the user
-      // showToast("Carteira atualizada!");
-    });
+   
 
     // --- Cleanup function ---
     return () => {
@@ -177,6 +177,8 @@ export function WalletTab() {
     };
 
   }, []); // Empty array: Run only on mount and clean up on unmount
+
+
 
   // --- Função para lidar com o envio de BCH ---
   const handleSendSubmit = async (e: React.FormEvent) => {
@@ -410,6 +412,30 @@ export function WalletTab() {
         <button disabled className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           <FiDollarSign /> Converter para BRL (Em breve)
         </button>
+
+        <button
+          onClick={() => {
+            const newNotification = {
+              id: Math.random().toString(36).substr(2, 9), // Gera um ID único
+              message: 'Pagamento detectado para o endereço X!',
+              timestamp: new Date().toLocaleString('pt-BR'),
+              amountBCH: 0.01, // Exemplo de valor
+              amountBRL: 50.0, // Exemplo de valor
+              receivedAt: new Date().toLocaleTimeString('pt-BR'),
+              onViewDetails: () => {
+                console.log('Detalhes da notificação visualizados.');
+              },
+            };
+            addNotification(newNotification); // Adiciona ao contexto global
+            toast.success(newNotification.message, {
+              position: 'top-right',
+              autoClose: 5000,
+            });
+          }}
+          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-800 px-6 py-3 rounded-lg transition-colors"
+        >
+          Testar Notificação
+        </button>
       </div>
 
 
@@ -506,7 +532,7 @@ export function WalletTab() {
 
       {/* --- Modal de Envio --- */}
        {sendModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Enviar Bitcoin Cash</h3>
@@ -652,7 +678,7 @@ export function WalletTab() {
 
       {/* --- Modal de Recebimento --- */}
        {receiveModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Receber Bitcoin Cash</h3>
@@ -669,7 +695,7 @@ export function WalletTab() {
               <div className="bg-white p-4 rounded-lg inline-block mb-6 shadow-md">
                 {walletAddress ? (
                    <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500">
-                     <FiCode size={64} /> <span className="ml-2 text-xs">QR Code aqui</span>
+                     <QRCode value={walletAddress} size={400} /> 
                    </div>
                 ) : (
                   <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500">

@@ -6,6 +6,7 @@ import { useSidebar } from '../../hooks/usersidebar';
 import { useState, useEffect } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, OfertasTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
+import { useNotification } from '../../context/NotificationContext';
 
 export function Dashboard() {
     const { isOpen, toggleSidebar } = useSidebar();
@@ -16,6 +17,9 @@ export function Dashboard() {
     const [savedImage, setSavedImage] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
     const [email, setEmail] = useState<string | null>(null);
+    const [notificationModalOpen, setNotificationModalOpen] = useState(false);
+    const { notifications } = useNotification();
+    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
     const navigate = useNavigate();
 
@@ -228,6 +232,17 @@ export function Dashboard() {
         fetchUserData();
     }, []);
 
+    useEffect(() => {
+        if (notifications.length > 0) {
+            setHasUnreadNotifications(true);
+        }
+    }, [notifications]);
+
+    const handleOpenNotificationModal = () => {
+        setNotificationModalOpen(true);
+        setHasUnreadNotifications(false);
+    };
+
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'carteira', label: 'Wallet', icon: <Wallet /> },
@@ -310,107 +325,125 @@ export function Dashboard() {
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
 
-                    {/* User Menu */}
-                    <div className="relative text-white flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        {/* Ícone de Notificações */}
                         <button
-                            onClick={() => setShowUserDropdown(!showUserDropdown)}
-                            className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
+                            onClick={handleOpenNotificationModal}
+                            className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] transition-colors"
+                            title="Notificações"
                         >
-                            {savedImage ? (
-                                <img
-                                    src={savedImage}
-                                    alt="User"
-                                    className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-amber-500 transition-colors"
-                                />
-                            ) : (
-                                <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                            <Bell className="h-6 w-6 text-white" />
+                            {hasUnreadNotifications && (
+                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--color-bg-tertiary)]"></span>
                             )}
-                            <span className="text-sm sm:text-base font-medium hidden sm:inline">{username || "Usuário"}</span>
                         </button>
 
-                        {/* User Dropdown */}
-                        {showUserDropdown && (
-                            <div className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]">
+                        {/* User Menu */}
+                        <div className="relative text-white flex-shrink-0">
+                            <button
+                                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                                className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
+                            >
+                                {savedImage ? (
+                                    <img
+                                        src={savedImage}
+                                        alt="User"
+                                        className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-amber-500 transition-colors"
+                                    />
+                                ) : (
+                                    <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                                )}
+                            </button>
 
-                                <div className="flex justify-end px-2 pt-2">
-                                    <button
-                                        onClick={() => setShowUserDropdown(false)}
-                                        className="text-white border-transparent border-2 hover:border-zinc-600 hover:bg-zinc-700 rounded-full p-2 transition-colors"
-                                    >
-                                        <X className="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
+                            {showUserDropdown && (
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowUserDropdown(false)} // Fecha o dropdown ao clicar fora
+                                >
                                     <div
-                                        className="relative group"
-                                        onClick={() => {
-                                            setShowProfileModal(true);
-                                            setShowUserDropdown(false);
-                                        }}
+                                        className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]"
+                                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do dropdown de fechá-lo
                                     >
-                                        {savedImage ? (
-                                            <img
-                                                src={savedImage}
-                                                alt="User Preview"
-                                                className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500 hover:opacity-50"
-                                            />
-                                        ) : (
-                                            <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
-                                        )}
-                                        <Pencil
-                                            className="absolute inset-0 m-auto h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-                                        />
+                                        <div className="flex justify-end px-2 pt-2">
+                                            <button
+                                                onClick={() => setShowUserDropdown(false)}
+                                                className="text-white border-transparent border-2 hover:border-zinc-600 hover:bg-zinc-700 rounded-full p-2 transition-colors"
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
+                                            <div
+                                                className="relative group"
+                                                onClick={() => {
+                                                    setShowProfileModal(true);
+                                                    setShowUserDropdown(false);
+                                                }}
+                                            >
+                                                {savedImage ? (
+                                                    <img
+                                                        src={savedImage}
+                                                        alt="User Preview"
+                                                        className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500 hover:opacity-50"
+                                                    />
+                                                ) : (
+                                                    <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
+                                                )}
+                                                <Pencil
+                                                    className="absolute inset-0 m-auto h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                                                />
+                                            </div>
+                                            <span className="font-medium text-center">{username || "Usuário"}</span>
+                                            <span className="text-xs text-gray-400">{email || "Conta padrão"}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setShowProfileModal(true);
+                                                setShowUserDropdown(false);
+                                            }}
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                        >
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Editar Perfil
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveTab('settings');
+                                                setShowUserDropdown(false);
+                                            }}
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                        >
+                                            <Settings className="mr-2 h-4 w-4" />
+                                            Configurações
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setNotificationModalOpen(true);
+                                                setShowUserDropdown(false);
+                                            }}
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                        >
+                                            <Bell className="mr-2 h-4 w-4" />
+                                            Notificações
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                        >
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Trocar de conta
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                        >
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            Sair
+                                        </button>
                                     </div>
-                                    <span className="font-medium text-center">{username || "Usuário"}</span>
-                                    <span className="text-xs text-gray-400">{email || "Conta padrão"}</span> {/* Exibe o e-mail */}
                                 </div>
-
-                                <button
-                                    onClick={() => {
-                                        setShowProfileModal(true);
-                                        setShowUserDropdown(false);
-                                    }}
-                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Editar Perfil
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setActiveTab('settings');
-                                        setShowUserDropdown(false);
-                                    }}
-                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                >
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    Configurações
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowProfileModal(true);
-                                        setShowUserDropdown(false);
-                                    }}
-                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                >
-                                    <Bell className="mr-2 h-4 w-4" />
-                                    Notificações
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                >
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Trocar de conta
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                >
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Sair
-                                </button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </header>
 
@@ -422,8 +455,14 @@ export function Dashboard() {
 
             {/* Profile Edit Modal */}
             {showProfileModal && (
-                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-[var(--color-bg-primary)] text-white border border-[var(--color-border)] p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100">
+                <div
+                    className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 p-4"
+                    onClick={() => setShowProfileModal(false)} // Fecha o modal ao clicar fora
+                >
+                    <div
+                        className="bg-[var(--color-bg-primary)] text-white border border-[var(--color-border)] p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100"
+                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
+                    >
                         <h2 className="text-2xl font-bold mb-6 text-center text-amber-400">Editar Perfil</h2>
                         <div className="mb-6">
                             <label htmlFor="profileImageInput" className="block text-sm font-medium mb-3 text-gray-300">
@@ -474,6 +513,45 @@ export function Dashboard() {
                             >
                                 Salvar Imagem
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notification Modal */}
+            {notificationModalOpen && (
+                <div
+                    className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    onClick={() => setNotificationModalOpen(false)} // Fecha o modal ao clicar fora
+                >
+                    <div
+                        className="bg-[var(--color-bg-tertiary)] rounded-lg p-6 w-full max-w-md shadow-xl"
+                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-white">Histórico de Notificações</h3>
+                            <button
+                                onClick={() => setNotificationModalOpen(false)}
+                                className="text-gray-400 hover:text-white"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {notifications.length === 0 ? (
+                                <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
+                            ) : (
+                                notifications.map((notification) => (
+                                    <div
+                                        key={notification.id}
+                                        className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md"
+                                    >
+                                        <p className="text-sm text-gray-300">{notification.message}</p>
+                                        <p className="text-sm text-gray-400">{notification.timestamp}</p>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

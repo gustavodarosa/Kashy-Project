@@ -66,17 +66,15 @@ export function CryptoChart() {
   return (
     <div className="h-full w-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
+        <h2 className="text-xl font-bold text-white dark:text-[var(--color-text-primary)]">
           Bitcoin Cash (BCH/USD)
         </h2>
         {cryptoData.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold">
+            <span className="text-lg text-green-500 font-semibold">
               ${cryptoData[cryptoData.length - 1].price.toFixed(2)}
             </span>
-            <span className="text-sm text-green-500">
-              +2.5% (24h)
-            </span>
+          
           </div>
         )}
       </div>

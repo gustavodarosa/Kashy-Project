@@ -59,7 +59,7 @@ export function DashboardTab() {
         </div>
         
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex text-white items-center gap-2">
             <span>Status Blockchain:</span>
             {blockchainStatus === 'online' ? (
               <span className="flex items-center gap-1 text-green-500">
@@ -85,10 +85,10 @@ export function DashboardTab() {
           
           <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-3 rounded-lg shadow">
             <div className="flex items-center gap-4">
-              <span className="font-medium">Saldo:</span>
-              <span className="text-green-600 dark:text-green-400">R$ 5.300,00</span>
+              <span className="font-medium text-white">Saldo:</span>
+              <span className="text-green-600 dark:text-green-400">R$ 0,00</span>
               <span className="text-gray-400">|</span>
-              <span className="text-yellow-600 dark:text-yellow-400">₿ 0.27 BCH</span>
+              <span className="text-yellow-600 dark:text-yellow-400">₿ 0 BCH</span>
             </div>
           </div>
         </div>
@@ -100,14 +100,14 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Vendas Hoje</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">R$ 540,00</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">R$ 0,00</p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
               <FiActivity size={24} />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
-            <FiTrendingUp className="mr-1" /> +12% em relação a ontem
+            <FiTrendingUp className="mr-1" /> +0% em relação a ontem
           </div>
         </div>
         
@@ -115,14 +115,14 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Recebido em BCH</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">₿ 0.035</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">₿ 0</p>
             </div>
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
               <FiShoppingCart size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            ≈ R$ 1.050,00
+            ≈ R$ 0,00
           </div>
         </div>
         
@@ -130,14 +130,14 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Produtos com Estoque Baixo</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">7 produtos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 produtos</p>
             </div>
             <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400">
               <FiAlertTriangle size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            2 produtos esgotados
+            0 produtos esgotados
           </div>
         </div>
         
@@ -145,14 +145,14 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Pedidos Pendentes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">3 pendentes</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 pendentes</p>
             </div>
             <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
               <FiClock size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            1 aguardando pagamento
+            0 aguardando pagamento
           </div>
         </div>
         
@@ -160,14 +160,14 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Transações Recentes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">5 hoje</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 hoje</p>
             </div>
             <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400">
               <FiRefreshCw size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            4 confirmadas, 1 pendente
+            0 confirmadas, 0 pendente
           </div>
         </div>
         
@@ -175,7 +175,7 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Crescimento da Semana</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">+12%</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0%</p>
             </div>
             <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400">
               <FiTrendingUp size={24} />
@@ -189,6 +189,10 @@ export function DashboardTab() {
 
       {/* Seções de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Gráfico de Criptomoedas */}
+        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+          <CryptoChart />
+        </div>
         {/* Gráfico de Faturamento */}
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
@@ -263,11 +267,6 @@ export function DashboardTab() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Gráfico de Criptomoedas */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
-          <CryptoChart />
-        </div>
       </div>
 
       {/* Segunda Linha de Seções Detalhadas */}
@@ -284,7 +283,7 @@ export function DashboardTab() {
                   <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">{tx.date}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">
+                  <p className="font-medium text-green-500">
                     R$ {tx.amountBRL.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">

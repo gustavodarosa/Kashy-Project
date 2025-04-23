@@ -214,7 +214,7 @@ export function ProdutosTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6">Dashboard de Produtos</h2>
       
       {/* Barra de ações */}
@@ -225,7 +225,7 @@ export function ProdutosTab() {
             <input
               type="text"
               placeholder="Buscar produtos..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -240,7 +240,7 @@ export function ProdutosTab() {
               setSelectedCategory(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full md:w-48 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full md:w-48 px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todas categorias</option>
             {categories.map(cat => (
@@ -259,8 +259,8 @@ export function ProdutosTab() {
       
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-2xl">
             <h3 className="text-xl font-bold mb-4">
               {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
             </h3>
@@ -393,7 +393,7 @@ export function ProdutosTab() {
       )}
       
       {/* Tabela de produtos */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -410,7 +410,7 @@ export function ProdutosTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
+              <table className="min-w-full divide-y divide-black">
                 <thead className="bg-gray-750">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nome</th>
@@ -421,7 +421,7 @@ export function ProdutosTab() {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-black">
                   {products.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4">
