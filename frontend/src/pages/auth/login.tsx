@@ -40,6 +40,11 @@ const Login = () => {
     return () => clearInterval(interval); 
   }, []);
 
+  const handleGoogleLogin = () => {
+    // Redireciona para o endpoint de autenticação do Google
+    window.location.href = "http://localhost:3000/api/auth/google";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -123,6 +128,20 @@ const Login = () => {
           }`}
         >
           {loading ? "Carregando..." : "Entrar"}
+        </button>
+
+        {/* Botão de Login com Google */}
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-colors w-2/5 flex items-center justify-center space-x-2"
+        >
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png"
+            alt="Google Logo"
+            className="h-5 w-5"
+          />
+          <span>Entrar com Google</span>
         </button>
 
         <p className="text-sm text-center mt-4">
