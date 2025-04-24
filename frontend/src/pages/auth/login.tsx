@@ -41,8 +41,8 @@ const Login = () => {
   }, []);
 
   const handleGoogleLogin = () => {
-    // Redireciona para o endpoint de autenticação do Google
-    window.location.href = "http://localhost:3000/api/auth/google";
+    // Redireciona para o endpoint de autenticação do Google com o idioma pt-BR
+    window.location.href = "http://localhost:3000/api/auth/google?hl=pt-BR";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,14 +134,13 @@ const Login = () => {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-colors w-2/5 flex items-center justify-center space-x-2"
+          className="bg-gray-300 hover:bg-gray-400 p-2 rounded-full transition-colors flex items-center justify-center"
         >
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png"
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
             alt="Google Logo"
-            className="h-5 w-5"
+            className="h-6 w-6"
           />
-          <span>Entrar com Google</span>
         </button>
 
         <p className="text-sm text-center mt-4">
