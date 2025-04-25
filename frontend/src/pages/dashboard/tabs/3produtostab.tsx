@@ -274,7 +274,7 @@ export function ProdutosTab() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -286,7 +286,7 @@ export function ProdutosTab() {
                     value={formData.description}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 
@@ -299,7 +299,7 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -313,7 +313,7 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.000001"
                     step="0.000001"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)]focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled
                   />
                 </div>
@@ -326,7 +326,7 @@ export function ProdutosTab() {
                     value={formData.quantity}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -338,7 +338,7 @@ export function ProdutosTab() {
                     name="sku"
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -349,7 +349,7 @@ export function ProdutosTab() {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {categories.map(cat => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -364,7 +364,7 @@ export function ProdutosTab() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded bg-gray-700 border-gray-600 focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-accent)] focus:ring-blue-500"
                   />
                   <label htmlFor="isActive" className="ml-2 text-sm">
                     Ativo
@@ -376,13 +376,13 @@ export function ProdutosTab() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 rounded-lg border border-[var(--color-accent)] bg-red-800 hover:bg-red-600 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 rounded-lg bg-green-800 hover:bg-green-600 transition-colors"
                 >
                   {currentProduct ? 'Atualizar' : 'Salvar'}
                 </button>
@@ -410,7 +410,7 @@ export function ProdutosTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-black">
+              <table className="min-w-full divide-y divide-[var(--color-divide)]">
                 <thead className="bg-gray-750">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nome</th>
@@ -421,7 +421,7 @@ export function ProdutosTab() {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-black">
+                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
                   {products.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4">
@@ -481,20 +481,20 @@ export function ProdutosTab() {
               </table>
             </div>
             
-            {/* Paginação (igual ao componente de usuários) */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-gray-700">
+            {/* Paginação */}
+            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-secondary) disabled:opacity-50"
                 >
                   Próxima
                 </button>
@@ -514,7 +514,7 @@ export function ProdutosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
@@ -539,7 +539,7 @@ export function ProdutosTab() {
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             currentPage === pageNum
                               ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                              : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-secondary)]'
                           }`}
                         >
                           {pageNum}
@@ -550,7 +550,7 @@ export function ProdutosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Próxima</span>
                       <FiChevronRight size={20} />

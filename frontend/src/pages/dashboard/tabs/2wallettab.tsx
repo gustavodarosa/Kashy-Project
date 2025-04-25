@@ -185,20 +185,21 @@ export function WalletTab() {
     e.preventDefault();
     setIsSending(true);
     setError(null);
-
+  
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Usuário não autenticado.');
-
+  
       const amountToSend = parseFloat(sendForm.amountBCH);
       if (isNaN(amountToSend) || amountToSend <= 0) throw new Error('Quantidade inválida.');
       if (!sendForm.address.trim()) throw new Error('Endereço de destino é obrigatório.');
-
-      // --- Use amount in SATOSHIS if backend expects it ---
-      // const amountSatoshis = Math.round(amountToSend * 1e8);
-      // if (amountSatoshis <= 546) throw new Error('Quantidade muito baixa (abaixo do dust limit).');
-      // --- End Satoshis ---
-
+  
+      console.log('Enviando dados para o backend:', {
+        address: sendForm.address,
+        amount: sendForm.amountBCH,
+        fee: sendForm.fee,
+      });
+  
       const response = await fetch(`${API_BASE_URL}/wallet/send`, {
         method: 'POST',
         headers: {
@@ -207,11 +208,11 @@ export function WalletTab() {
         },
         body: JSON.stringify({
           address: sendForm.address,
-          amount: sendForm.amountBCH, // Send amount as BCH string (or amountSatoshis if backend expects that)
+          amount: sendForm.amountBCH,
           fee: sendForm.fee,
         }),
       });
-
+  
       if (!response.ok) {
         let errorMsg = 'Erro ao enviar BCH';
         try {
@@ -220,22 +221,19 @@ export function WalletTab() {
         } catch (parseError) {}
         throw new Error(errorMsg);
       }
-
-      const result = await response.json(); // Get txid from response if available
+  
+      const result = await response.json();
       alert(`Transação enviada com sucesso! TXID: ${result.txid || 'N/A'}`);
       setSendModalOpen(false);
       setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' });
-      // No need to call fetchWalletData here, WebSocket update should trigger it
-      // fetchWalletData();
-
     } catch (err: any) {
       console.error("Erro em handleSendSubmit:", err);
       setError(err.message || 'Ocorreu um erro inesperado ao enviar.');
-      // Error is now shown within the modal
     } finally {
       setIsSending(false);
     }
   };
+  
 
   // --- Função para copiar endereço ---
   const copyToClipboard = () => {
@@ -394,7 +392,7 @@ export function WalletTab() {
        <div className="flex flex-wrap gap-4 mb-8">
         <button
           onClick={() => setSendModalOpen(true)}
-          disabled={loading || (balance.availableBCH ?? balance.totalBCH) <= 0} // Use available if present
+          disabled={loading || !walletAddress} 
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-800 px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <FiArrowUp /> Enviar BCH
@@ -660,14 +658,7 @@ export function WalletTab() {
                   disabled={isSending || !sendForm.address || !sendForm.amountBCH || parseFloat(sendForm.amountBCH) <= 0}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                 >
-                  {isSending ? (
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    'Enviar'
-                  )}
+                  {isSending ? <FiArrowUp /> : 'Enviar'}
                 </button>
               </div>
             </form>

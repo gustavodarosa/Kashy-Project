@@ -16,6 +16,7 @@
   --color-danger: #ef4444;
   --color-danger-hover: #dc2626; 
   --color-chart-primary: rgb(206, 55, 45);
+  --color-divide: #303030;
   --color-text-on-accent: #ffffff; 
   --color-text-on-accent-hover: #000000;
   --color-auth-bg: var(--color-accent); 
@@ -27,5 +28,3 @@
   --color-auth-link: var(--color-accent); 
   --color-auth-link-hover: var(--color-accent-hover); 
 }
-
-
