@@ -1,219 +1,248 @@
-🚀 Kashy Project — Dashboard E-Commerce & Gerenciamento de Carteiras BCH
-O Kashy Project é uma plataforma completa que une um dashboard de e-commerce e um sistema robusto de gerenciamento de carteiras Bitcoin Cash (BCH). Criado para atender negócios de todos os portes, ele permite monitorar vendas, gerenciar produtos, clientes, transações e integrar soluções em criptoativos de maneira fácil e segura.
+# 🚀 Kashy Project — Dashboard E-Commerce & Gerenciamento de Carteiras BCH
 
-📋 Funcionalidades Principais
-🛒 Dashboard de E-Commerce
-Gestão de Produtos: Cadastro, edição e remoção de produtos.
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
+[![Node.js](https://img.shields.io/badge/Node.js-v16%2B-brightgreen.svg)](https://nodejs.org/)  
+[![MongoDB](https://img.shields.io/badge/MongoDB-v5.x-brightgreen.svg)](https://www.mongodb.com/)  
+[![React](https://img.shields.io/badge/React-v18.x-blue.svg)](https://react.dev/)  
+[![Status](https://img.shields.io/badge/status-em%20desenvolvimento-orange)]()
 
-Relatórios Avançados: Vendas, estoque e análises inteligentes com suporte a IA.
+---
 
-Gestão de Clientes: Controle completo de usuários e clientes.
+## 📁 Sumário
+- [Sobre o Projeto](#-sobre-o-projeto)
+- [Funcionalidades](#-funcionalidades)
+- [Tecnologias Utilizadas](#-tecnologias-utilizadas)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [Como Executar](#-como-executar)
+- [Testes](#-testes)
+- [Documentação da API](#-documentação-da-api)
+- [Quadro de Funcionalidades](#-quadro-de-funcionalidades)
+- [Segurança](#-segurança)
+- [Melhorias Futuras](#-melhorias-futuras)
+- [Contribuição](#-contribuição)
+- [Contato](#-contato)
+- [Licença](#-licença)
 
-Notificações: Alertas em tempo real para eventos críticos.
+---
 
-💰 Gerenciamento de Carteiras BCH
-Saldo Detalhado: Acesso ao saldo disponível, pendente e total.
+## 📌 Sobre o Projeto
 
-Envio e Recebimento: Transações de BCH com geração de QR Code para recebimento.
+O **Kashy Project** é uma plataforma completa que integra:
+- 🛒 **Dashboard de E-commerce**  
+- 🏦 **Gerenciamento de Carteiras Bitcoin Cash (BCH)**
 
-Histórico Completo: Visualização de todas as transações realizadas.
+Facilitando a gestão de negócios com pagamentos rápidos, transparentes e seguros através da blockchain.
 
-Notificações de Pagamento: Alertas instantâneos para novos pagamentos.
+---
 
-🔒 Autenticação e Segurança
-Login e Registro: Sistema seguro com JWT.
+## 📋 Funcionalidades
 
-Proteção de Dados: Criptografia AES-256 para informações sensíveis (como mnemônicos).
+### 🛒 E-commerce
+- Cadastro e gerenciamento de produtos
+- Análises de vendas e estoque
+- Gestão de clientes e usuários
+- Notificações em tempo real
 
-Atualização de Credenciais: Alteração de senha e username diretamente pelo painel.
+### 💸 Carteira BCH
+- Consulta de saldo disponível e pendente
+- Envio e recebimento via QR Code
+- Histórico completo de transações
+- Alertas automáticos de movimentações
 
-🛠️ Tecnologias Utilizadas
-Frontend
-React + TypeScript: Desenvolvimento de SPA rápida e moderna.
+### 🔐 Segurança e Autenticação
+- Registro e login com proteção JWT
+- Dados sensíveis criptografados com AES-256
+- Atualização de senha e username
 
-Tailwind CSS: Estilização responsiva e elegante.
+---
 
-Context API: Gerenciamento de estados globais e notificações.
+## 🛠️ Tecnologias Utilizadas
 
-Chart.js: Visualização interativa de dados.
+### Frontend
+- ⚛️ React + TypeScript
+- 🎨 Tailwind CSS
+- 📊 Chart.js
+- 🔥 Socket.IO (notificações em tempo real)
+- ⚡ Vite
 
-Socket.IO: Atualizações em tempo real via WebSocket.
+### Backend
+- 🖥️ Node.js + Express
+- 🛢️ MongoDB + Mongoose
+- 🔑 JWT + Bcrypt para autenticação
+- ₿ bch-js (Bitcoin Cash API), Fulcrum, Blockchair
+- 🔒 Criptografia AES-256
 
-Vite: Build tool ultrarrápida.
+### Infraestrutura
+- 🐳 Docker
+- 📈 API CoinGecko (dados de mercado)
 
-Backend
-Node.js + Express: API modular e escalável.
+---
 
-MongoDB + Mongoose: Banco de dados NoSQL para alta flexibilidade.
+## 📂 Estrutura do Projeto
 
-JWT + Bcrypt: Autenticação e segurança reforçadas.
-
-Integrações BCH: APIs para transações e monitoramento blockchain (bch-js, Fulcrum, Blockchair).
-
-Criptografia AES-256: Proteção de dados críticos.
-
-Infraestrutura
-
-CoinGecko API: Consulta de preços e dados de mercado.
-
-📂 Estrutura do Projeto
-plaintext
-Copiar
-Editar
+```bash
 Kashy-Project/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/       # Lógica dos controladores (ex: auth, wallet)
-│   │   ├── middlewares/       # Middlewares para autenticação, erros, etc.
-│   │   ├── models/            # Schemas do MongoDB (User, Transaction)
-│   │   ├── routes/            # Definição das rotas da API
-│   │   ├── services/          # Serviços especializados (SPV Monitor, BCH Services)
-│   │   ├── utils/             # Funções utilitárias (criptografia, logger)
-│   │   └── app.js             # Inicialização do servidor
-│   ├── package.json           # Dependências do backend
-│   └── docker-compose.yml     # Orquestração Docker
+│   │   ├── controllers/
+│   │   ├── middlewares/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── app.js
+│   ├── package.json
+│   └── docker-compose.yml
 ├── frontend/
 │   ├── src/
-│   │   ├── components/        # Componentes reutilizáveis (Gráficos, Alertas)
-│   │   ├── pages/             # Páginas do painel (WalletTab, Relatórios)
-│   │   ├── utils/             # Temas, formatação, helpers
-│   │   └── App.tsx            # Setup principal da aplicação React
-│   ├── public/                # Arquivos públicos
-│   ├── package.json           # Dependências do frontend
-│   └── vite.config.ts         # Configurações do Vite
-└── README.md                  # Documentação do projeto
-🚀 Como Executar o Projeto
-Pré-requisitos
-Node.js (v16+)
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── utils/
+│   │   └── App.tsx
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.ts
+└── README.md
+```
 
-Docker (opcional)
+---
 
-MongoDB (local ou na nuvem)
+## 🚀 Como Executar
 
-Passo a Passo
-Clone o repositório:
+### Pré-requisitos
+- Node.js (v16+)
+- Docker (opcional)
+- MongoDB (local ou Atlas)
 
-bash
-Copiar
-Editar
+### Clone o repositório
+
+```bash
 git clone https://github.com/seu-usuario/kashy-project.git
 cd kashy-project
-Configurar o Backend:
+```
 
-bash
-Copiar
-Editar
+### Configurar o Backend
+
+```bash
 cd backend
-Crie um arquivo .env:
+```
 
-plaintext
-Copiar
-Editar
+Crie um `.env`:
+
+```env
 MONGO_URI=mongodb://localhost:27017/kashy
 JWT_SECRET=sua-chave-secreta
 ENCRYPTION_KEY=sua-chave-de-criptografia
-Instale as dependências:
+```
 
-bash
-Copiar
-Editar
+Instale as dependências e inicie o servidor:
+
+```bash
 npm install
-Inicie o servidor:
-
-bash
-Copiar
-Editar
 npm start
-Configurar o Frontend:
+```
 
-bash
-Copiar
-Editar
+### Configurar o Frontend
+
+```bash
 cd ../frontend
-Crie o arquivo .env:
+```
 
-plaintext
-Copiar
-Editar
+Crie um `.env`:
+
+```env
 VITE_API_BASE_URL=http://localhost:3000/api
-Instale as dependências:
+```
 
-bash
-Copiar
-Editar
+Instale as dependências e inicie:
+
+```bash
 npm install
-Inicie o frontend:
-
-bash
-Copiar
-Editar
 npm run dev
-Acesse:
+```
 
-Frontend: http://localhost:5173
+### Acesse
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend API: [http://localhost:3000](http://localhost:3000)
 
-Backend: http://localhost:3000
+---
 
-🧪 Testes
-Backend: Testes unitários e de integração localizados na pasta /tests.
-Execute:
+## 🧪 Testes
 
-bash
-Copiar
-Editar
+### Backend
+- Testes unitários e de integração: **Jest** + **Supertest**
+
+Rodar testes:
+
+```bash
 npm test
-Frontend: Pode ser expandido com Jest e React Testing Library.
+```
 
-📖 Documentação da API
-🔐 Autenticação
-POST /api/auth/login: Login do usuário.
+### Frontend
+- Em planejamento para usar **Jest** + **React Testing Library**
 
-POST /api/auth/register: Cadastro de usuário.
+---
 
-💼 Carteira
-GET /api/wallet: Consulta dados da carteira.
+## 📖 Documentação da API
 
-POST /api/wallet/send: Envio de BCH.
+| Método | Endpoint                  | Descrição                          |
+|:-------|:---------------------------|:-----------------------------------|
+| POST   | `/api/auth/login`           | Login de usuário                   |
+| POST   | `/api/auth/register`        | Cadastro de novo usuário           |
+| GET    | `/api/wallet`               | Consulta da carteira               |
+| POST   | `/api/wallet/send`          | Envio de Bitcoin Cash              |
+| GET    | `/api/user/:id`             | Consulta informações do usuário    |
+| PUT    | `/api/user/update-username` | Atualizar username                 |
+| PUT    | `/api/user/update-password` | Atualizar senha                    |
 
-👤 Usuário
-GET /api/user/:id: Consulta dados do usuário.
+---
 
-PUT /api/user/update-username: Atualiza username.
+## 📊 Quadro de Funcionalidades
 
-PUT /api/user/update-password: Atualiza senha.
+| Funcionalidade                  | Status            |
+|:---------------------------------|:------------------|
+| Cadastro/Login de Usuários       | ✅ Completo        |
+| Gerenciamento de Produtos        | ✅ Completo        |
+| Relatórios de Vendas             | ✅ Completo        |
+| Integração com Bitcoin Cash      | ✅ Completo        |
+| Sistema de Notificações          | 🔄 Em desenvolvimento |
+| Testes Automatizados Frontend    | 🔜 Planejado       |
+| Deploy em Produção               | 🔜 Planejado       |
 
-🛡️ Segurança
-Criptografia de Dados: AES-256 para proteção de informações sensíveis.
+---
 
-Autenticação Segura: JWT com boas práticas de segurança.
+## 🛡️ Segurança
+- 🔒 Criptografia AES-256 para dados críticos
+- 🔑 Tokens JWT para autenticação
+- 🧹 Sanitização e validação rigorosa de dados
 
-Validação de Inputs: Sanitização e proteção contra ataques comuns.
+---
 
-📈 Melhorias Futuras
-Suporte para múltiplas criptomoedas (ETH, LTC, etc).
+## 📈 Melhorias Futuras
+- Suporte a múltiplas criptos (ETH, LTC)
+- Melhorias de UX e acessibilidade
+- Integração com PIX/fiat automático
+- Testes end-to-end Cypress
 
-Notificações push no navegador.
+---
 
-Testes End-to-End automatizados.
+## 🤝 Contribuição
 
-Melhorias de acessibilidade e usabilidade.
+Contribuições são super bem-vindas!
 
-🤝 Contribuição
-Contribuições são bem-vindas! Para colaborar:
+1. Faça um fork 🍴
+2. Crie sua branch (`git checkout -b minha-feature`)
+3. Commit suas mudanças (`git commit -m 'feat: minha feature'`)
+4. Push (`git push origin minha-feature`)
+5. Abra um Pull Request 📩
 
-bash
-Copiar
-Editar
-# Fork o projeto
-# Crie uma branch para a sua feature
-git checkout -b minha-feature
+---
 
-# Commit suas alterações
-git commit -m "feat: minha nova feature"
+## 📢 Contato
+- Gustavo da Rosa — [gustavodarosa2002@gmail.com](mailto:gustavodarosa2002@gmail.com)
+- Natan Bagatoli — [natanfbagatoli@gmail.com](mailto:natanfbagatoli@gmail.com)
 
-# Push para o seu fork
-git push origin minha-feature
-Depois, abra um Pull Request.
+---
 
-📫 Contato
-Quer saber mais ou contribuir? Entre em contato: gustavodarosa2002@gmail.com, natanfbagatoli@gmail.com.
+## 📄 Licença
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
