@@ -1,7 +1,6 @@
-// src/controllers/walletController.js
-const User = require('../models/user'); // Modelo de usuário
-const Transaction = require('../models/transaction'); // <-- Import Transaction model
-const bchService = require('../services/bchService'); // Serviço para enviar BCH
+const User = require('../models/user'); 
+const Transaction = require('../models/transaction'); 
+const bchService = require('../services/bchService'); 
 const { derivePrivateKey } = require('../services/bchService');
 const cryptoUtils = require('../utils/cryptoUtils');
 

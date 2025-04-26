@@ -8,7 +8,7 @@ type ThemeColors = {
   '--color-accent': string;
   '--color-accent-hover': string;
   '--color-border': string;
-  '--color-divide': string; // Nova propriedade
+  '--color-divide': string; 
   '--color-success'?: string;
   '--color-success-hover'?: string;
   '--color-danger'?: string;
@@ -33,7 +33,7 @@ export const themes = {
       '--color-accent': '#0f0f0f',
       '--color-accent-hover': '#0f0f0f',
       '--color-border': '#303030',
-      '--color-divide': '#303030', // Adicionado
+      '--color-divide': '#303030', 
     },
   },
   Bluetheme: {
@@ -48,7 +48,7 @@ export const themes = {
       '--color-accent': '#38bdf8',
       '--color-accent-hover': '#0ea5e9',
       '--color-border': '#244770',
-      '--color-divide': '#244770', // Adicionado
+      '--color-divide': '#244770', 
     },
   },
   Greentheme: {
@@ -63,7 +63,7 @@ export const themes = {
       '--color-accent': '#34d399',
       '--color-accent-hover': '#10b981',
       '--color-border': '#3c7553',
-      '--color-divide': '#3c7553', // Adicionado
+      '--color-divide': '#3c7553', 
     },
   },
   Redtheme: {
@@ -78,7 +78,7 @@ export const themes = {
       '--color-accent': '#a14f59',
       '--color-accent-hover': '#f97316',
       '--color-border': '#853941',
-      '--color-divide': '#853941', // Adicionado
+      '--color-divide': '#853941', 
     },
   },
 } as const;

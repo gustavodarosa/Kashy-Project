@@ -1,9 +1,8 @@
-// backend/src/controllers/userController.js
-const bchService = require('../services/bchService'); // Use our service
+const bchService = require('../services/bchService'); 
 const User = require('../models/user');
 const cryptoUtils = require('../utils/cryptoUtils');
-const { validationResult } = require('express-validator'); // For handling validation results
-const bcrypt = require('bcrypt'); // Ensure bcrypt is imported
+const { validationResult } = require('express-validator'); 
+const bcrypt = require('bcrypt'); 
 
 
 // --- Register User Function ---
@@ -28,7 +27,7 @@ exports.registerUser = async (req, res, next) => {
       googleId: null,
       email: email,
       password: hashedPassword,
-      username: username, // <-- ADD USERNAME HERE
+      username: username, 
       encryptedMnemonic: encryptedMnemonic,
       encryptedDerivationPath: encryptedDerivationPath,
       bchAddress: walletDetails.address
@@ -38,12 +37,12 @@ exports.registerUser = async (req, res, next) => {
     res.status(201).json({
       _id: savedUser._id,
       email: savedUser.email,
-      username: savedUser.username, // <-- Include in response if desired
+      username: savedUser.username, 
       bchAddress: savedUser.bchAddress,
       message: 'User registered successfully.'
     });
   } catch (error) {
-    // ... (error handling) ...
+  
   }
 };
 

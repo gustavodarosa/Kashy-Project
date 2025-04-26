@@ -1,5 +1,3 @@
-// src/middlewares/errorHandler.js
-
 const errorHandler = (err, req, res, next) => {
     console.error("Error Caught:", err.message); // Log the error message
     // console.error(err.stack); // Optionally log the full stack

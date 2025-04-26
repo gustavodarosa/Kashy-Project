@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiActivity, FiShoppingCart, FiBox, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
+import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CryptoChart } from '../../../components/CryptoChart';
 
@@ -13,13 +13,6 @@ const salesData = [
   { name: 'Dom', value: 500 },
 ];
 
-const topProducts = [
-  { id: 1, name: 'Smartphone Premium', sold: 24, revenue: 12000, trend: 'up' },
-  { id: 2, name: 'Fone Bluetooth', sold: 18, revenue: 3600, trend: 'up' },
-  { id: 3, name: 'Carregador Portátil', sold: 15, revenue: 1500, trend: 'down' },
-  { id: 4, name: 'Capa Protetora', sold: 12, revenue: 600, trend: 'up' },
-  { id: 5, name: 'Suporte para Celular', sold: 8, revenue: 400, trend: 'stable' },
-];
 
 const recentTransactions = [
   { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '10/06/2024 14:30', customer: 'Cliente A' },

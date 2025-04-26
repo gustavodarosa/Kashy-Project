@@ -1,21 +1,20 @@
-// src/server.js
 require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken'); // Make sure jwt is required
-const User = require('./models/user'); // Import User model
+const jwt = require('jsonwebtoken'); 
+const User = require('./models/user'); 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 const app = require('./app');
 const connectDB = require('./config/db');
-const spvService = require('./services/spvMonitorService'); // Import the service object
+const spvService = require('./services/spvMonitorService'); 
 const mongoose = require('mongoose');
 const express = require('express');
-const logger = require('./utils/logger'); // Importe o logger
+const logger = require('./utils/logger'); 
 
 const PORT = process.env.PORT || 3000;
 
 // --- Create HTTP server and Socket.IO instance ---
-const server = http.createServer(app); // Use http server with Express app
+const server = http.createServer(app); 
 const io = new Server(server, {
   cors: {
     origin: "*", // Allow your frontend origin (replace '*' in production)

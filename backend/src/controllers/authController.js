@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
-const bchService = require('../services/bchService'); // Serviço para gerar endereço BCH
-const cryptoUtils = require('../utils/cryptoUtils'); // Utilitário para criptografia
+const bchService = require('../services/bchService'); 
+const cryptoUtils = require('../utils/cryptoUtils'); 
 
 class AuthController {
   static async register(req, res) {
@@ -72,12 +72,12 @@ class AuthController {
   
       const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
   
-      // Inclui o campo redirectTo na resposta
+
       res.status(200).json({
         token,
-        userId: user._id, // Ensure this is included in the response
+        userId: user._id, 
         message: 'Login realizado com sucesso!',
-        redirectTo: '/DashboardHome', // URL para redirecionar o usuário
+        redirectTo: '/DashboardHome', 
       });
     } catch (error) {
       console.error('Erro durante o login:', error);

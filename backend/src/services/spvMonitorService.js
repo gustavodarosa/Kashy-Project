@@ -1,15 +1,13 @@
-// backend/src/services/spvMonitorService.js
-
 const ElectrumClient = require('electrum-client');
 const cashaddr = require('cashaddrjs');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/user');
-const Transaction = require('../models/transaction'); // Ensure this path is correct
+const Transaction = require('../models/transaction'); 
 const { FULCRUM_SERVERS } = require('../config/fullcrumConfig');
-// Assuming you have bch-js installed and configured
+
 const BCHJS = require('@psf/bch-js');
-const bchjs = new BCHJS(); // Or configure with API key if needed
+const bchjs = new BCHJS(); 
 
 // --- Configuration ---
 const RECONNECT_DELAY_MS = 10000;
@@ -284,7 +282,7 @@ class SpvMonitorService {
                 message: `Pagamento detectado para o endereço ${subInfo.bchAddress}`,
                 address: subInfo.bchAddress,
                 userId: subInfo.userId,
-                status: status // Adicione mais informações, se necessário
+                status: status 
             });
         } else {
             console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");

@@ -1,5 +1,4 @@
-// src/hooks/useLanguage.ts
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LanguageKey } from '../utils/languages';
 
 export const useLanguage = () => {

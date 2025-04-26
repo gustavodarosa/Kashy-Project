@@ -1,4 +1,3 @@
-// src/models/transaction.js
 const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
@@ -23,7 +22,7 @@ const transactionSchema = new mongoose.Schema({
         required: true,
     },
     address: {
-        type: String, // The user's address involved in this transaction
+        type: String, 
         required: true,
     },
     blockHeight: {

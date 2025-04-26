@@ -1,4 +1,3 @@
-// src/utils/languages.ts
 export type LanguageKey = 'pt-BR' | 'es-ES' | 'en-US';
 
 type TranslationKeys = {

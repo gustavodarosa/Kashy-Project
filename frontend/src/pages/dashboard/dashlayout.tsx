@@ -166,8 +166,8 @@ export function Dashboard() {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token'); // Certifique-se de que o token está armazenado
-            const userId = localStorage.getItem('userId'); // Certifique-se de que o ID do usuário está armazenado
+            const token = localStorage.getItem('token'); 
+            const userId = localStorage.getItem('userId'); 
 
             if (!token || !userId) {
                 console.error('Usuário não autenticado ou ID do usuário não encontrado.');

@@ -1,4 +1,3 @@
-// testFulcrumConnection.js
 const ElectrumClient = require('electrum-client');
 const { FULCRUM_SERVERS } = require('./src/config/fullcrumConfig');
 

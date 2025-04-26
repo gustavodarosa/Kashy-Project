@@ -13,7 +13,7 @@ type Transaction = {
   amountBCH: number;
   amountBRL: number;
   address: string;
-  fromAddress?: string; // Adicione o campo fromAddress
+  fromAddress?: string; 
 
   txid?: string; // Changed from txHash to match backend model
   timestamp: string;
@@ -21,20 +21,20 @@ type Transaction = {
   // Let's assume status comes from somewhere or we derive it
   status: 'pending' | 'confirmed' | 'failed';
   confirmations?: number;
-  blockHeight?: number; // Added from backend model
+  blockHeight?: number; 
 };
 
 type WalletBalance = {
   totalBCH: number;
-  availableBCH?: number; // Make optional if not always present
-  pendingBCH?: number;  // Make optional if not always present
+  availableBCH?: number; 
+  pendingBCH?: number;  
   totalBRL: number;
-  totalSatoshis?: number; // Added from backend response
+  totalSatoshis?: number; 
 };
 
 // --- Constantes ---
 const API_BASE_URL = 'http://localhost:3000/api';
-const WEBSOCKET_URL = 'http://localhost:3000'; // Your backend URL
+const WEBSOCKET_URL = 'http://localhost:3000'; 
 
 export function WalletTab() {
   const { addNotification } = useNotification();
@@ -57,17 +57,16 @@ export function WalletTab() {
     fee: 'medium' as 'low' | 'medium' | 'high',
   });
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [socket, setSocket] = useState<Socket | null>(null); // State for the socket instance
+  const [socket, setSocket] = useState<Socket | null>(null); 
   const [notifications, setNotifications] = useState<
     { id: string; message: string; timestamp: string }[]
   >([]);
 
   // --- Função para buscar dados da carteira ---
   const fetchWalletData = async () => {
-    // Only set loading if not already loading to avoid flicker on WebSocket update
+
     if (!loading) setLoading(true);
-    // Don't clear error immediately, let new fetch overwrite or succeed
-    // setError(null);
+   
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -91,14 +90,13 @@ export function WalletTab() {
 
       const data = await response.json();
 
-      // --- Adapt parsing based on actual backend response ---
+  
       const fetchedBalance: WalletBalance = {
         totalBCH: data.balance?.totalBCH || 0,
         totalBRL: data.balance?.totalBRL || 0,
         totalSatoshis: data.balance?.totalSatoshis || 0,
-        // Add available/pending if your backend provides them
-        availableBCH: data.balance?.availableBCH, // Example
-        pendingBCH: data.balance?.pendingBCH,   // Example
+        availableBCH: data.balance?.availableBCH, 
+        pendingBCH: data.balance?.pendingBCH,  
       };
 
       // Map backend transaction type ('incoming'/'outgoing') to frontend ('received'/'sent')
@@ -106,8 +104,8 @@ export function WalletTab() {
         ...tx,
         type: tx.type === 'incoming' ? 'received' : tx.type === 'outgoing' ? 'sent' : tx.type,
         status: tx.blockHeight && tx.blockHeight > 0 ? 'confirmed' : 'pending',
-        txid: tx.txid, // Use txid from backend
-        fromAddress: tx.fromAddress, // Include fromAddress
+        txid: tx.txid, 
+        fromAddress: tx.fromAddress, 
       }));
       // --- End Adaptation ---
 
@@ -134,8 +132,8 @@ export function WalletTab() {
     const token = localStorage.getItem('token');
     if (!token) {
       console.warn("WebSocket: No token found, cannot connect.");
-      setError("Autenticação necessária para atualizações em tempo real."); // Inform user
-      return; // Don't try to connect without token
+      setError("Autenticação necessária para atualizações em tempo real."); 
+      return; 
     }
 
     // Connect to the WebSocket server, passing the token for authentication
@@ -240,7 +238,7 @@ export function WalletTab() {
     if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress)
       .then(() => {
-        alert('Endereço copiado para a área de transferência!'); // Considere usar Toasts
+        alert('Endereço copiado para a área de transferência!'); 
       })
       .catch(err => {
         console.error('Erro ao copiar endereço:', err);
@@ -417,14 +415,14 @@ export function WalletTab() {
               id: Math.random().toString(36).substr(2, 9), // Gera um ID único
               message: 'Pagamento detectado para o endereço X!',
               timestamp: new Date().toLocaleString('pt-BR'),
-              amountBCH: 0.01, // Exemplo de valor
-              amountBRL: 50.0, // Exemplo de valor
+              amountBCH: 0.01, 
+              amountBRL: 50.0, 
               receivedAt: new Date().toLocaleTimeString('pt-BR'),
               onViewDetails: () => {
                 console.log('Detalhes da notificação visualizados.');
               },
             };
-            addNotification(newNotification); // Adiciona ao contexto global
+            addNotification(newNotification); 
             toast.success(newNotification.message, {
               position: 'top-right',
               autoClose: 5000,
@@ -441,7 +439,7 @@ export function WalletTab() {
        <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6">
         <h3 className="text-xl font-semibold mb-4">Transações Recentes</h3>
 
-        {loading && transactions.length === 0 ? ( // Skeleton only on initial load
+        {loading && transactions.length === 0 ? ( 
           <div className="space-y-4 animate-pulse">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]">
@@ -465,7 +463,7 @@ export function WalletTab() {
           <div className="space-y-4">
             {transactions.map((tx, index) => (
               <div
-                key={tx._id || `tx-fallback-${index}`} // Use _id se disponível, senão use o índice
+                key={tx._id || `tx-fallback-${index}`} 
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg transition-colors"
               >
                 <div className="flex items-center gap-4 mb-2 sm:mb-0">

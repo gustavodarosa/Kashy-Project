@@ -4,7 +4,7 @@ import Login from './pages/auth/login';
 import Register from './pages/auth/register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
-import { NotificationProvider } from './context/NotificationContext'; // Importar o NotificationProvider
+import { NotificationProvider } from './context/NotificationContext';
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {

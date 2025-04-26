@@ -1,11 +1,10 @@
-// src/middlewares/validateEmail.js
 const { check, validationResult } = require('express-validator');
 
-const validateEmail = [ // <--- MUST BE AN ARRAY
+const validateEmail = [ 
     // Define the check(s)
     check('email', 'Invalid email format')
       .isEmail()
-      .normalizeEmail(), // Example check
+      .normalizeEmail(), 
 
     // Define the handler for validation results
     (req, res, next) => {
@@ -19,4 +18,4 @@ const validateEmail = [ // <--- MUST BE AN ARRAY
     }
 ];
 
-module.exports = validateEmail; // Export the array
+module.exports = validateEmail; 

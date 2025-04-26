@@ -1,9 +1,9 @@
 require('dotenv').config();
 const axios = require('axios');
 const mongoose = require('mongoose');
-const User = require('./src/models/user'); // Adjust path if needed
-const cryptoUtils = require('./src/utils/cryptoUtils'); // Adjust path
-const connectDB = require('./src/config/db'); // Adjust path
+const User = require('./src/models/user'); 
+const cryptoUtils = require('./src/utils/cryptoUtils'); 
+const connectDB = require('./src/config/db'); 
 
 const BLOCKCHAIR_API = process.env.BLOCKCHAIR_API || 'https://api.blockchair.com/bitcoin-cash';
 const USER_EMAIL_TO_VERIFY = 'new2usesr@testssss.csom'; // <-- CHANGE THIS to the user you want to check
