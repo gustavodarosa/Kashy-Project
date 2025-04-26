@@ -20,8 +20,14 @@ class AuthController {
 
       // Gera os detalhes da carteira BCH
       const walletDetails = await bchService.generateAddress();
+      console.log('Mnemônico gerado:', walletDetails.mnemonic);
+
       const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, process.env.ENCRYPTION_KEY);
       const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, process.env.ENCRYPTION_KEY);
+
+      console.log('Mnemônico criptografado:', encryptedMnemonic);
+      console.log('Caminho de derivação criptografado:', encryptedDerivationPath);
+      console.log('Chave de criptografia usada no registro:', process.env.ENCRYPTION_KEY);
 
       // Cria o novo usuário
       const newUser = new User({
@@ -31,8 +37,8 @@ class AuthController {
         encryptedMnemonic,
         encryptedDerivationPath,
         bchAddress: walletDetails.address,
-        balance: 0, // Saldo inicial
       });
+      await newUser.save();
 
       // Salva o usuário no banco de dados
       const savedUser = await newUser.save();

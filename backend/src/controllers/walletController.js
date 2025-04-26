@@ -1,6 +1,9 @@
 // src/controllers/walletController.js
-const User = require('../models/user'); // <-- Import User model
+const User = require('../models/user'); // Modelo de usuário
 const Transaction = require('../models/transaction'); // <-- Import Transaction model
+const bchService = require('../services/bchService'); // Serviço para enviar BCH
+const { derivePrivateKey } = require('../services/bchService');
+const cryptoUtils = require('../utils/cryptoUtils');
 
 const getWalletData = async (req, res) => {
     try {
@@ -92,4 +95,52 @@ function formatAddress(address) {
     return address;
 }
 
-module.exports = { getWalletData };
+/**
+ * Envia BCH de uma carteira para outra.
+ * @param {object} req - Requisição HTTP.
+ * @param {object} res - Resposta HTTP.
+ */
+const sendBCH = async (req, res) => {
+  try {
+    const { address, amount } = req.body;
+    const userId = req.user.id;
+
+    console.log('Dados recebidos no backend:', { address, amount, userId });
+
+    if (!address || !amount) {
+      return res.status(400).json({ message: 'Endereço e quantia são obrigatórios.' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    const encryptionKey = process.env.ENCRYPTION_KEY;
+    console.log('Chave de criptografia carregada:', encryptionKey);
+
+    // Log encrypted data
+    console.log('Encrypted Mnemonic:', user.encryptedMnemonic);
+    console.log('Encrypted Derivation Path:', user.encryptedDerivationPath);
+
+    // Attempt decryption
+    const mnemonic = cryptoUtils.decrypt(user.encryptedMnemonic, encryptionKey);
+    const derivationPath = cryptoUtils.decrypt(user.encryptedDerivationPath, encryptionKey);
+
+    console.log('Mnemônico descriptografado:', mnemonic);
+    console.log('Caminho de derivação descriptografado:', derivationPath);
+
+    const fromWif = await derivePrivateKey(user.encryptedMnemonic, user.encryptedDerivationPath, encryptionKey);
+    console.log('Chave privada derivada:', fromWif);
+
+    const txid = await bchService.sendTransaction(fromWif, address, parseFloat(amount));
+    console.log('Transação enviada com sucesso. TXID:', txid);
+
+    res.status(200).json({ txid, message: 'Transação enviada com sucesso!' });
+  } catch (error) {
+    console.error('Erro ao enviar BCH:', error);
+    res.status(500).json({ message: 'Erro ao enviar BCH.', error: error.message });
+  }
+};
+
+module.exports = { getWalletData, sendBCH };
