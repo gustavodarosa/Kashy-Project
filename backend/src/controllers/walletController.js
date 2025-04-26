@@ -142,4 +142,18 @@ const sendBCH = async (req, res) => {
   }
 };
 
+if (this.io) {
+  console.log(`SPV: Emitting 'walletUpdate' to user room: ${subInfo.userId}`);
+  this.io.to(subInfo.userId).emit('walletUpdate', {
+    message: `Pagamento detectado para o endereço ${subInfo.bchAddress}`,
+    address: subInfo.bchAddress,
+    userId: subInfo.userId,
+    amountBCH: calculatedAmountSatoshis / 1e8, 
+    amountBRL: (calculatedAmountSatoshis / 1e8) * BRL_PER_BCH, 
+    status: status,
+  });
+} else {
+  console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");
+}
+
 module.exports = { getWalletData, sendBCH };

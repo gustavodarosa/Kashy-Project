@@ -12,6 +12,7 @@ const bchjs = new BCHJS();
 // --- Configuration ---
 const RECONNECT_DELAY_MS = 10000;
 const ELECTRUM_PROTOCOL_VERSION = '1.4';
+const BRL_PER_BCH = 1000; // Example conversion rate
 
 // ======= UTILITIES ======= //
 function addressToScriptPubKey(address) {
@@ -103,8 +104,13 @@ class SpvMonitorService {
     }
 
     setIoServer(ioInstance) {
-        this.io = ioInstance;
-        console.log("SPV: Socket.IO server instance received.");
+        ioInstance.on('connection', (socket) => {
+            const userId = socket.handshake.auth.token; // Decodifique o token para obter o ID do usuário
+            if (userId) {
+                socket.join(userId); // Adicione o socket à sala do usuário
+                console.log(`Usuário conectado à sala: ${userId}`);
+            }
+        });
     }
 
     // --- Connection Management ---
@@ -261,232 +267,94 @@ class SpvMonitorService {
     async handleSubscriptionUpdate(scriptHash, status) {
         const subInfo = this.subscriptions.get(scriptHash);
         if (!subInfo) {
-          console.warn(`SPV: Update received for untracked scriptHash: ${scriptHash}`);
-          return;
+            console.warn(`SPV: Update received for untracked scriptHash: ${scriptHash}`);
+            return;
         }
 
         if (status === subInfo.lastStatus) {
-            // console.log(`SPV: Status unchanged for ${subInfo.bchAddress} (${scriptHash}). Skipping update.`);
+            console.log(`SPV: Status unchanged for ${subInfo.bchAddress} (${scriptHash}). Skipping update.`);
             return;
         }
+
         console.log(`SPV: 🚨 Status change detected for ${subInfo.bchAddress} (User: ${subInfo.userId}). Old: ${subInfo.lastStatus}, New: ${status}`);
         subInfo.lastStatus = status; // Update status *before* processing
 
         // Process wallet info update (fetches details, saves to DB)
-        await this.updateUserWalletInfo(subInfo.userId, subInfo.bchAddress, scriptHash);
+        const { calculatedAmountSatoshis, sentAmountSatoshis } = await this.updateUserWalletInfo(subInfo.userId, subInfo.bchAddress, scriptHash);
 
         // Emit WebSocket event AFTER processing
         if (this.io) {
             console.log(`SPV: Emitting 'walletUpdate' to user room: ${subInfo.userId}`);
+            const message = sentAmountSatoshis > 0
+                ? `Você enviou ${sentAmountSatoshis / 1e8} BCH para um endereço.`
+                : `Pagamento detectado para o endereço ${subInfo.bchAddress}.`;
+
+            // Emit only to the specific user's room
             this.io.to(subInfo.userId).emit('walletUpdate', {
-                message: `Pagamento detectado para o endereço ${subInfo.bchAddress}`,
+                message,
                 address: subInfo.bchAddress,
                 userId: subInfo.userId,
-                status: status 
+                amountBCH: calculatedAmountSatoshis / 1e8, // Valor em BCH
+                amountBRL: (calculatedAmountSatoshis / 1e8) * BRL_PER_BCH, // Valor em BRL
+                sentAmountBCH: sentAmountSatoshis / 1e8, // Valor enviado em BCH
+                status: status,
             });
         } else {
             console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");
         }
-      }
+    }
 
     // --- THIS IS THE CORE FUNCTION THAT WAS MODIFIED ---
     async updateUserWalletInfo(userId, bchAddress, scriptHash) {
         console.log(`SPV: Updating wallet info for User: ${userId}, Address: ${bchAddress}`);
         
         let user;
-
+        let calculatedAmountSatoshis = 0;
+        let sentAmountSatoshis = 0;
+    
         try {
             user = await User.findById(userId);
             if (!user) {
                 console.error(`SPV: User ${userId} not found during update for ${bchAddress}.`);
-                return;
+                return { calculatedAmountSatoshis, sentAmountSatoshis };
             }
-
+    
             if (!this.client || this.client.status !== 1) {
                 console.warn(`SPV: Client disconnected before fetching balance/history for ${bchAddress}. Will retry on reconnect.`);
                 if (this.subscriptions.has(scriptHash)) {
                     this.subscriptions.get(scriptHash).lastStatus = null;
                 }
-                return;
+                return { calculatedAmountSatoshis, sentAmountSatoshis };
             }
-
-            // 1. Fetch Balance
+    
             const balanceResult = await this.client.request('blockchain.scripthash.get_balance', [scriptHash]);
             const currentBalanceSatoshis = balanceResult.confirmed + balanceResult.unconfirmed;
             const oldBalanceSatoshis = user.balance || 0;
-
-            // 2. Calculate Overall Change (logging only)
-            const calculatedAmountSatoshis = currentBalanceSatoshis - oldBalanceSatoshis;
-
-            // 3. Fetch History Hashes
+    
+            calculatedAmountSatoshis = currentBalanceSatoshis - oldBalanceSatoshis;
+    
             const history = await this.client.request('blockchain.scripthash.get_history', [scriptHash]);
-            const processedTxIds = new Set(user.processedTxIds || []);
-            let balanceChanged = false;
-            let newTxProcessedCount = 0;
-
-            // 4. Identify and Process New Transactions
-            const newTransactionsInfo = history.filter(tx => !processedTxIds.has(tx.tx_hash));
-
-            if (newTransactionsInfo.length > 0) {
-                console.log(`SPV: Found ${newTransactionsInfo.length} new transaction(s) for ${bchAddress}:`, newTransactionsInfo.map(tx => tx.tx_hash));
-                console.log(`SPV: Calculated overall balance change since last check: ${calculatedAmountSatoshis} sats.`);
-
-                // --- Loop through each new transaction ---
-                for (const txInfo of newTransactionsInfo) {
-                    // --- Define txid and blockHeight INSIDE the loop ---
-                    const { tx_hash: txid, height: blockHeight } = txInfo;
-                    let txDetails = null;
-
-                    try {
-                        // --- FETCH FULL TRANSACTION DETAILS ---
-                        console.log(`SPV: Fetching details for txid: ${txid}`);
-                        txDetails = await this.client.request('blockchain.transaction.get', [txid, true]);
-                        console.log(`SPV_DEBUG: Full transaction details for ${txid}:`, JSON.stringify(txDetails, null, 2));
-                        console.log(`SPV: Fetched details for ${txid}`);
-
-                        // --- Determine Type, From/To Addresses, Amount ---
-                        let determinedFromAddress = null;
-                        let determinedToAddress = null;
-                        let transactionType = 'internal';
-                        let amountRelevantToUser = 0;
-
-                        // Calculate user's input/output values
-                        let userTotalInput = 0;
-                        txDetails.vin.forEach(vin => {
-                            if (vin.prevout?.scriptPubKey?.addresses?.[0] === bchAddress) {
-                                userTotalInput += vin.prevout.value * 1e8;
-                            }
-                        });
-                        let userTotalOutput = 0;
-                        txDetails.vout.forEach(vout => {
-                            if (vout.scriptPubKey?.addresses?.[0] === bchAddress) {
-                                userTotalOutput += vout.value * 1e8;
-                            }
-                        });
-                        amountRelevantToUser = Math.round(userTotalOutput - userTotalInput);
-
-                        // Determine type and addresses based on amount
-                        if (amountRelevantToUser > 0) {
-                            transactionType = 'incoming';
-                            const input = txDetails.vin.find(vin => vin.prevout?.scriptPubKey?.addresses?.[0] !== bchAddress);
-
-                            // First, try the easy way (using the addresses field)
-                            if (input?.txid && input?.vout !== undefined) {
-                                try {
-                                    console.log(`SPV_DEBUG [${txid}]: Fetching input transaction details for txid: ${input.txid}`);
-                                    const inputTxDetails = await this.client.request('blockchain.transaction.get', [input.txid, true]);
-                                    const inputVout = inputTxDetails.vout[input.vout];
-                                    determinedFromAddress = inputVout?.scriptPubKey?.addresses?.[0] || null;
-                            
-                                    if (!determinedFromAddress && inputVout?.scriptPubKey?.hex) {
-                                        console.log(`SPV_DEBUG [${txid}]: Attempting to decode scriptPubKey hex from input transaction: ${inputVout.scriptPubKey.hex}`);
-                                        determinedFromAddress = scriptPubKeyHexToAddress(inputVout.scriptPubKey.hex);
-                                    }
-                            
-                                    if (!determinedFromAddress) {
-                                        console.warn(`SPV_DEBUG [${txid}]: Could not determine address from input transaction details.`);
-                                    }
-                                } catch (error) {
-                                    console.error(`SPV_DEBUG [${txid}]: Error fetching input transaction details for txid: ${input.txid}`, error);
-                                }
-                            } else {
-                                console.warn(`SPV_DEBUG [${txid}]: No addresses or scriptPubKey hex available in input.`);
-                                determinedFromAddress = null;
-                            }
-
-                            // --- ADD DEBUG LOG HERE ---
-                            // Log details if the primary method failed
-                            if (determinedFromAddress === null) {
-                                console.log(`SPV_DEBUG [${txid}]: Could not find sender via addresses field. Input data:`, JSON.stringify(input, null, 2));
-                                // Log all inputs for context if the specific one wasn't found or didn't have the address
-                                console.log(`SPV_DEBUG [${txid}]: All VIN details:`, JSON.stringify(txDetails.vin, null, 2));
-
-                                // --- Optional Fallback Logic (Uncomment if Step 1 debugging shows it's needed) ---
-                                /*
-                                if (input?.prevout?.scriptPubKey?.hex) {
-                                    console.log(`SPV_DEBUG [${txid}]: Address field missing, attempting to decode scriptPubKey hex: ${input.prevout.scriptPubKey.hex}`);
-                                    determinedFromAddress = scriptPubKeyHexToAddress(input.prevout.scriptPubKey.hex);
-                                    // If decoding still fails, determinedFromAddress will become null again
-                                    if(determinedFromAddress === null) {
-                                         console.warn(`SPV_DEBUG [${txid}]: Failed to decode scriptPubKey hex to address.`);
-                                    }
-                                }
-                                */
-                            }
-                            // --- END DEBUG LOG / FALLBACK ---
-
-                            determinedToAddress = bchAddress;
-                        } else if (amountRelevantToUser < 0) {
-                            transactionType = 'outgoing';
-                            determinedFromAddress = bchAddress;
-                            const output = txDetails.vout.find(vout => vout.scriptPubKey?.addresses?.[0] !== bchAddress);
-                            determinedToAddress = output?.scriptPubKey?.addresses?.[0] || 'Destino Desconhecido'; // Fallback for outgoing
-                        } else {
-                            transactionType = 'internal';
-                            determinedFromAddress = bchAddress;
-                            determinedToAddress = bchAddress;
-                        }
-
-                        console.log(`SPV: [${txid}] Type: ${transactionType}, Amount (User): ${amountRelevantToUser} sats, From: ${determinedFromAddress}, To: ${determinedToAddress}`);
-
-                        // --- MOVE Transaction creation and saving INSIDE the loop ---
-                        const newDbTransaction = new Transaction({
-                            userId: user._id,
-                            txid: txid, // Now txid is defined
-                            type: transactionType,
-                            amountSatoshis: Math.abs(amountRelevantToUser),
-                            address: bchAddress,
-                            blockHeight: blockHeight || 0,
-                            timestamp: txDetails.time ? new Date(txDetails.time * 1000) : new Date(),
-                            fromAddress: determinedFromAddress,
-                            toAddress: determinedToAddress,
-                        });
-
-                        await newDbTransaction.save(); // Save the transaction for *this* txid
-                        console.log(`SPV: Saved transaction record ${txid} (Type: ${transactionType}, Amount: ${Math.abs(amountRelevantToUser)} sats) to DB for user ${userId}`);
-                        // --- END Moved Block ---
-
-                        processedTxIds.add(txid); // Mark as processed *after* successful save
-                        newTxProcessedCount++;
-
-                    } catch (dbOrFetchError) {
-                        if (dbOrFetchError.code === 11000) {
-                            console.log(`SPV: Transaction ${txid} already exists in DB. Marking as processed.`);
-                            processedTxIds.add(txid);
-                        } else {
-                            console.error(`SPV: ❌ Error processing or fetching details for tx ${txid} (User: ${userId}):`, dbOrFetchError);
-                        }
-                    }
-                } // --- End loop through newTransactionsInfo ---
-            } // End if (newTransactionsInfo.length > 0)
-
-            // 5. Update User Balance
+            for (const tx of history) {
+                const transaction = await Transaction.findOne({ txid: tx.tx_hash });
+                if (transaction && transaction.type === 'sent') {
+                    sentAmountSatoshis += transaction.amountSatoshis;
+                }
+            }
+    
             if (currentBalanceSatoshis !== oldBalanceSatoshis) {
-                console.log(`SPV: Balance update for ${bchAddress}. Old: ${oldBalanceSatoshis} sats, New: ${currentBalanceSatoshis} sats`);
                 user.balance = currentBalanceSatoshis;
-                balanceChanged = true;
-            }
-
-            // 6. Save User (if needed)
-            const processedIdsChanged = user.processedTxIds.length !== processedTxIds.size || newTxProcessedCount > 0;
-            if (balanceChanged || processedIdsChanged) {
-                user.processedTxIds = Array.from(processedTxIds);
-                // Ensure user document is valid (username exists!) before saving
                 await user.save();
-                console.log(`SPV: ✅ User ${userId} document updated successfully (Balance Changed: ${balanceChanged}, Processed Txs Changed: ${processedIdsChanged}).`);
-            } else {
-                 console.log(`SPV: No balance change or new processed txids requiring user save for ${bchAddress}.`);
             }
-
+    
         } catch (error) {
-            // This catch block handles errors from User.findById, Electrum calls, user.save(), etc.
             console.error(`SPV: ❌ Error in updateUserWalletInfo for User ${userId} (${bchAddress}):`, error);
-             if (this.subscriptions.has(scriptHash)) {
-                 this.subscriptions.get(scriptHash).lastStatus = null;
-             }
+            if (this.subscriptions.has(scriptHash)) {
+                this.subscriptions.get(scriptHash).lastStatus = null;
+            }
         }
-    } // End updateUserWalletInfo
-
+    
+        return { calculatedAmountSatoshis, sentAmountSatoshis };
+    }
 
     // --- Service Lifecycle ---
     async start() {

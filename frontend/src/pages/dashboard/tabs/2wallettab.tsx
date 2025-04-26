@@ -58,9 +58,10 @@ export function WalletTab() {
   });
   const [isSending, setIsSending] = useState<boolean>(false);
   const [socket, setSocket] = useState<Socket | null>(null); 
-  const [notifications, setNotifications] = useState<
-    { id: string; message: string; timestamp: string }[]
-  >([]);
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const storedNotifications = localStorage.getItem('notifications');
+    return storedNotifications ? JSON.parse(storedNotifications) : [];
+  });
 
   // --- Função para buscar dados da carteira ---
   const fetchWalletData = async () => {
@@ -165,7 +166,53 @@ export function WalletTab() {
     });
 
     // --- Listen for the 'walletUpdate' event from the backend ---
-   
+    newSocket.on('walletUpdate', (data) => {
+      console.log('Atualização da carteira recebida:', data);
+  
+      const userId = localStorage.getItem('userId');
+      if (data.userId !== userId) {
+          console.warn('Notificação ignorada: não pertence ao usuário autenticado.');
+          return;
+      }
+  
+      // Verifique se a transação já foi processada
+      if (transactions.some(tx => tx.txid === data.txid)) {
+          console.warn('Transação já processada:', data.txid);
+          return;
+      }
+  
+      const amountBCH = data.amountBCH || 0;
+      const sentAmountBCH = data.sentAmountBCH || 0;
+  
+      const message = sentAmountBCH > 0
+          ? `Você enviou ${sentAmountBCH.toFixed(8)} BCH.`
+          : data.message;
+  
+      addNotification({
+          id: `notif-${Date.now()}`,
+          message,
+          amountBCH,
+          amountBRL: data.amountBRL || 0,
+          timestamp: new Date().toISOString(),
+          receivedAt: new Date().toLocaleTimeString('pt-BR'),
+          onViewDetails: () => {
+              window.open(`https://explorer.bitcoinabc.org/address/${data.address}`, '_blank');
+          },
+      });
+  
+      // Adicionar a transação ao estado
+      const newTransaction: Transaction = {
+          _id: data.txid || `temp-${Date.now()}`,
+          type: sentAmountBCH > 0 ? 'sent' : 'received',
+          amountBCH: sentAmountBCH > 0 ? sentAmountBCH : amountBCH,
+          amountBRL: data.amountBRL || 0,
+          address: data.address,
+          timestamp: new Date().toISOString(),
+          status: 'pending',
+      };
+  
+      setTransactions((prevTransactions) => [newTransaction, ...prevTransactions]);
+  });
 
     // --- Cleanup function ---
     return () => {
@@ -192,12 +239,6 @@ export function WalletTab() {
       if (isNaN(amountToSend) || amountToSend <= 0) throw new Error('Quantidade inválida.');
       if (!sendForm.address.trim()) throw new Error('Endereço de destino é obrigatório.');
   
-      console.log('Enviando dados para o backend:', {
-        address: sendForm.address,
-        amount: sendForm.amountBCH,
-        fee: sendForm.fee,
-      });
-  
       const response = await fetch(`${API_BASE_URL}/wallet/send`, {
         method: 'POST',
         headers: {
@@ -222,10 +263,37 @@ export function WalletTab() {
   
       const result = await response.json();
       alert(`Transação enviada com sucesso! TXID: ${result.txid || 'N/A'}`);
+  
+      // Adicionar a transação enviada ao estado de transações
+      const newTransaction: Transaction = {
+        _id: result.txid || `temp-${Date.now()}`, // Use o TXID ou um ID temporário
+        type: 'sent', // Defina explicitamente como 'sent'
+        amountBCH: amountToSend,
+        amountBRL: parseFloat(sendForm.amountBRL),
+        address: sendForm.address,
+        timestamp: new Date().toISOString(),
+        status: 'pending', // Inicialmente, a transação será marcada como pendente
+      };
+  
+      setTransactions((prevTransactions) => [newTransaction, ...prevTransactions]);
+  
+      // Adicionar notificação ao histórico
+      addNotification({
+        id: result.txid || `notif-${Date.now()}`,
+        message: `Você enviou ${amountToSend.toFixed(8)} BCH para ${sendForm.address}`,
+        amountBCH: amountToSend,
+        amountBRL: parseFloat(sendForm.amountBRL),
+        timestamp: new Date().toISOString(),
+        receivedAt: new Date().toLocaleTimeString('pt-BR'),
+        onViewDetails: () => {
+          window.open(`https://explorer.bitcoinabc.org/tx/${result.txid}`, '_blank');
+        },
+      });
+  
       setSendModalOpen(false);
       setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' });
     } catch (err: any) {
-      console.error("Erro em handleSendSubmit:", err);
+      console.error('Erro em handleSendSubmit:', err);
       setError(err.message || 'Ocorreu um erro inesperado ao enviar.');
     } finally {
       setIsSending(false);

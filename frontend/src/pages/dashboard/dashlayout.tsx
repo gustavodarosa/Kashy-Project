@@ -18,7 +18,7 @@ export function Dashboard() {
     const [username, setUsername] = useState<string | null>(null);
     const [email, setEmail] = useState<string | null>(null);
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-    const { notifications } = useNotification();
+    const { notifications, clearNotifications } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
     const navigate = useNavigate();
@@ -530,6 +530,12 @@ export function Dashboard() {
                     >
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-white">Histórico de Notificações</h3>
+                            <button
+                                onClick={clearNotifications}
+                                className="text-sm text-red-400 hover:text-red-300 hover:underline"
+                            >
+                                Limpar Histórico
+                            </button>
                             <button
                                 onClick={() => setNotificationModalOpen(false)}
                                 className="text-gray-400 hover:text-white"
