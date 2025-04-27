@@ -250,7 +250,7 @@ export function Dashboard() {
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
  
-                    {}
+                    {     }
                     <div className="flex items-center gap-3 sm:gap-4">
  
                         {/* Logo */}
