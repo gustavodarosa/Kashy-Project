@@ -4,7 +4,7 @@ import { LockKeyhole, Mail, Eye, EyeOff, User, FileText } from "lucide-react";
 const Register = () => {
 const [email, setEmail] = useState("");
 const [cnpj, setCnpj] = useState("");
-const [name, setName] = useState("");
+const [username, setName] = useState("");
 const [token, setToken] = useState("");
 const [password, setPassword] = useState("");
 const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,7 +43,7 @@ const response = await fetch("http://localhost:3000/api/auth/register", {
         body: JSON.stringify({
           email,
           cnpj,
-          name,
+          username,
           password,
           token,
         }),
@@ -90,7 +90,7 @@ className="bg-gray-800 border border-gray-600 w-full max-w-md p-8 rounded-lg sha
 </div>
 <input
 type="text"
-value={name}
+value={username}
 onChange={(e) => setName(e.target.value)}
 className="pl-10 pr-4 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgb(112,255,189)]"
 placeholder="Digite seu nome..."
@@ -111,25 +111,33 @@ placeholder="Digite seu Email..."
 required
           />
 </div>
-        {/* CNPJ */}
-        <div className="relative w-full">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-<FileText className="text-gray-400 h-5 w-5" />
-</div>
-<input
-type="text"
-value={cnpj}
-onChange={handleCnpjChange}
-className={`pl-10 pr-10 py-2 bg-gray-700 hover:bg-gray-600 border ${
-      cnpjError ? "border-red-500" : "border-gray-600"
-    } text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 ${
-      cnpjError ? "focus:ring-red-500" : "focus:ring-[rgb(112,255,189)]"
-    }`}
-placeholder="Digite seu CNPJ..."
-required
-          />
-{cnpjError && <p className="text-red-500 text-sm mt-1">{cnpjError}</p>}
-</div>
+{/* CNPJ */}
+<div className="relative w-full">
+    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+      <FileText className="w-5 h-5 text-gray-400" />
+    </div>
+    <input
+      type="text"
+      value={cnpj}
+      onChange={handleCnpjChange}
+      className={`w-full pl-10 pr-4 py-2 text-gray-100 placeholder-gray-400 bg-gray-700 border rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 ${
+        cnpjError
+          ? "border-red-500 focus:ring-red-500"
+          : "border-gray-600 focus:ring-[rgb(112,255,189)]"
+      }`}
+      placeholder="Digite seu CNPJ..."
+      required
+    />
+  </div>
+  
+  {/* Mensagem de erro */}
+  {cnpjError && (
+    <p className="absolute bottom mt-5 text-xs text-red-500">
+      {cnpjError}
+    </p>
+  )}
+
+
         {/* Senha */}
 <div className="relative w-full">
 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

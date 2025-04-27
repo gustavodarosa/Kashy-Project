@@ -20,6 +20,8 @@ export function Dashboard() {
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
     const { notifications, clearNotifications } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const notificationsPerPage = 5;
 
     const navigate = useNavigate();
 
@@ -544,19 +546,55 @@ export function Dashboard() {
                             </button>
                         </div>
 
+                        {/* Paginação de notificações */}
                         <div className="space-y-4">
                             {notifications.length === 0 ? (
                                 <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
                             ) : (
-                                notifications.map((notification) => (
-                                    <div
-                                        key={notification.id}
-                                        className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md"
-                                    >
-                                        <p className="text-sm text-gray-300">{notification.message}</p>
-                                        <p className="text-sm text-gray-400">{notification.timestamp}</p>
+                                <>
+                                    {notifications
+                                        .slice((currentPage - 1) * notificationsPerPage, currentPage * notificationsPerPage)
+                                        .map((notification) => (
+                                            <div
+                                                key={notification.id}
+                                                className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md"
+                                            >
+                                                <p className="text-sm text-gray-300">{notification.message}</p>
+                                                <p className="text-sm text-gray-400">{notification.timestamp}</p>
+                                            </div>
+                                        ))}
+                                    <div className="flex justify-between items-center mt-4">
+                                        <button
+                                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                            disabled={currentPage === 1}
+                                            className={`px-4 py-2 rounded-lg text-sm ${
+                                                currentPage === 1
+                                                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                                    : "bg-[var(--color-bg-secondary)] text-white hover:bg-[var(--color-bg-primary)]"
+                                            }`}
+                                        >
+                                            Anterior
+                                        </button>
+                                        <span className="text-gray-300 text-sm">
+                                            Página {currentPage} de {Math.ceil(notifications.length / notificationsPerPage)}
+                                        </span>
+                                        <button
+                                            onClick={() =>
+                                                setCurrentPage((prev) =>
+                                                    Math.min(prev + 1, Math.ceil(notifications.length / notificationsPerPage))
+                                                )
+                                            }
+                                            disabled={currentPage === Math.ceil(notifications.length / notificationsPerPage)}
+                                            className={`px-4 py-2 rounded-lg text-sm ${
+                                                currentPage === Math.ceil(notifications.length / notificationsPerPage)
+                                                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                                    : "bg-[var(--color-bg-secondary)] text-white hover:bg-[var(--color-bg-primary)]"
+                                            }`}
+                                        >
+                                            Próxima
+                                        </button>
                                     </div>
-                                ))
+                                </>
                             )}
                         </div>
                     </div>
