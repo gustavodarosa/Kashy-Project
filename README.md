@@ -69,7 +69,7 @@ Facilitando a gestão de negócios com pagamentos rápidos, transparentes e segu
 - 🖥️ Node.js + Express
 - 🛢️ MongoDB + Mongoose
 - 🔑 JWT + Bcrypt para autenticação
-- ₿ bch-js (Bitcoin Cash API), Fulcrum, Blockchair
+- 💰 bch-js (Bitcoin Cash API), Fulcrum, Blockchair
 - 🔒 Criptografia AES-256
 
 ### Infraestrutura
@@ -139,19 +139,13 @@ Instale as dependências e inicie o servidor:
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
 ### Configurar o Frontend
 
 ```bash
 cd ../frontend
-```
-
-Crie um `.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
 Instale as dependências e inicie:
