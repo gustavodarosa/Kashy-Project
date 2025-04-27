@@ -328,10 +328,9 @@ async function sendTransactionWithElectrum(fromWif, toAddress, amountBCH) {
     const amountSatoshis = Math.round(amountBCH * SATOSHIS_PER_BCH);
     // !!! IMPORTANT: Replace fixed fee with dynamic calculation !!!
     // Example placeholder for dynamic fee (adjust based on tx size)
-    // const estimatedTxSizeBytes = bchjs.BitcoinCash.getByteCount({ P2PKH: inputsAddedData.length }, { P2PKH: 2 }); // Estimate size
-    // const feeRateSatPerByte = 1.1; // Get from network or config
-    // const feeSatoshis = Math.ceil(estimatedTxSizeBytes * feeRateSatPerByte);
-    const feeSatoshis = 1000; // FIXED FEE - VERY BAD FOR PRODUCTION
+    const estimatedTxSizeBytes = bchjs.BitcoinCash.getByteCount({ P2PKH: inputsAddedData.length }, { P2PKH: 2 });
+    const feeRateSatPerByte = 1.1; 
+    const feeSatoshis = Math.ceil(estimatedTxSizeBytes * feeRateSatPerByte);
     console.warn(`!!! ADVERTÊNCIA: Usando taxa fixa de ${feeSatoshis} satoshis. Recomenda-se cálculo dinâmico urgente. !!!`);
 
     const changeSatoshis = totalInputSatoshis - amountSatoshis - feeSatoshis;

@@ -63,6 +63,8 @@ export function WalletTab() {
     return storedNotifications ? JSON.parse(storedNotifications) : [];
   });
 
+  const estimatedFee = 0.00001; // Exemplo: Substitua por um cálculo dinâmico baseado no backend
+
   // --- Função para buscar dados da carteira ---
   const fetchWalletData = async () => {
 
@@ -183,10 +185,10 @@ export function WalletTab() {
   
       const amountBCH = data.amountBCH || 0;
       const sentAmountBCH = data.sentAmountBCH || 0;
-  
+      const totalSpentBCH = sentAmountBCH + estimatedFee;
       const message = sentAmountBCH > 0
-          ? `Você enviou ${sentAmountBCH.toFixed(8)} BCH.`
-          : data.message;
+        ? `Você enviou ${sentAmountBCH.toFixed(8)} BCH (incluindo taxa de ${estimatedFee.toFixed(8)} BCH).`
+        : data.message;
   
       addNotification({
           id: `notif-${Date.now()}`,
@@ -706,6 +708,10 @@ export function WalletTab() {
                     {sendForm.fee === 'medium' && 'Confirmação balanceada.'}
                     {sendForm.fee === 'high' && 'Confirmação mais rápida, maior custo.'}
                   </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Taxa estimada</label>
+                  <p className="text-sm text-gray-400">{formatBCH(estimatedFee)}</p>
                 </div>
               </div>
 

@@ -331,7 +331,9 @@ class SpvMonitorService {
             const currentBalanceSatoshis = balanceResult.confirmed + balanceResult.unconfirmed;
             const oldBalanceSatoshis = user.balance || 0;
     
-            calculatedAmountSatoshis = currentBalanceSatoshis - oldBalanceSatoshis;
+            const feeSatoshis = 0; // Placeholder for fee calculation
+            const totalSpentSatoshis = sentAmountSatoshis + feeSatoshis;
+            calculatedAmountSatoshis = currentBalanceSatoshis - oldBalanceSatoshis - totalSpentSatoshis;
     
             const history = await this.client.request('blockchain.scripthash.get_history', [scriptHash]);
             for (const tx of history) {
