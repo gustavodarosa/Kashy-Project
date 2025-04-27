@@ -12,7 +12,19 @@ const [message, setMessage] = useState("");
 const [loading, setLoading] = useState(false);
 const [showPassword, setShowPassword] = useState(false);
 const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const [cnpjError, setCnpjError] = useState("");
 const navigate = useNavigate();
+
+const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setCnpj(value);
+  if (!/^\d{14}$/.test(value)) {
+    setCnpjError("CNPJ inválido. Deve conter 14 dígitos.");
+  } else {
+    setCnpjError("");
+  }
+};
+
 const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -107,11 +119,16 @@ required
 <input
 type="text"
 value={cnpj}
-onChange={(e) => setCnpj(e.target.value)}
-className="pl-10 pr-10 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgb(112,255,189)]"
+onChange={handleCnpjChange}
+className={`pl-10 pr-10 py-2 bg-gray-700 hover:bg-gray-600 border ${
+      cnpjError ? "border-red-500" : "border-gray-600"
+    } text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 ${
+      cnpjError ? "focus:ring-red-500" : "focus:ring-[rgb(112,255,189)]"
+    }`}
 placeholder="Digite seu CNPJ..."
 required
           />
+{cnpjError && <p className="text-red-500 text-sm mt-1">{cnpjError}</p>}
 </div>
         {/* Senha */}
 <div className="relative w-full">
