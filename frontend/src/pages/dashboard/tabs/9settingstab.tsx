@@ -3,10 +3,10 @@ import { FiSun, FiBell, FiLock, FiGlobe, FiHardDrive, FiDownload, FiTrash2 } fro
 import { useLanguage } from '../../../hooks/useLanguage';
 import { t, LanguageKey, translations } from '../../../utils/languages';
 import { ThemeKey, themes } from '../../../utils/themes';
-
+ 
 // Tipo auxiliar para as chaves de cores
 type ThemeColorKey = keyof typeof themes.default.colors;
-
+ 
 export function SettingsTab() {
   const { language, changeLanguage } = useLanguage();
   const [activeTheme, setActiveTheme] = useState<ThemeKey>(loadTheme());
@@ -26,16 +26,16 @@ export function SettingsTab() {
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-
+ 
   useEffect(() => {
     applyTheme(activeTheme);
   }, [activeTheme]);
-
+ 
   function loadTheme(): ThemeKey {
     const savedTheme = localStorage.getItem('dashboardTheme') as ThemeKey | null;
     return savedTheme && themes[savedTheme] ? savedTheme : 'default';
   }
-
+ 
   function applyTheme(themeKey: ThemeKey) {
     const theme = themes[themeKey];
     if (!theme) {
@@ -48,26 +48,26 @@ export function SettingsTab() {
     });
     localStorage.setItem('dashboardTheme', themeKey);
   }
-
+ 
   const handleThemeChange = (themeKey: ThemeKey) => {
     applyTheme(themeKey);
     setActiveTheme(themeKey);
   };
-
+ 
   const handleNotificationChange = (type: keyof typeof notifications) => {
     setNotifications(prev => ({ ...prev, [type]: !prev[type] }));
   };
-
+ 
   const handleSecurityChange = (type: keyof typeof security) => {
     setSecurity(prev => ({ ...prev, [type]: !prev[type] }));
   };
-
+ 
   const handleDataPreferenceChange = (type: keyof typeof dataPreferences) => {
     setDataPreferences(prev => ({ ...prev, [type]: !prev[type] }));
   };
-
+ 
   const timezonesForCurrentLanguage = translations[language]?.language?.timezones || translations['pt-BR'].language.timezones;
-
+ 
   // Chaves de cores para mostrar nos temas
   const themeColorKeys: ThemeColorKey[] = [
     '--color-bg-primary',
@@ -75,13 +75,13 @@ export function SettingsTab() {
     '--color-text-primary',
     '--color-border'
   ];
-
+ 
   return (
     <div className="space-y-8 p-6 bg-[var(--color-bg-primary)] min-h-screen">
       <h2 className="text-2xl text-[var(--color-text-primary)] font-bold">
         {t('settingsTitle', language)}
       </h2>
-
+ 
       {/* Seção de Aparência */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
@@ -94,7 +94,7 @@ export function SettingsTab() {
           <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             {t('appearance.description', language)}
           </p>
-
+ 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {(Object.keys(themes) as ThemeKey[]).map((key) => {
               const theme = themes[key];
@@ -128,13 +128,13 @@ export function SettingsTab() {
           </div>
         </div>
       </div>
-
+ 
       {/* Seção de Notificações */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiBell /> {t('notificationsSection.title', language)}
         </h3>
-
+ 
         <div className="space-y-4">
           {[
             { key: 'email', label: t('notificationsSection.email', language), desc: t('notificationsSection.emailDesc', language) },
@@ -165,13 +165,13 @@ export function SettingsTab() {
           ))}
         </div>
       </div>
-
+ 
       {/* Seção de Idioma */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiGlobe /> {t('language.title', language)}
         </h3>
-
+ 
         <div className="space-y-4">
           <div>
             <label htmlFor="language" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
@@ -188,7 +188,7 @@ export function SettingsTab() {
               <option value="en-US">English</option>
             </select>
           </div>
-
+ 
           <div>
             <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
               {t('language.timezone', language)}
@@ -204,13 +204,13 @@ export function SettingsTab() {
           </div>
         </div>
       </div>
-
+ 
       {/* Seção de Segurança */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiLock /> {t('security.title', language)}
         </h3>
-
+ 
         <div className="space-y-4">
           {[
             {
@@ -246,16 +246,16 @@ export function SettingsTab() {
               </button>
             </div>
           ))}
-
-          
+ 
+ 
         </div>
       </div>
-
+ 
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiLock /> {t('security.changeUsernamePassword', language)}
         </h3>
-
+ 
         {/* Formulário para alterar o username */}
         <form
           onSubmit={async (e) => {
@@ -269,7 +269,7 @@ export function SettingsTab() {
                 },
                 body: JSON.stringify({ username: newUsername }),
               });
-
+ 
               if (response.ok) {
                 const data = await response.json();
                 alert(data.message);
@@ -299,7 +299,7 @@ export function SettingsTab() {
             {t('security.updateUsername', language)}
           </button>
         </form>
-
+ 
         {/* Formulário para alterar a senha */}
         <form
           onSubmit={async (e) => {
@@ -313,7 +313,7 @@ export function SettingsTab() {
                 },
                 body: JSON.stringify({ currentPassword, newPassword }),
               });
-
+ 
               if (response.ok) {
                 const data = await response.json();
                 alert(data.message);
@@ -354,13 +354,13 @@ export function SettingsTab() {
           </button>
         </form>
       </div>
-
+ 
       {/* Seção de Dados */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
         <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiHardDrive /> {t('data.title', language)}
         </h3>
-
+ 
         <div className="space-y-4">
           {[
             {
@@ -396,7 +396,7 @@ export function SettingsTab() {
               </button>
             </div>
           ))}
-
+ 
           <div className="pt-4 space-y-3 border-t border-[var(--color-border)] mt-4">
             <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
               <FiDownload /> {t('data.export', language)}
