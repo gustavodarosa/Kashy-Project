@@ -255,7 +255,7 @@ export function Dashboard() {
  
                         {/* Logo */}
                         <img
-                            src="/logo.svg"
+                            src="/logokashy.svg"
                             alt="Kashy Logo Header"
                             className="h-14 w-36"
                         />
