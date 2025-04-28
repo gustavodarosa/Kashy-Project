@@ -451,7 +451,7 @@ export function Dashboard() {
             {/* Notification Modal */}
             {notificationModalOpen && (
                 <div
-                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 animate-fade-in"
+                    className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
                     onClick={() => setNotificationModalOpen(false)}
                 >
                     <div
