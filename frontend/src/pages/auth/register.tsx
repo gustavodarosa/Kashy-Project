@@ -12,7 +12,19 @@ const [message, setMessage] = useState("");
 const [loading, setLoading] = useState(false);
 const [showPassword, setShowPassword] = useState(false);
 const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const [cnpjError, setCnpjError] = useState("");
 const navigate = useNavigate();
+
+const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setCnpj(value);
+  if (!/^\d{14}$/.test(value)) {
+    setCnpjError("CNPJ inválido. Deve conter 14 dígitos.");
+  } else {
+    setCnpjError("");
+  }
+};
+
 const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -99,20 +111,33 @@ placeholder="Digite seu Email..."
 required
           />
 </div>
-        {/* CNPJ */}
-        <div className="relative w-full">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-<FileText className="text-gray-400 h-5 w-5" />
-</div>
-<input
-type="text"
-value={cnpj}
-onChange={(e) => setCnpj(e.target.value)}
-className="pl-10 pr-10 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgb(112,255,189)]"
-placeholder="Digite seu CNPJ..."
-required
-          />
-</div>
+{/* CNPJ */}
+<div className="relative w-full">
+    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+      <FileText className="w-5 h-5 text-gray-400" />
+    </div>
+    <input
+      type="text"
+      value={cnpj}
+      onChange={handleCnpjChange}
+      className={`w-full pl-10 pr-4 py-2 text-gray-100 placeholder-gray-400 bg-gray-700 border rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 ${
+        cnpjError
+          ? "border-red-500 focus:ring-red-500"
+          : "border-gray-600 focus:ring-[rgb(112,255,189)]"
+      }`}
+      placeholder="Digite seu CNPJ..."
+      required
+    />
+  </div>
+  
+  {/* Mensagem de erro */}
+  {cnpjError && (
+    <p className="absolute bottom mt-5 text-xs text-red-500">
+      {cnpjError}
+    </p>
+  )}
+
+
         {/* Senha */}
 <div className="relative w-full">
 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

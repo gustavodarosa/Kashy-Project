@@ -8,19 +8,21 @@ type ThemeColors = {
   '--color-accent': string;
   '--color-accent-hover': string;
   '--color-border': string;
-  '--color-divide': string; 
+  '--color-divide': string; // Nova propriedade
   '--color-success'?: string;
   '--color-success-hover'?: string;
   '--color-danger'?: string;
   '--color-danger-hover'?: string;
 };
-
+ 
 export type Theme = {
   name: string;
   colors: ThemeColors;
 };
-
+ 
 export const themes = {
+ 
+ 
   default: {
     name: 'Tema Escuro',
     colors: {
@@ -33,22 +35,22 @@ export const themes = {
       '--color-accent': '#0f0f0f',
       '--color-accent-hover': '#0f0f0f',
       '--color-border': '#303030',
-      '--color-divide': '#303030', 
+      '--color-divide': '#303030', // Adicionado
     },
   },
   Bluetheme: {
     name: 'Tema Azul',
     colors: {
-      '--color-bg-primary': '#0f2540',
-      '--color-bg-secondary': '#1a3a5f',
-      '--color-bg-tertiary': '#1f3c63',
-      '--color-shadow': '#2a91bf',
+      '--color-bg-primary': 'rgb(17, 40, 54)',
+      '--color-bg-secondary': 'rgb(24, 50, 66)',
+      '--color-bg-tertiary': 'rgb(17, 40, 54)',
+      '--color-shadow': 'rgb(112,255,189)',
       '--color-text-primary': '#e0f2fe',
       '--color-text-secondary': '#94a3b8',
       '--color-accent': '#38bdf8',
       '--color-accent-hover': '#0ea5e9',
-      '--color-border': '#244770',
-      '--color-divide': '#244770', 
+      '--color-border': 'rgb(84, 87, 86)',
+      '--color-divide': '#244770', // Adicionado
     },
   },
   Greentheme: {
@@ -63,7 +65,7 @@ export const themes = {
       '--color-accent': '#34d399',
       '--color-accent-hover': '#10b981',
       '--color-border': '#3c7553',
-      '--color-divide': '#3c7553', 
+      '--color-divide': '#3c7553', // Adicionado
     },
   },
   Redtheme: {
@@ -78,9 +80,9 @@ export const themes = {
       '--color-accent': '#a14f59',
       '--color-accent-hover': '#f97316',
       '--color-border': '#853941',
-      '--color-divide': '#853941', 
+      '--color-divide': '#853941', // Adicionado
     },
   },
 } as const;
-
+ 
 export type ThemeKey = keyof typeof themes;
