@@ -1,421 +1,392 @@
+// z:\Kashy-Project\backend\src\services\spvMonitorService.js
 const ElectrumClient = require('electrum-client');
 const cashaddr = require('cashaddrjs');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
-const User = require('../models/user');
-const Transaction = require('../models/transaction'); 
+const User = require('../models/user'); // Ensure path is correct
+// Transaction model is no longer needed here
+// const Transaction = require('../models/transaction');
 const { FULCRUM_SERVERS } = require('../config/fullcrumConfig');
-
-const BCHJS = require('@psf/bch-js');
-const bchjs = new BCHJS(); 
+const logger = require('../utils/logger');
+const bchService = require('./bchService'); // Import bchService for getBalance
 
 // --- Configuration ---
 const RECONNECT_DELAY_MS = 10000;
+const PERIODIC_RETRY_INTERVAL_MS = 5 * 60 * 1000;
 const ELECTRUM_PROTOCOL_VERSION = '1.4';
-const BRL_PER_BCH = 1000; // Example conversion rate
+const CONNECTION_TIMEOUT_MS = 10000;
+const REQUEST_TIMEOUT_MS = 15000;
+const TARGET_CONNECTIONS = 4;
+const TX_CACHE_TTL_MS = 5 * 60 * 1000; // Cache for status hash to prevent rapid reprocessing
+const CACHE_CLEANUP_INTERVAL_MS = 60 * 1000;
+const SATOSHIS_PER_BCH = 1e8;
 
-// ======= UTILITIES ======= //
+// --- Utilities ---
 function addressToScriptPubKey(address) {
     try {
-      const decoded = cashaddr.decode(address);
-      const type = decoded.type; // 'P2PKH' or 'P2SH'
-      const hash = decoded.hash;
-
-      if (type === 'P2PKH') {
-        return `76a914${Buffer.from(hash).toString('hex')}88ac`; // P2PKH script
-      } else if (type === 'P2SH') {
-        return `a914${Buffer.from(hash).toString('hex')}87`; // P2SH script
-      } else {
-        throw new Error(`Unsupported address type: ${type}`);
-      }
-    } catch (error) {
-      console.error(`SPV: Error converting address ${address} to scriptPubKey: ${error.message}`);
-      throw error;
+        const { prefix, type, hash } = cashaddr.decode(address);
+        let script;
+        if (type === 'P2PKH') {
+            script = Buffer.concat([ Buffer.from([0x76]), Buffer.from([0xa9]), Buffer.from([hash.length]), hash, Buffer.from([0x88]), Buffer.from([0xac]) ]);
+        } else if (type === 'P2SH') {
+            script = Buffer.concat([ Buffer.from([0xa9]), Buffer.from([hash.length]), hash, Buffer.from([0x87]) ]);
+        } else { throw new Error(`Unsupported address type: ${type}`); }
+        return script.toString('hex');
+    } catch (e) {
+        logger.error(`SPV: Error converting address ${address} to scriptPubKey: ${e.message}`);
+        throw e;
     }
-  }
+}
 
 function scriptPubKeyToScriptHash(scriptHex) {
-    if (!scriptHex || typeof scriptHex !== 'string' || scriptHex.length === 0) {
-        throw new Error(`Invalid scriptHex input for scriptPubKeyToScriptHash: ${scriptHex}`);
-    }
-    try {
-        const scriptBuffer = Buffer.from(scriptHex, 'hex');
-        if (scriptBuffer.length === 0 && scriptHex.length > 0) {
-             throw new Error('Invalid hex string provided for scriptPubKey');
-        }
-        const hash = crypto.createHash('sha256').update(scriptBuffer).digest();
-        return Buffer.from(hash.reverse()).toString('hex');
-    } catch (error) {
-        console.error(`SPV: Error converting scriptPubKey ${scriptHex} to scriptHash: ${error.message}`);
-        throw error;
-    }
+    const scriptBuffer = Buffer.from(scriptHex, 'hex');
+    const hash = crypto.createHash('sha256').update(scriptBuffer).digest();
+    return Buffer.from(hash.reverse()).toString('hex');
 }
 
-
-function scriptPubKeyHexToAddress(scriptHex) {
-    try {
-        if (!scriptHex) return null;
-        const scriptBuffer = Buffer.from(scriptHex, 'hex');
-        // Use bch-js to decode the script
-        const chunks = bchjs.Script.decode(scriptBuffer); // Use the instantiated bchjs
-
-        // Check for standard P2PKH: OP_DUP OP_HASH160 <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
-        if (chunks.length === 5 &&
-            chunks[0] === 118 && // OP_DUP
-            chunks[1] === 169 && // OP_HASH160
-            Buffer.isBuffer(chunks[2]) && chunks[2].length === 20 && // pubKeyHash (20 bytes)
-            chunks[3] === 136 && // OP_EQUALVERIFY
-            chunks[4] === 172) { // OP_CHECKSIG
-            const hash160 = chunks[2];
-            // Convert hash160 to CashAddress (assuming mainnet)
-            return bchjs.Address.hash160ToCash(hash160); // Simpler call
-        }
-
-        // Check for standard P2SH: OP_HASH160 <scriptHash> OP_EQUAL
-        if (chunks.length === 3 &&
-            chunks[0] === 169 && // OP_HASH160
-            Buffer.isBuffer(chunks[1]) && chunks[1].length === 20 && // scriptHash (20 bytes)
-            chunks[2] === 135) { // OP_EQUAL
-            const hash160 = chunks[1];
-            // Convert hash160 to CashAddress (assuming mainnet)
-            return bchjs.Address.scriptHashToCash(hash160); // Simpler call
-        }
-
-        console.warn(`SPV: Could not decode scriptPubKeyHex ${scriptHex} to a standard address type.`);
-        return null; // Return null if it's not a recognized standard script
-
-    } catch (error) {
-        console.error(`SPV: Error in scriptPubKeyHexToAddress for hex ${scriptHex}:`, error);
-        return null;
-    }
+function withTimeout(promise, ms, timeoutMessage = 'Operation timed out') {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { reject(new Error(timeoutMessage)); }, ms);
+        promise.then(value => { clearTimeout(timer); resolve(value); })
+               .catch(err => { clearTimeout(timer); reject(err); });
+    });
 }
-
-
+// --- End Utilities ---
 
 class SpvMonitorService {
     constructor() {
-        this.client = null;
-        this.currentServer = null;
-        this.subscriptions = new Map(); // Map<scriptHash, { userId, bchAddress, lastStatus }>
-        this.reconnectTimeout = null;
-        this.isConnecting = false;
+        this.clients = new Map(); // Map<serverId, { client, config, connecting, subscriptions: Set<scriptHash> }>
+        this.subscriptions = new Map(); // Map<scriptHash, { userId, bchAddress }>
+        this.rankedServers = FULCRUM_SERVERS;
+        this.desiredConnectionCount = TARGET_CONNECTIONS;
+        this.primaryServerConfigs = this.rankedServers.slice(0, this.desiredConnectionCount);
+        this.failedPrimaryServers = new Set(); // Set<serverId>
+        this.reconnectTimers = new Map(); // Map<serverId, NodeJS.Timeout>
+        this.periodicRetryTimer = null;
         this.isRunning = false;
-        this.io = null; // Property to hold the io instance
+        this.io = null; // Socket.IO server instance
+        this.processedTxCache = new Map(); // Map<statusHash, timestamp>
+        this.cacheCleanupTimer = null;
+        this.processingLocks = new Set(); // Lock Set
     }
 
     setIoServer(ioInstance) {
-        ioInstance.on('connection', (socket) => {
-            const userId = socket.handshake.auth.token; // Decodifique o token para obter o ID do usuário
-            if (userId) {
-                socket.join(userId); // Adicione o socket à sala do usuário
-                console.log(`Usuário conectado à sala: ${userId}`);
-            }
-        });
+        this.io = ioInstance;
+        logger.info('SPV: Socket.IO server instance received.');
     }
 
-    // --- Connection Management ---
-    async connect() {
-        if (this.client && this.client.status === 1) return;
-        if (this.isConnecting) return;
-
-        this.isConnecting = true;
-        clearTimeout(this.reconnectTimeout);
-        console.log('SPV: Attempting to connect to Fulcrum server...');
-        let potentialClient = null;
-
-        for (const server of FULCRUM_SERVERS) {
-            const serverId = `${server.host}:${server.port} (${server.protocol})`;
-            try {
-                potentialClient = new ElectrumClient(server.port, server.host, server.protocol);
-                console.log(`SPV: Trying ${serverId}...`);
-
-                const connectPromise = potentialClient.connect('kashy-spv-monitor', ELECTRUM_PROTOCOL_VERSION);
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 10000));
-                await Promise.race([connectPromise, timeoutPromise]);
-
-                await potentialClient.server_version('kashy-spv-monitor', ELECTRUM_PROTOCOL_VERSION);
-
-                console.log(`SPV: ✅ Successfully connected to ${server.host}`);
-                this.client = potentialClient;
-                this.currentServer = server;
-                this.isConnecting = false;
-
-                this.client.onClose = () => {
-                    console.error(`SPV: ❌ Disconnected from ${this.currentServer?.host}. Attempting reconnect...`);
-                    this.client = null;
-                    this.currentServer = null;
-                    this.subscriptions.forEach(sub => sub.lastStatus = null);
-                    if (this.isRunning) {
-                        this.scheduleReconnect();
-                    }
-                };
-
-                this.attachSubscriptionListener();
-                await this.resubscribeAll();
-                return;
-
-            } catch (err) {
-                console.warn(`SPV: ⚠️ Failed to connect or handshake with ${serverId}: ${err.message}. Trying next...`);
-                if (potentialClient) await potentialClient.close();
-            }
-        }
-
-        console.error('SPV: 😓 Could not connect to any Fulcrum server.');
-        this.isConnecting = false;
-        if (this.isRunning) {
-            this.scheduleReconnect();
-        }
-     }
-
-    scheduleReconnect() {
-        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-        console.log(`SPV: Scheduling reconnect in ${RECONNECT_DELAY_MS / 1000} seconds...`);
-        this.reconnectTimeout = setTimeout(() => {
-            if (this.isRunning) {
-               this.connect();
-            }
-        }, RECONNECT_DELAY_MS);
-     }
-
-    attachSubscriptionListener() {
-        if (!this.client) return;
-        this.client.subscribe.on('blockchain.scripthash.subscribe', (params) => {
-            if (params && params.length === 2) {
-                const [scriptHash, status] = params;
-                this.handleSubscriptionUpdate(scriptHash, status);
-            } else {
-                console.warn("SPV: Received unexpected subscription update format:", params);
-            }
-        });
-         console.log("SPV: Attached global subscription update listener.");
-     }
-
-    // --- Subscription Management ---
-    async subscribe(userId, bchAddress) {
-        if (!userId || !bchAddress) {
-            console.warn("SPV: Attempted to subscribe with missing userId or bchAddress.");
-            return;
-        }
-        console.log(`SPV: Starting subscribe process for User: ${userId}, Address: ${bchAddress}`);
-
-        let scriptPubKey;
-        let scriptHash;
-        try {
-            scriptPubKey = addressToScriptPubKey(bchAddress);
-            if (!scriptPubKey || typeof scriptPubKey !== 'string' || scriptPubKey.length === 0) {
-                throw new Error(`addressToScriptPubKey returned invalid value: ${scriptPubKey}`);
-            }
-            scriptHash = scriptPubKeyToScriptHash(scriptPubKey);
-            if (!scriptHash || typeof scriptHash !== 'string' || scriptHash.length !== 64) {
-                throw new Error(`scriptPubKeyToScriptHash returned invalid value: ${scriptHash}`);
-            }
-        } catch (error) {
-            console.error(`SPV: ❌ CRITICAL ERROR calculating script hash for ${bchAddress} (User: ${userId}): ${error.message}`);
-            console.error(error.stack);
-            return;
-        }
-
-        if (!this.subscriptions.has(scriptHash)) {
-            console.log(`SPV: Tracking subscription for ${bchAddress} (User: ${userId}, ScriptHash: ${scriptHash})`);
-            this.subscriptions.set(scriptHash, { userId, bchAddress, lastStatus: null });
-        } else {
-             this.subscriptions.get(scriptHash).userId = userId; // Update userId just in case
-             console.log(`SPV: Updated userId for existing scriptHash ${scriptHash}`);
-        }
-
-        if (this.client && this.client.status === 1) {
-            await this.performSubscription(scriptHash);
-        } else {
-            console.log(`SPV: Client not connected. Subscription for ${bchAddress} will be activated upon connection.`);
-        }
-     }
-
-    async performSubscription(scriptHash) {
-        if (!this.client || this.client.status !== 1) {
-             console.warn(`SPV: Cannot perform subscription for ${scriptHash}, client not connected.`);
+    // --- Connection Management (Unchanged) ---
+    async connectToServer(serverConfig, isPeriodicRetry = false) {
+        const serverId = `${serverConfig.host}:${serverConfig.port}`;
+        const existingEntry = this.clients.get(serverId);
+        if (existingEntry && (existingEntry.client?.status === 1 || existingEntry.connecting)) {
+             if (isPeriodicRetry && this.failedPrimaryServers.has(serverId)) { this.failedPrimaryServers.delete(serverId); }
              return;
         }
-        if (!this.subscriptions.has(scriptHash)) {
-            console.warn(`SPV: Attempted to perform subscription for untracked scriptHash: ${scriptHash}`);
-            return;
-        }
-        const subInfo = this.subscriptions.get(scriptHash);
-        console.log(`SPV: Subscribing to server for ${subInfo.bchAddress} (ScriptHash: ${scriptHash})`);
+        logger.info(`SPV: Attempting to connect to ${serverId}...${isPeriodicRetry ? ' (Periodic Retry)' : ''}`);
+        this.clients.set(serverId, { client: null, config: serverConfig, connecting: true, subscriptions: new Set() });
+        const immediateTimer = this.reconnectTimers.get(serverId);
+        if (immediateTimer) { clearTimeout(immediateTimer); this.reconnectTimers.delete(serverId); }
+        let client;
         try {
-            const currentStatus = await this.client.request('blockchain.scripthash.subscribe', [scriptHash]);
-            console.log(`SPV: Initial status for ${subInfo.bchAddress}: ${currentStatus}`);
-            await this.handleSubscriptionUpdate(scriptHash, currentStatus);
+            client = new ElectrumClient(serverConfig.port, serverConfig.host, serverConfig.protocol);
+            await withTimeout(client.connect('kashy-spv-monitor', ELECTRUM_PROTOCOL_VERSION), CONNECTION_TIMEOUT_MS, `Connection timeout to ${serverId}`);
+            await withTimeout(client.server_version('kashy-spv-monitor', ELECTRUM_PROTOCOL_VERSION), REQUEST_TIMEOUT_MS, `Server version timeout for ${serverId}`);
+            logger.info(`SPV: ✅ Successfully connected to ${serverId}.`);
+            const clientEntry = this.clients.get(serverId);
+            if (clientEntry) { clientEntry.client = client; clientEntry.connecting = false; }
+            else { this.clients.set(serverId, { client, config: serverConfig, connecting: false, subscriptions: new Set() }); }
+            if (this.failedPrimaryServers.has(serverId)) { this.failedPrimaryServers.delete(serverId); }
+            this.attachListenersToClient(client, serverId);
+            await this.resubscribeClient(client, serverId);
         } catch (error) {
-            console.error(`SPV: ❌ Error subscribing to ${scriptHash} (${subInfo.bchAddress}):`, error);
-        }
-     }
-
-    async resubscribeAll() {
-        if (!this.client || this.client.status !== 1) {
-            console.warn("SPV: Cannot resubscribe, client not connected.");
-            return;
-        }
-        console.log(`SPV: Resubscribing to ${this.subscriptions.size} tracked addresses...`);
-        const scriptHashesToResubscribe = Array.from(this.subscriptions.keys());
-        for (const scriptHash of scriptHashesToResubscribe) {
-            await this.performSubscription(scriptHash);
-        }
-        console.log("SPV: Resubscribe process completed.");
-     }
-
-    // --- Update Handling ---
-    async handleSubscriptionUpdate(scriptHash, status) {
-        const subInfo = this.subscriptions.get(scriptHash);
-        if (!subInfo) {
-            console.warn(`SPV: Update received for untracked scriptHash: ${scriptHash}`);
-            return;
-        }
-
-        if (status === subInfo.lastStatus) {
-            console.log(`SPV: Status unchanged for ${subInfo.bchAddress} (${scriptHash}). Skipping update.`);
-            return;
-        }
-
-        console.log(`SPV: 🚨 Status change detected for ${subInfo.bchAddress} (User: ${subInfo.userId}). Old: ${subInfo.lastStatus}, New: ${status}`);
-        subInfo.lastStatus = status; // Update status *before* processing
-
-        // Process wallet info update (fetches details, saves to DB)
-        const { calculatedAmountSatoshis, sentAmountSatoshis } = await this.updateUserWalletInfo(subInfo.userId, subInfo.bchAddress, scriptHash);
-
-        // Emit WebSocket event AFTER processing
-        if (this.io) {
-            console.log(`SPV: Emitting 'walletUpdate' to user room: ${subInfo.userId}`);
-            const message = sentAmountSatoshis > 0
-                ? `Você enviou ${sentAmountSatoshis / 1e8} BCH para um endereço.`
-                : `Pagamento detectado para o endereço ${subInfo.bchAddress}.`;
-
-            // Emit only to the specific user's room
-            this.io.to(subInfo.userId).emit('walletUpdate', {
-                message,
-                address: subInfo.bchAddress,
-                userId: subInfo.userId,
-                amountBCH: calculatedAmountSatoshis / 1e8, // Valor em BCH
-                amountBRL: (calculatedAmountSatoshis / 1e8) * BRL_PER_BCH, // Valor em BRL
-                sentAmountBCH: sentAmountSatoshis / 1e8, // Valor enviado em BCH
-                status: status,
-            });
-        } else {
-            console.warn("SPV: Socket.IO instance (this.io) not set. Cannot emit 'walletUpdate'.");
+            logger.error(`SPV: 😓 Failed to connect to ${serverId}: ${error.message}`);
+            this.clients.delete(serverId);
+            if (client) { try { await client.close(); } catch (e) { /* Ignore */ } }
+            if (!isPeriodicRetry) { this.scheduleReconnect(serverId, serverConfig); }
+            this.tryConnectFallback();
         }
     }
-
-    // --- THIS IS THE CORE FUNCTION THAT WAS MODIFIED ---
-    async updateUserWalletInfo(userId, bchAddress, scriptHash) {
-        console.log(`SPV: Updating wallet info for User: ${userId}, Address: ${bchAddress}`);
-        
-        let user;
-        let calculatedAmountSatoshis = 0;
-        let sentAmountSatoshis = 0;
-    
-        try {
-            user = await User.findById(userId);
-            if (!user) {
-                console.error(`SPV: User ${userId} not found during update for ${bchAddress}.`);
-                return { calculatedAmountSatoshis, sentAmountSatoshis };
+    attachListenersToClient(client, serverId) {
+        client.subscribe.removeAllListeners('blockchain.scripthash.subscribe');
+        client.subscribe.on('blockchain.scripthash.subscribe', (params) => {
+            const scriptHash = params[0]; const status = params[1];
+            logger.info(`SPV: <<< Update Received <<< Server: ${serverId}, SH: ${scriptHash}, Status: ${status}`);
+            if (scriptHash && status !== null) { this.handleSubscriptionUpdate(scriptHash, status, serverId); }
+        });
+        client.onClose = () => {
+            logger.error(`SPV: ❌ Disconnected from ${serverId}.`);
+            const clientEntry = this.clients.get(serverId); this.clients.delete(serverId);
+            const isPrimary = this.primaryServerConfigs.some(cfg => `${cfg.host}:${cfg.port}` === serverId);
+            if (isPrimary) { this.failedPrimaryServers.add(serverId); }
+            if (this.isRunning && clientEntry) { this.scheduleReconnect(serverId, clientEntry.config); }
+            this.tryConnectFallback();
+        };
+        logger.info(`SPV: Attached listeners to ${serverId}.`);
+    }
+    scheduleReconnect(serverId, serverConfig) {
+        const existingEntry = this.clients.get(serverId);
+        if ((existingEntry && (existingEntry.client?.status === 1 || existingEntry.connecting)) || this.reconnectTimers.has(serverId)) { return; }
+        logger.info(`SPV: Scheduling reconnect attempt for ${serverId} in ${RECONNECT_DELAY_MS / 1000}s...`);
+        const timer = setTimeout(async () => {
+            this.reconnectTimers.delete(serverId);
+            if (this.isRunning) {
+               const currentEntry = this.clients.get(serverId);
+               if (!currentEntry || (!currentEntry.client && !currentEntry.connecting)) { await this.connectToServer(serverConfig, false); }
             }
-    
-            if (!this.client || this.client.status !== 1) {
-                console.warn(`SPV: Client disconnected before fetching balance/history for ${bchAddress}. Will retry on reconnect.`);
-                if (this.subscriptions.has(scriptHash)) {
-                    this.subscriptions.get(scriptHash).lastStatus = null;
-                }
-                return { calculatedAmountSatoshis, sentAmountSatoshis };
-            }
-    
-            const balanceResult = await this.client.request('blockchain.scripthash.get_balance', [scriptHash]);
-            const currentBalanceSatoshis = balanceResult.confirmed + balanceResult.unconfirmed;
-            const oldBalanceSatoshis = user.balance || 0;
-    
-            const feeSatoshis = 0; // Placeholder for fee calculation
-            const totalSpentSatoshis = sentAmountSatoshis + feeSatoshis;
-            calculatedAmountSatoshis = currentBalanceSatoshis - oldBalanceSatoshis - totalSpentSatoshis;
-    
-            const history = await this.client.request('blockchain.scripthash.get_history', [scriptHash]);
-            for (const tx of history) {
-                const transaction = await Transaction.findOne({ txid: tx.tx_hash });
-                if (transaction && transaction.type === 'sent') {
-                    sentAmountSatoshis += transaction.amountSatoshis;
-                }
-            }
-    
-            if (currentBalanceSatoshis !== oldBalanceSatoshis) {
-                user.balance = currentBalanceSatoshis;
-                await user.save();
-            }
-    
-        } catch (error) {
-            console.error(`SPV: ❌ Error in updateUserWalletInfo for User ${userId} (${bchAddress}):`, error);
-            if (this.subscriptions.has(scriptHash)) {
-                this.subscriptions.get(scriptHash).lastStatus = null;
-            }
+        }, RECONNECT_DELAY_MS);
+        this.reconnectTimers.set(serverId, timer);
+     }
+    tryConnectFallback() {
+        if (!this.isRunning || this.clients.size >= this.desiredConnectionCount) return;
+        logger.info(`SPV: Below target connections (${this.clients.size}/${this.desiredConnectionCount}). Checking fallback...`);
+        for (const fallbackConfig of this.rankedServers) {
+            const fallbackServerId = `${fallbackConfig.host}:${fallbackConfig.port}`;
+            const existingEntry = this.clients.get(fallbackServerId);
+            if ((existingEntry && (existingEntry.client?.status === 1 || existingEntry.connecting)) || this.reconnectTimers.has(fallbackServerId)) continue;
+            logger.info(`SPV: Attempting fallback connection to ${fallbackServerId}...`);
+            this.connectToServer(fallbackConfig, false); return;
         }
-    
-        return { calculatedAmountSatoshis, sentAmountSatoshis };
+        logger.warn(`SPV: Could not find available fallback servers.`);
+    }
+    retryFailedPrimaries() {
+        if (!this.isRunning || this.failedPrimaryServers.size === 0) return;
+        logger.info(`SPV: [Periodic Retry] Checking ${this.failedPrimaryServers.size} failed primary servers...`);
+        this.failedPrimaryServers.forEach(serverId => {
+            const serverConfig = this.primaryServerConfigs.find(cfg => `${cfg.host}:${cfg.port}` === serverId);
+            if (serverConfig) {
+                const existingEntry = this.clients.get(serverId);
+                 if (!existingEntry || (!existingEntry.client && !existingEntry.connecting)) { this.connectToServer(serverConfig, true); }
+                 else { this.failedPrimaryServers.delete(serverId); }
+            } else { this.failedPrimaryServers.delete(serverId); }
+        });
     }
 
-    // --- Service Lifecycle ---
-    async start() {
-        if (this.isRunning) {
-            console.warn("SPV: Service already started.");
-            return;
-        }
-        console.log('SPV: Starting service...');
-        this.isRunning = true;
-
-        await this.connect(); // Attempt initial connection
-
-        try {
-            console.log('SPV: Fetching initial users with BCH addresses from DB...');
-            const usersToMonitor = await User.find({
-                bchAddress: { $exists: true, $ne: null, $ne: '' }
-            });
-            console.log(`SPV: Found ${usersToMonitor.length} users with addresses to potentially monitor.`);
-
-            for (const user of usersToMonitor) {
-                await this.subscribe(user._id.toString(), user.bchAddress);
-            }
-            console.log('SPV: Initial user addresses processed for monitoring.');
-
-        } catch (error) {
-            console.error('SPV: ❌ Error during initial user fetch or subscription:', error);
-        }
-     }
-
-    async stop() {
-        console.log("SPV: Stopping service...");
-        this.isRunning = false;
-        clearTimeout(this.reconnectTimeout);
-        this.subscriptions.clear();
-
-        if (this.client) {
-            console.log("SPV: Closing Fulcrum client connection...");
-            try {
-                this.client.close(); // Note: electrum-client close might not be async
-                console.log("SPV: Fulcrum client closed.");
-            } catch (error) {
-                console.error("SPV: Error closing Fulcrum client:", error);
-            } finally {
-                this.client = null;
-                this.currentServer = null;
-            }
-        } else {
-             console.log("SPV: No active client connection to close.");
-        }
-     }
-
-    // --- Public Methods ---
+    // --- Subscription Management (Unchanged) ---
     async addSubscription(userId, bchAddress) {
-        if (!this.isRunning) {
-            console.warn("SPV: Service not running. Cannot add dynamic subscription.");
-            return;
+        if (!userId || !bchAddress) { logger.warn('SPV: Missing userId or bchAddress for subscription.'); return; }
+        try {
+            const scriptPubKeyHex = addressToScriptPubKey(bchAddress);
+            const scriptHash = scriptPubKeyToScriptHash(scriptPubKeyHex);
+            if (!this.subscriptions.has(scriptHash)) {
+                this.subscriptions.set(scriptHash, { userId, bchAddress });
+                logger.info(`SPV: [Sub Added] Monitoring User: ${userId}, Addr: ${bchAddress}, SH: ${scriptHash}`);
+                const subPromises = [];
+                for (const [serverId, clientEntry] of this.clients.entries()) {
+                    if (clientEntry.client?.status === 1) { subPromises.push(this.performSubscription(clientEntry.client, serverId, scriptHash)); }
+                }
+                await Promise.allSettled(subPromises);
+            }
+        } catch (error) { logger.error(`SPV: Failed subscription process for User ${userId}, Addr ${bchAddress}: ${error.message}`); }
+    }
+    async performSubscription(client, serverId, scriptHash) {
+        const clientEntry = this.clients.get(serverId);
+        if (!clientEntry || clientEntry.subscriptions.has(scriptHash)) return true;
+        try {
+            logger.info(`SPV: [Subscribing] Sending sub for ${scriptHash} to ${serverId}...`);
+            const initialStatus = await withTimeout( client.request('blockchain.scripthash.subscribe', [scriptHash]), REQUEST_TIMEOUT_MS, `Sub timeout ${scriptHash} on ${serverId}` );
+            logger.info(`SPV: [Sub OK] ${serverId} to ${scriptHash}. Initial Status: ${initialStatus}`);
+            clientEntry.subscriptions.add(scriptHash);
+            if (initialStatus !== null) { await this.handleSubscriptionUpdate(scriptHash, initialStatus, serverId); }
+            return true;
+        } catch (error) { logger.error(`SPV: [Sub FAIL] ${serverId} to ${scriptHash}: ${error.message}`); return false; }
+    }
+    async resubscribeClient(client, serverId) {
+        logger.info(`SPV: Resubscribing all (${this.subscriptions.size}) addresses to ${serverId}...`);
+        const resubPromises = [];
+        for (const scriptHash of this.subscriptions.keys()) { resubPromises.push(this.performSubscription(client, serverId, scriptHash)); }
+        const results = await Promise.allSettled(resubPromises);
+        const successfulResubs = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+        logger.info(`SPV: Resubscription to ${serverId} complete. ${successfulResubs}/${this.subscriptions.size} successful.`);
+    }
+
+    // --- Update Handling & Recovery/Reconciliation ---
+
+    isTxRecentlyProcessedByStatus(status) {
+        const lastProcessed = this.processedTxCache.get(status);
+        return lastProcessed && (Date.now() - lastProcessed < TX_CACHE_TTL_MS);
+    }
+    cleanupTxCache() {
+        const now = Date.now(); let cleanedCount = 0;
+        for (const [status, timestamp] of this.processedTxCache.entries()) {
+            if (now - timestamp > TX_CACHE_TTL_MS) { this.processedTxCache.delete(status); cleanedCount++; }
         }
-        console.log(`SPV: Dynamically adding subscription for User: ${userId}, Address: ${bchAddress}`);
-        await this.subscribe(userId, bchAddress);
+        if (cleanedCount > 0) logger.debug(`SPV: [Cache Cleanup] Removed ${cleanedCount} expired status entries.`);
+    }
+
+    /**
+     * Main handler for status updates received from Electrum servers.
+     * Implements locking to prevent concurrent processing for the same scriptHash.
+     */
+    async handleSubscriptionUpdate(scriptHash, status, serverId) {
+        logger.info(`SPV: [Update Handling] Processing status update for SH: ${scriptHash}, Status: ${status}, From: ${serverId}`);
+        if (this.isTxRecentlyProcessedByStatus(status)) { logger.info(`SPV: [Cache Hit] Status ${status} recently processed. Skipping.`); return; }
+        if (this.processingLocks.has(scriptHash)) { logger.info(`SPV: [Lock Hit] Processing already in progress for SH: ${scriptHash}. Skipping.`); return; }
+        const subInfo = this.subscriptions.get(scriptHash);
+        if (!subInfo) { logger.warn(`SPV: [Update Warning] Received update for untracked SH: ${scriptHash}. Ignoring.`); return; }
+        logger.info(`SPV: [Update Identified] Update is for User: ${subInfo.userId}, Addr: ${subInfo.bchAddress}`);
+        try {
+             this.processingLocks.add(scriptHash);
+             logger.debug(`SPV: [Lock Set] Acquired processing lock for SH: ${scriptHash}`);
+             // Call the main processing function
+             await this.processStatusUpdateAndReconcile(subInfo.userId, subInfo.bchAddress, scriptHash, status);
+             // Cache status *after* successful processing attempt
+             this.processedTxCache.set(status, Date.now());
+             logger.debug(`SPV: [Cache Set] Added status ${status} to processed cache.`);
+        } catch (error) {
+             logger.error(`SPV: [Update Error] Error during processStatusUpdateAndReconcile for SH ${scriptHash} (Status: ${status}): ${error.message}`);
+        } finally {
+             this.processingLocks.delete(scriptHash);
+             logger.debug(`SPV: [Lock Released] Released processing lock for SH: ${scriptHash}`);
+        }
+    }
+
+    /**
+     * Processes a status update: fetches balance, history, identifies missing transactions,
+     * updates the database (User balance, processedTxIds), and notifies the user.
+     * --- Does NOT save Transaction documents anymore. ---
+     */
+    async processStatusUpdateAndReconcile(userId, bchAddress, scriptHash, status) {
+        logger.info(`SPV: [Process/Reconcile] User: ${userId}, Addr: ${bchAddress}`);
+        let user;
+        let fetchedBalanceData;
+        let needsUserSave = false;
+        const newlyProcessedTxIds = new Set(); // Track IDs added in this run
+
+        try {
+            // 1. Fetch User Data
+            user = await User.findById(userId).select('+balance +processedTxIds');
+            if (!user) { logger.error(`SPV: User ${userId} not found for ${bchAddress}.`); return; }
+            const oldBalanceSatoshis = user.balance || 0;
+            const processedTxIds = new Set(user.processedTxIds || []);
+
+            // 2. Fetch Current Balance
+            try {
+                fetchedBalanceData = await bchService.getBalance(bchAddress);
+                logger.info(`SPV: Fetched balance for ${bchAddress}: Confirmed=${fetchedBalanceData.balance}, Unconfirmed=${fetchedBalanceData.unconfirmedBalance}`);
+            } catch (balanceError) { logger.error(`SPV: Failed getting balance for ${bchAddress}: ${balanceError.message}`); throw balanceError; }
+            const currentConfirmedBalanceSats = Math.round((fetchedBalanceData.balance || 0) * SATOSHIS_PER_BCH);
+
+            // 3. Fetch Blockchain Transaction History (only need txids)
+            const blockchainTransactions = await this.fetchBlockchainTransactions(bchAddress);
+
+            // 4. Identify Missing Transactions (txids not in user.processedTxIds)
+            const missingTransactions = blockchainTransactions.filter(tx => !processedTxIds.has(tx.txid));
+            logger.info(`SPV: Found ${missingTransactions.length} potential new/missing txids for ${bchAddress}.`);
+
+            // 5. Mark Missing Transaction IDs as Processed
+            if (missingTransactions.length > 0) {
+                needsUserSave = true; // Mark user for saving
+                logger.info(`SPV: Marking ${missingTransactions.length} new txids as processed for ${bchAddress}...`);
+                missingTransactions.forEach(missingTx => {
+                    newlyProcessedTxIds.add(missingTx.txid);
+                });
+                // No need to fetch details or save Transaction documents here anymore
+                logger.info(`SPV: ${newlyProcessedTxIds.size} txids marked for addition to processed list.`);
+            }
+
+            // 6. Update User Balance if Changed
+            if (currentConfirmedBalanceSats !== oldBalanceSatoshis) {
+                logger.info(`SPV: Balance update for ${bchAddress}. Old: ${oldBalanceSatoshis}, New Confirmed: ${currentConfirmedBalanceSats}`);
+                user.balance = currentConfirmedBalanceSats;
+                needsUserSave = true;
+            }
+
+            // 7. Save User if Changes Occurred (Balance or Processed IDs)
+            if (needsUserSave) {
+                newlyProcessedTxIds.forEach(id => user.processedTxIds.push(id));
+                user.processedTxIds = [...new Set(user.processedTxIds)]; // Ensure uniqueness
+                await user.save();
+                logger.info(`SPV: ✅ User ${userId} document updated (Balance/Processed Txs).`);
+            } else {
+                 logger.info(`SPV: No DB changes needed for User ${userId} this cycle.`);
+            }
+
+            // 8. Emit WebSocket Notification (using fetched balance data)
+            if (this.io) {
+                const payload = {
+                    message: `Status atualizado para ${bchAddress}`, address: bchAddress, userId: userId,
+                    balance: fetchedBalanceData.balance, // Confirmed BCH
+                    unconfirmedBalance: fetchedBalanceData.unconfirmedBalance, // Unconfirmed BCH
+                    statusHash: status
+                };
+                logger.info(`SPV: Emitting 'balanceUpdate' to user room: ${userId}`);
+                this.io.to(userId).emit('balanceUpdate', payload);
+            } else { logger.warn("SPV: Socket.IO instance not set. Cannot emit 'balanceUpdate'."); }
+
+        } catch (error) {
+            logger.error(`SPV: Critical error processing update for User ${userId} (${bchAddress}): ${error.message}`);
+        }
+    }
+
+
+    // --- Helper Methods (Unchanged, but fetchTransactionDetails/calculateReceivedAmount are no longer called by main logic) ---
+    async _getConnectedClient() {
+        for (const clientEntry of this.clients.values()) { if (clientEntry.client?.status === 1) return clientEntry.client; }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        for (const clientEntry of this.clients.values()) { if (clientEntry.client?.status === 1) return clientEntry.client; }
+        throw new Error('SPV: No connected Electrum clients available.');
+    }
+    async fetchBlockchainTransactions(bchAddress) { // Only needs txid/height for SPV logic now
+        logger.debug(`SPV: [Helper] Fetching history for ${bchAddress}...`);
+        const scriptPubKeyHex = addressToScriptPubKey(bchAddress); const scriptHash = scriptPubKeyToScriptHash(scriptPubKeyHex);
+        try {
+            const client = await this._getConnectedClient();
+            const history = await withTimeout( client.request('blockchain.scripthash.get_history', [scriptHash]), REQUEST_TIMEOUT_MS * 2, `History timeout ${bchAddress}` );
+            return (history || []).map(tx => ({ txid: tx.tx_hash, blockHeight: tx.height || 0 }));
+        } catch (error) { logger.error(`SPV: [Helper] Failed fetching history for ${bchAddress}: ${error.message}`); throw error; }
+    }
+    // These helpers are now effectively unused by the main reconciliation flow, but kept for potential other uses or reference
+    async fetchTransactionDetails(txid) {
+        logger.debug(`SPV: [Helper] Fetching details for txid ${txid}...`);
+        try {
+            const client = await this._getConnectedClient();
+            const transaction = await withTimeout( client.request('blockchain.transaction.get', [txid, true]), REQUEST_TIMEOUT_MS * 2, `Tx details timeout ${txid}` );
+            if (!transaction || typeof transaction !== 'object' || !transaction.vout) throw new Error(`Invalid verbose tx data for ${txid}`);
+            return transaction;
+        } catch (error) { logger.error(`SPV: [Helper] Failed fetching details for ${txid}: ${error.message}`); throw error; }
+    }
+    calculateReceivedAmount(transactionDetails, bchAddress) {
+        let receivedSatoshis = 0; if (!transactionDetails?.vout) return 0;
+        for (const output of transactionDetails.vout) {
+            if (output.scriptPubKey?.addresses?.includes(bchAddress)) {
+                const valueSat = output.valueSat ?? Math.round((output.value || 0) * SATOSHIS_PER_BCH);
+                if (valueSat > 0) receivedSatoshis += valueSat;
+            }
+        }
+        return receivedSatoshis;
+    }
+
+    // --- Service Lifecycle (Unchanged) ---
+    async start() {
+        if (this.isRunning) return;
+        logger.info('SPV: Starting service...');
+        this.isRunning = true;
+        this.cacheCleanupTimer = setInterval(() => this.cleanupTxCache(), CACHE_CLEANUP_INTERVAL_MS);
+        this.periodicRetryTimer = setInterval(() => this.retryFailedPrimaries(), PERIODIC_RETRY_INTERVAL_MS);
+        logger.info(`SPV: Initial connections to ${this.primaryServerConfigs.length} primary servers...`);
+        const initialConnectionPromises = this.primaryServerConfigs.map(config => this.connectToServer(config, false));
+        await Promise.allSettled(initialConnectionPromises);
+        logger.info("SPV: Initial connection attempts settled.");
+        this.tryConnectFallback();
+        try {
+            logger.info('SPV: Fetching initial users for monitoring...');
+            const usersToMonitor = await User.find({ bchAddress: { $exists: true, $ne: null, $ne: '' } }).select('_id bchAddress').lean();
+            logger.info(`SPV: [Initial Load] Found ${usersToMonitor.length} users.`);
+            for (const user of usersToMonitor) { await this.addSubscription(user._id.toString(), user.bchAddress); }
+            logger.info(`SPV: [Initial Load] Finished adding initial subscriptions. Monitoring ${this.subscriptions.size} addresses.`);
+        } catch (error) { logger.error(`SPV: [Initial Load Error] Failed fetching users: ${error.message}`); }
+     }
+    async stop() {
+         logger.info("SPV: Stopping service..."); this.isRunning = false;
+         if (this.cacheCleanupTimer) clearInterval(this.cacheCleanupTimer); if (this.periodicRetryTimer) clearInterval(this.periodicRetryTimer);
+         this.processedTxCache.clear(); this.failedPrimaryServers.clear(); this.processingLocks.clear(); // Clear locks on stop
+         this.reconnectTimers.forEach(timer => clearTimeout(timer)); this.reconnectTimers.clear();
+         logger.info(`SPV: Closing ${this.clients.size} connections...`);
+         const closePromises = []; this.clients.forEach(entry => { if (entry.client) closePromises.push(entry.client.close().catch(e => logger.error(`SPV: Error closing client: ${e.message}`))); });
+         await Promise.allSettled(closePromises);
+         this.clients.clear(); this.subscriptions.clear();
+         logger.info("SPV: Service stopped.");
      }
 
 } // End Class SpvMonitorService
@@ -423,11 +394,9 @@ class SpvMonitorService {
 // --- Export Singleton Instance ---
 const spvMonitorServiceInstance = new SpvMonitorService();
 
-spvMonitorServiceInstance.handleSubscriptionUpdate('testScriptHash', 'newStatus');
-
 module.exports = {
     start: () => spvMonitorServiceInstance.start(),
     stop: () => spvMonitorServiceInstance.stop(),
     addSubscription: (userId, bchAddress) => spvMonitorServiceInstance.addSubscription(userId, bchAddress),
-    setIoServer: (ioInstance) => spvMonitorServiceInstance.setIoServer(ioInstance) // Expose the setter
+    setIoServer: (ioInstance) => spvMonitorServiceInstance.setIoServer(ioInstance)
 };
