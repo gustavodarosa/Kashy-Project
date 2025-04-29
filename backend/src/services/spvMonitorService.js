@@ -406,11 +406,7 @@ class SpvMonitorService {
     async processAndNotifyWithHistory(userId, bchAddress, scriptHash, status) {
         logger.debug(`SPV: [Process/Notify Full] User: ${userId}, Addr: ${bchAddress}`);
 
-        // <<< --- ADDED DELAY --- >>>
-        logger.info(`SPV: [Delay] Received update for ${bchAddress}. Waiting ${FETCH_DELAY_AFTER_SPV_MS}ms before fetching data...`);
-        await new Promise(resolve => setTimeout(resolve, FETCH_DELAY_AFTER_SPV_MS));
-        logger.info(`SPV: [Delay] Delay finished for ${bchAddress}. Fetching balance and history...`);
-        // <<< --- END DELAY --- >>>
+        
 
         let fetchedBalanceData;
         let fetchedTransactions;
