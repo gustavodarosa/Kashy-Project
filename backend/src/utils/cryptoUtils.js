@@ -1,3 +1,4 @@
+// z:\Kashy-Project\backend\src\utils\cryptoUtils.js
 const crypto = require('crypto');
 
 const ALGORITHM = 'aes-256-cbc';
@@ -72,26 +73,6 @@ function decrypt(encryptedText, key) {
   }
 }
 
-const testKey = process.env.ENCRYPTION_KEY;
-const testMnemonic = "legal winner thank year wave sausage worth useful legal winner thank yellow";
-const testDerivationPath = "m/44'/145'/0'/0/0";
-
-try {
-  const encryptedMnemonic = encrypt(testMnemonic, testKey);
-  const decryptedMnemonic = decrypt(encryptedMnemonic, testKey);
-
-  console.log('Mnemônico original:', testMnemonic);
-  console.log('Mnemônico criptografado:', encryptedMnemonic);
-  console.log('Mnemônico descriptografado:', decryptedMnemonic);
-
-  const encryptedPath = encrypt(testDerivationPath, testKey);
-  const decryptedPath = decrypt(encryptedPath, testKey);
-
-  console.log('Caminho de derivação original:', testDerivationPath);
-  console.log('Caminho de derivação criptografado:', encryptedPath);
-  console.log('Caminho de derivação descriptografado:', decryptedPath);
-} catch (error) {
-  console.error('Erro no teste de criptografia/descriptografia:', error);
-}
+// The test block that was here has been removed.
 
 module.exports = { encrypt, decrypt };
