@@ -590,6 +590,7 @@ export function WalletTab() {
                   </div>
                 </div>
               </div>
+              
             ))}
           </div>
         )}
