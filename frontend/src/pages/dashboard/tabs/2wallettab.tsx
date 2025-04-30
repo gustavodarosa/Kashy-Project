@@ -1,10 +1,13 @@
 // src/pages/dashboard/tabs/2wallettab.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 // Removed FiAlertCircle as it's not used
+import React, { useState, useEffect, useCallback } from 'react';
+// Removed FiAlertCircle as it's not used
 import { FiArrowUp, FiArrowDown, FiCopy, FiDollarSign, FiCode, FiClock, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import QRCode from 'react-qr-code';
+import bitcore from 'bitcore-lib-cash';
 import bitcore from 'bitcore-lib-cash';
 
 import { useNotification } from '../../../context/NotificationContext';
@@ -39,8 +42,10 @@ type WalletBalance = {
   totalBRL: number;
   totalSatoshis: number;
   currentRateBRL?: number;
+  currentRateBRL?: number;
 };
 
+// --- WalletTab Component ---
 // --- WalletTab Component ---
 export function WalletTab() {
   const { addNotification } = useNotification();
@@ -242,6 +247,8 @@ export function WalletTab() {
 
           console.log('[WalletTab] Attempting send via backend API...');
           const response = await fetch(`${API_BASE_URL}/wallet/send`, {
+          console.log('[WalletTab] Attempting send via backend API...');
+          const response = await fetch(`${API_BASE_URL}/wallet/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ address: sendForm.address.trim(), amount: sendForm.amountBCH, fee: sendForm.fee })
@@ -380,11 +387,15 @@ export function WalletTab() {
         <h2 className="text-2xl font-bold">Minha Carteira Bitcoin Cash</h2>
         <div className="flex items-center gap-4 flex-wrap">
           {/* WS Status */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* WS Status */}
           <div className="flex items-center gap-2 text-sm">
             {socket?.connected ? ( <span className="flex items-center gap-1 text-green-400"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> ON</span>
             ) : error?.includes('conexão') || error?.includes('Desconectado') ? ( <span className="flex items-center gap-1 text-red-400"><span className="w-2 h-2 rounded-full bg-red-500"></span> OFF</span>
             ) : ( <span className="flex items-center gap-1 text-yellow-400"><span className="w-2 h-2 rounded-full bg-yellow-500 animate-spin"></span> ...</span> )}
           </div>
+          {/* Refresh */}
+          <button onClick={fetchWalletData} disabled={loading || !isInitialized} className="p-2 rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed">
           {/* Refresh */}
           <button onClick={fetchWalletData} disabled={loading || !isInitialized} className="p-2 rounded-full text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-50 disabled:cursor-not-allowed">
             <FiRefreshCw className={` ${loading ? 'animate-spin' : ''}`} />
@@ -395,6 +406,8 @@ export function WalletTab() {
       {/* Global Error (outside modals) */}
       {error && !sendModalOpen && !receiveModalOpen && (
         <div className="bg-red-800 border border-red-600 text-white px-4 py-3 rounded relative mb-6 shadow-md" role="alert">
+            <strong>Erro: </strong> <span className="block sm:inline">{error}</span>
+            <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
             <strong>Erro: </strong> <span className="block sm:inline">{error}</span>
             <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
         </div>
@@ -466,6 +479,7 @@ export function WalletTab() {
           <div className="space-y-4">
             {transactions.map((tx) => (
               <div key={tx._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg border-b border-[var(--color-border)] last:border-b-0">
+              <div key={tx._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg border-b border-[var(--color-border)] last:border-b-0">
                 <div className="flex items-center gap-4 mb-2 sm:mb-0 w-full sm:w-auto">
                   <div className={`flex-shrink-0 p-3 rounded-full ${ tx.type === 'received' ? 'bg-green-900 text-green-400' : tx.type === 'sent' ? 'bg-red-900 text-red-400' : tx.type === 'self' ? 'bg-blue-900 text-blue-400' : 'bg-gray-700 text-gray-400' }`}>
                     {tx.type === 'received' ? <FiArrowDown size={20} /> : tx.type === 'sent' ? <FiArrowUp size={20} /> : tx.type === 'self' ? <FiRefreshCw size={20} /> : <FiClock size={20} />}
@@ -475,6 +489,9 @@ export function WalletTab() {
                       {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : tx.type === 'self' ? 'Para si' : 'Desconhecido'}
                     </p>
                     <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">{formatDate(tx.timestamp)}</p>
+                    <a href={`${BCH_EXPLORER_TX_URL}${tx.txid}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 break-all block mt-1" title={tx.txid}>
+                      Hash: {formatAddress(tx.txid, 8)}
+                    </a>
                     <a href={`${BCH_EXPLORER_TX_URL}${tx.txid}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 break-all block mt-1" title={tx.txid}>
                       Hash: {formatAddress(tx.txid, 8)}
                     </a>
@@ -514,8 +531,10 @@ export function WalletTab() {
             ))}
           </div>
         )}
+        {/* --- END FIX --- */}
       </div>
 
+      {/* --- Send Modal --- */}
       {/* --- Send Modal --- */}
       {sendModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
@@ -650,6 +669,9 @@ export function WalletTab() {
           </div>
       )}
 
+    </div> // Closing main component div
+  ); // Closing return statement
+} // Closing WalletTab function
     </div> // Closing main component div
   ); // Closing return statement
 } // Closing WalletTab function

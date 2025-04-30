@@ -9,7 +9,9 @@ const logger = require('../utils/logger');
 const { validationResult } = require('express-validator'); // Keep if using validation
 
 // --- Helper Function (Keep existing) ---
+// --- Helper Function (Keep existing) ---
 function formatAddress(address) {
+    // ... (keep existing formatAddress function) ...
     // ... (keep existing formatAddress function) ...
     if (!address || typeof address !== 'string') return 'Endereço Inválido';
     if (address.includes(':') && address.length > 20) {
