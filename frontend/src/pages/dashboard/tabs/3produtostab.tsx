@@ -57,52 +57,29 @@ export function ProdutosTab() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        console.log('[DEBUG] Iniciando fetch de produtos...');
         setLoading(true);
-        // Simulando uma chamada API
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Dados mockados
-        const mockProducts: Product[] = Array.from({ length: 25 }, (_, i) => ({
-          _id: `prod-${i}`,
-          name: `Produto ${i + 1}`,
-          description: `Descrição do produto ${i + 1}`,
-          priceBRL: Math.random() * 100 + 10,
-          priceBCH: (Math.random() * 100 + 10) * 0.0001,
-          quantity: Math.floor(Math.random() * 100),
-          sku: `SKU-${1000 + i}`,
-          category: categories[Math.floor(Math.random() * categories.length)].value,
-          isActive: i % 5 !== 0, // 1 em cada 5 inativo
-          createdAt: new Date(Date.now() - i * 86400000).toISOString()
-        }));
-        
-        // Aplicar filtros
-        const filteredProducts = mockProducts.filter(product => {
-          const matchesSearch = 
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-          
-          const matchesCategory = 
-            selectedCategory === 'all' || product.category === selectedCategory;
-          
-          return matchesSearch && matchesCategory;
-        });
-        
-        // Paginação
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-        
-        setProducts(paginatedProducts);
-        setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
+        const response = await fetch('http://localhost:3000/api/products');
+        console.log('[DEBUG] Resposta da API de produtos:', response);
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar produtos');
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Dados recebidos da API de produtos:', data);
+
+        setProducts(data);
         setError(null);
       } catch (err) {
+        console.error('[ERROR] Erro ao carregar produtos:', err);
         setError('Erro ao carregar produtos');
-        console.error(err);
       } finally {
         setLoading(false);
+        console.log('[DEBUG] Finalizado fetch de produtos.');
       }
     };
-    
+
     fetchProducts();
   }, [currentPage, searchTerm, selectedCategory]);
 
@@ -131,24 +108,32 @@ export function ProdutosTab() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulando chamada API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      if (currentProduct) {
-        // Atualizar produto existente
-        setProducts(prev => prev.map(p => 
-          p._id === currentProduct._id ? { ...p, ...formData } : p
-        ));
-      } else {
-        // Adicionar novo produto
-        const newProduct: Product = {
-          _id: `prod-${Date.now()}`,
-          ...formData,
-          createdAt: new Date().toISOString()
-        };
-        setProducts(prev => [newProduct, ...prev]);
+      const method = currentProduct ? 'PUT' : 'POST';
+      const url = currentProduct
+        ? `http://localhost:3000/api/products/${currentProduct._id}`
+        : 'http://localhost:3000/api/products';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar produto');
       }
-      
+
+      const savedProduct = await response.json();
+      if (currentProduct) {
+        // Atualizar produto existente na lista
+        setProducts(prev =>
+          prev.map(p => (p._id === savedProduct._id ? savedProduct : p))
+        );
+      } else {
+        // Adicionar novo produto à lista
+        setProducts(prev => [savedProduct, ...prev]);
+      }
+
       resetForm();
     } catch (err) {
       console.error('Erro ao salvar produto:', err);
@@ -422,61 +407,64 @@ export function ProdutosTab() {
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {products.map((product) => (
-                    <tr key={product._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">{product.name}</div>
-                        <div className="text-xs text-gray-400">{product.sku}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
-                        <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.quantity > 10 
-                            ? 'bg-green-100 text-green-800' 
-                            : product.quantity > 0 
-                              ? 'bg-yellow-100 text-yellow-800' 
+                  {products.map((product) => {
+                    console.log('[DEBUG] Renderizando produto:', product);
+                    return (
+                      <tr key={product._id} className="hover:bg-gray-750 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium">{product.name}</div>
+                          <div className="text-xs text-gray-400">{product.sku}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
+                          <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            product.quantity > 10 
+                              ? 'bg-green-100 text-green-800' 
+                              : product.quantity > 0 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-red-100 text-red-800'
+                          }`}>
+                            {product.quantity} unidades
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {categories.find(c => c.value === product.category)?.label || 'Outros'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            product.isActive 
+                              ? 'bg-green-100 text-green-800' 
                               : 'bg-red-100 text-red-800'
-                        }`}>
-                          {product.quantity} unidades
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {categories.find(c => c.value === product.category)?.label || 'Outros'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {product.isActive ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-3">
-                          <button
-                            onClick={() => handleEdit(product)}
-                            className="text-blue-400 hover:text-blue-300 transition-colors"
-                            title="Editar"
-                          >
-                            <FiEdit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product._id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            title="Excluir"
-                          >
-                            <FiTrash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          }`}>
+                            {product.isActive ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="text-blue-400 hover:text-blue-300 transition-colors"
+                              title="Editar"
+                            >
+                              <FiEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product._id)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Excluir"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

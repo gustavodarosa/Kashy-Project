@@ -204,6 +204,9 @@ app.get('/api/users/count', authMiddleware, async (req, res) => {
   }
 });
 
+const productRoutes = require('./routes/productRoutes');
+app.use('/api/products', productRoutes);
+
 // --- Error Handling Middleware ---
 // Ensure the error handler from app.js is the LAST middleware added
 // app.use(errorHandler); // This is already done in app.js, no need to add again here
