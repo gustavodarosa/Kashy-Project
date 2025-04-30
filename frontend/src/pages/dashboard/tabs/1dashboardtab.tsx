@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CryptoChart } from '../../../components/CryptoChart';
@@ -32,11 +32,138 @@ const lowStockProducts = [
 export function DashboardTab() {
   const [timeRange, setTimeRange] = useState('week');
   const [blockchainStatus, setBlockchainStatus] = useState('online');
-  
+  const [userCount, setUserCount] = useState<number>(0);
+  const [salesToday, setSalesToday] = useState<number>(0);
+  const [totalSales, setTotalSales] = useState<number>(0);
+  const [totalBCH, setTotalBCH] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('[DEBUG] Token obtido para fetchUserCount:', token);
+
+        const response = await fetch('http://localhost:3000/api/users/count', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('[DEBUG] Resposta de fetchUserCount:', response);
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar contagem de usuários');
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Dados de contagem de usuários:', data);
+
+        setUserCount(data.count);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar contagem de usuários:', error);
+      }
+    };
+
+    fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchSalesToday = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('[DEBUG] Token obtido para fetchSalesToday:', token);
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/today', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('[DEBUG] Resposta de fetchSalesToday:', response);
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar vendas de hoje');
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Dados de vendas de hoje:', data);
+
+        setSalesToday(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar vendas de hoje:', error);
+      }
+    };
+
+    fetchSalesToday();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotalSales = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('[DEBUG] Token obtido para fetchTotalSales:', token);
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/total', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('[DEBUG] Resposta de fetchTotalSales:', response);
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar total de vendas');
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Dados de total de vendas:', JSON.stringify(data, null, 2));
+
+        setTotalSales(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar total de vendas:', error);
+      }
+    };
+
+    fetchTotalSales();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotalBCH = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('[DEBUG] Token obtido para fetchTotalBCH:', token);
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/total-bch', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('[DEBUG] Resposta de fetchTotalBCH:', response);
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar total de BCH recebido');
+        }
+
+        const data = await response.json();
+        console.log('[DEBUG] Dados de total de BCH recebido:', JSON.stringify(data, null, 2));
+
+        setTotalBCH(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar total de BCH recebido:', error);
+      }
+    };
+
+    fetchTotalBCH();
+  }, []);
+
   const checkBlockchainStatus = () => {
+    console.log('[DEBUG] Verificando status da blockchain...');
     setBlockchainStatus('checking');
     setTimeout(() => {
-      setBlockchainStatus(Math.random() > 0.1 ? 'online' : 'offline');
+      const newStatus = Math.random() > 0.1 ? 'online' : 'offline';
+      console.log('[DEBUG] Novo status da blockchain:', newStatus);
+      setBlockchainStatus(newStatus);
     }, 1000);
   };
 
@@ -89,18 +216,20 @@ export function DashboardTab() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+      <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Vendas Hoje</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">R$ 0,00</p>
+              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Total de Vendas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
+                R$ {totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
               <FiActivity size={24} />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
-            <FiTrendingUp className="mr-1" /> +0% em relação a ontem
+            <FiTrendingUp className="mr-1" /> Total acumulado de vendas
           </div>
         </div>
         
@@ -108,14 +237,16 @@ export function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Recebido em BCH</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">₿ 0</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
+                ₿ {totalBCH.toFixed(8)}
+              </p>
             </div>
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
               <FiShoppingCart size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            ≈ R$ 0,00
+            Total acumulado em Bitcoin Cash
           </div>
         </div>
         
@@ -167,8 +298,8 @@ export function DashboardTab() {
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Crescimento da Semana</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0%</p>
+              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Usuários Cadastrados</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{userCount}</p>
             </div>
             <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400">
               <FiTrendingUp size={24} />
@@ -178,6 +309,8 @@ export function DashboardTab() {
             Em relação à semana passada
           </div>
         </div>
+
+        
       </div>
 
       {/* Seções de Gráficos */}

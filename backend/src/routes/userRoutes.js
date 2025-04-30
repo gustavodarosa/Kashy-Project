@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
+const User = require('../models/user'); // Adicione esta linha para importar o modelo User
 
 // --- Define Validation Middleware ---
 // Example: Assuming you want to validate email for registration
@@ -29,6 +30,16 @@ router.get(
   // No specific body validation needed here usually, relies on auth user
   userController.recoverWallet
 );
+
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const users = await User.find().select('_id email role isActive createdAt');
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Erro ao buscar usuários:', error);
+    res.status(500).json({ message: 'Erro ao buscar usuários' });
+  }
+});
 
 // Optional: Add route for linkWallet if it has a separate purpose
 // router.post('/link-wallet', authMiddleware, userController.linkWallet);

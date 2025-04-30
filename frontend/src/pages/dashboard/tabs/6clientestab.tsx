@@ -37,28 +37,29 @@ export function ClientesTab() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        // Simulando uma chamada API
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Dados mockados
-        const mockUsers: User[] = Array.from({ length: 25 }, (_, i) => ({
-          _id: `user-${i}`,
-          email: `usuario${i}@exemplo.com`,
-          role: i % 3 === 0 ? 'merchant' : 'user',
-          isActive: i % 5 !== 0, // 1 em cada 5 inativo
-          createdAt: new Date(Date.now() - i * 86400000).toISOString()
-        }));
-        
+        const token = localStorage.getItem('token'); // Supondo que o token JWT esteja armazenado no localStorage
+        const response = await fetch('http://localhost:3000/api/users', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar usuários');
+        }
+
+        const data: User[] = await response.json();
+
         // Aplicar filtro de busca
-        const filteredUsers = mockUsers.filter(user =>
+        const filteredUsers = data.filter(user =>
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.role.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        
+
         // Paginação
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-        
+
         setUsers(paginatedUsers);
         setTotalPages(Math.ceil(filteredUsers.length / itemsPerPage));
         setError(null);
@@ -69,7 +70,7 @@ export function ClientesTab() {
         setLoading(false);
       }
     };
-    
+
     fetchUsers();
   }, [currentPage, searchTerm]);
 
@@ -151,7 +152,7 @@ export function ClientesTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6">Dashboard de CRUD Usuários</h2>
       
       {/* Barra de ações */}
@@ -161,7 +162,7 @@ export function ClientesTab() {
           <input
             type="text"
             placeholder="Buscar usuários..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -180,8 +181,8 @@ export function ClientesTab() {
       
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
               {currentUser ? 'Editar Usuário' : 'Adicionar Usuário'}
             </h3>
@@ -195,7 +196,7 @@ export function ClientesTab() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
@@ -206,7 +207,7 @@ export function ClientesTab() {
                     name="role"
                     value={formData.role}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="user">Usuário</option>
                     <option value="merchant">Comerciante</option>
@@ -220,7 +221,7 @@ export function ClientesTab() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded bg-gray-700 border-gray-600 focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-tertiary)] border-[var(--color-border)] focus:ring-blue-500"
                   />
                   <label htmlFor="isActive" className="ml-2 text-sm">
                     Ativo
@@ -232,7 +233,7 @@ export function ClientesTab() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 rounded-lg border border-[var(--color-border)] hover:bg-gray-700 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -249,7 +250,7 @@ export function ClientesTab() {
       )}
       
       {/* Tabela de usuários */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+      <div className="bg-[var(--color-bg-tertiary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -266,7 +267,7 @@ export function ClientesTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
+              <table className="min-w-full divide-y divide-[var(--color-divide)]">
                 <thead className="bg-gray-750">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
@@ -276,7 +277,7 @@ export function ClientesTab() {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
                   {users.map((user) => (
                     <tr key={user._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -328,19 +329,19 @@ export function ClientesTab() {
             </div>
             
             {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-gray-700">
+            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
                 >
                   Próxima
                 </button>
@@ -360,7 +361,7 @@ export function ClientesTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
@@ -385,7 +386,7 @@ export function ClientesTab() {
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             currentPage === pageNum
                               ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                              : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-tertiary)]'
                           }`}
                         >
                           {pageNum}
@@ -396,7 +397,7 @@ export function ClientesTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Próxima</span>
                       <FiChevronRight size={20} />

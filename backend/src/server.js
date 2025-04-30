@@ -76,6 +76,26 @@ io.on('connection', (socket) => {
   socket.on('clientEvent', (data) => {
     logger.info(`Received 'clientEvent' from ${socket.id} (User: ${userId}):`, data);
   });
+
+  const sendUserCount = async () => {
+    try {
+      const userCount = await User.countDocuments(); // Conta todos os documentos na coleção de usuários
+      io.emit('userCountUpdate', userCount); // Envia o número de usuários para todos os clientes conectados
+    } catch (error) {
+      logger.error('Erro ao contar usuários:', error.message);
+    }
+  };
+
+  // Enviar contagem inicial
+  sendUserCount();
+
+  // Atualizar periodicamente (opcional)
+  const interval = setInterval(sendUserCount, 10000);
+
+  socket.on('disconnect', () => {
+    logger.info(`🔌 WebSocket disconnected: ${socket.id} (User: ${userId})`);
+    clearInterval(interval);
+  });
 });
 
 // --- Inject io instance into the SPV Service (Keep existing) ---
@@ -172,6 +192,16 @@ app.put('/api/user/update-password', authMiddleware, async (req, res) => {
     logger.info(`User ID: ${userId} - Password updated successfully.`);
     res.status(200).json({ message: 'Senha atualizada com sucesso.' });
   } catch (error) { /* ... */ logger.error(`User ID: ${userId} - Error updating password: ${error.message}`); res.status(500).json({ message: 'Erro interno no servidor ao atualizar senha.' }); }
+});
+
+app.get('/api/users/count', authMiddleware, async (req, res) => {
+  try {
+    const userCount = await User.countDocuments(); // Conta todos os documentos na coleção de usuários
+    res.status(200).json({ count: userCount });
+  } catch (error) {
+    logger.error('Erro ao contar usuários:', error.message);
+    res.status(500).json({ message: 'Erro interno no servidor ao contar usuários.' });
+  }
 });
 
 // --- Error Handling Middleware ---
