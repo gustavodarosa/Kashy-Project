@@ -13,6 +13,15 @@ const mongoose = require('mongoose');
 const logger = require('./utils/logger'); // Assuming logger is correctly set up
 const bcrypt = require('bcryptjs'); // Keep for password update route
 
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
+
+// Carrega as variáveis de ambiente do arquivo .env ANTES de qualquer outro código que as use
+dotenv.config();
+
+const reportRoutes = require("./routes/reportRoutes"); // Ajuste o caminho se necessário
+
 const PORT = process.env.PORT || 3000; // Use PORT from env or default
 const NODE_ENV = process.env.NODE_ENV || 'development'; // Get node environment
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'; // Get frontend URL
@@ -101,6 +110,16 @@ io.on('connection', (socket) => {
 // --- Inject io instance into the SPV Service (Keep existing) ---
 spvService.setIoServer(io);
 
+// --- Middlewares Essenciais ---
+app.use(cors()); // Habilita CORS para permitir requisições do frontend
+app.use(express.json()); // Habilita o Express a entender corpos de requisição no formato JSON
+
+// Middleware simples para logar requisições (opcional)
+app.use((req, res, next) => {
+  console.log(`[Server] ${req.method} ${req.path}`);
+  next();
+});
+
 // --- Add Logging Middleware (from provided example) ---
 // This should ideally be in app.js before other routes, but adding here for now
 app.use((req, res, next) => {
@@ -111,10 +130,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- Montagem das Rotas ---
+app.use("/api/reports", reportRoutes); // Rotas de relatórios IA
+
 // --- Add Basic Root Route (from provided example) ---
 // This should ideally be in app.js or a dedicated root route file
 app.get('/', (req, res) => {
   res.send('Kashy Backend API is running!');
+});
+
+// --- Rota de Teste Raiz ---
+app.get("/", (req, res) => {
+  res.send("API de Relatórios IA está funcionando!");
 });
 
 // --- API Routes Defined Directly (Keep existing, but ideally move to route files) ---
@@ -204,8 +231,22 @@ app.get('/api/users/count', authMiddleware, async (req, res) => {
   }
 });
 
+app.post('/api/reports/generate-ai-report', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ message: 'Prompt é obrigatório.' });
+  }
+  // Lógica para gerar o relatório...
+});
+
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
+
+// --- Tratamento de Erro Genérico ---
+app.use((err, req, res, next) => {
+  console.error("[Server] Erro não tratado:", err.stack);
+  res.status(500).json({ message: 'Ocorreu um erro inesperado no servidor.' });
+});
 
 // --- Error Handling Middleware ---
 // Ensure the error handler from app.js is the LAST middleware added
@@ -227,6 +268,12 @@ const startServer = async () => {
       // Log details from the provided example
       logger.info(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
       logger.info(`Frontend URL configured: ${FRONTEND_URL}`);
+      console.log(`[Server] Backend rodando em http://localhost:${PORT}`);
+      if (!process.env.API_KEY) {
+        console.warn("[Server] ATENÇÃO: Variável de ambiente API_KEY não encontrada. As chamadas para a IA falharão.");
+      } else {
+        console.log("[Server] Chave de API do Google carregada com sucesso.");
+      }
     });
   } catch (error) {
     logger.error(`FATAL: Failed to start server: ${error.message}`);

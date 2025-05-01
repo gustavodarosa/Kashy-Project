@@ -1,7 +1,4 @@
-import { useState, useEffect } from 'react';
-import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-
-type Product = {
+export type Product = {
   _id: string;
   name: string;
   description: string;
@@ -13,6 +10,10 @@ type Product = {
   isActive: boolean;
   createdAt: string;
 };
+
+import { useState, useEffect } from 'react';
+import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useNotification } from '../../../context/NotificationContext'; // Importe o contexto de notificações
 
 export function ProdutosTab() {
   // Estado para os produtos
@@ -43,6 +44,9 @@ export function ProdutosTab() {
     isActive: true
   });
 
+  // Contexto de notificações
+  const { addNotification } = useNotification();
+
   // Categorias de produtos
   const categories = [
     { value: 'alimentos', label: 'Alimentos' },
@@ -50,7 +54,7 @@ export function ProdutosTab() {
     { value: 'eletronicos', label: 'Eletrônicos' },
     { value: 'vestuario', label: 'Vestuário' },
     { value: 'servicos', label: 'Serviços' },
-    { value: 'outros', label: 'Outros' }
+    
   ];
 
   // Simulação de fetch de dados
@@ -69,7 +73,21 @@ export function ProdutosTab() {
         const data = await response.json();
         console.log('[DEBUG] Dados recebidos da API de produtos:', data);
 
-        setProducts(data);
+        // Verificar produtos com estoque baixo e enviar notificações exclusivas
+        
+        // Aplicar filtros de busca e categoria
+        const filteredProducts = data.filter((product: Product) => {
+          const matchesCategory =
+            selectedCategory === 'all' || product.category === selectedCategory;
+          const matchesSearch =
+            searchTerm === '' ||
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+          return matchesCategory && matchesSearch;
+        });
+
+        setProducts(filteredProducts);
+        setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
         setError(null);
       } catch (err) {
         console.error('[ERROR] Erro ao carregar produtos:', err);
@@ -81,7 +99,7 @@ export function ProdutosTab() {
     };
 
     fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory]);
+  }, [currentPage, searchTerm, selectedCategory, addNotification]);
 
   // Manipuladores de formulário
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -236,7 +254,7 @@ export function ProdutosTab() {
         
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
+          className="flex items-center gap-2 bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
         >
           <FiPlus /> Novo Produto
         </button>
@@ -244,39 +262,48 @@ export function ProdutosTab() {
       
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-2xl">
-            <h3 className="text-xl font-bold mb-4">
+        <div className="fixed inset-0  bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-8 w-full max-w-3xl shadow-lg">
+            <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-6">
               {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
             </h3>
-            
+
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Nome do Produto */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Nome*</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Nome*
+                  </label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-                
+
+                {/* Descrição */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Descrição</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Descrição
+                  </label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                
+
+                {/* Preço em BRL */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Preço (BRL)*</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Preço (BRL)*
+                  </label>
                   <input
                     type="number"
                     name="priceBRL"
@@ -284,13 +311,16 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-                
+
+                {/* Preço em BCH */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Preço (BCH)</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Preço (BCH)
+                  </label>
                   <input
                     type="number"
                     name="priceBCH"
@@ -298,50 +328,62 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.000001"
                     step="0.000001"
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)]focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled
                   />
                 </div>
-                
+
+                {/* Quantidade */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Quantidade*</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Quantidade*
+                  </label>
                   <input
                     type="number"
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-                
+
+                {/* SKU */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">SKU*</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    SKU*
+                  </label>
                   <input
-                    type="text"
+                    type="number"
                     name="sku"
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-                
+
+                {/* Categoria */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Categoria*</label>
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                    Categoria*
+                  </label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    {categories.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
                     ))}
                   </select>
                 </div>
-                
+
+                {/* Status Ativo/Inativo */}
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -349,25 +391,26 @@ export function ProdutosTab() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-accent)] focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-border)] focus:ring-blue-500"
                   />
-                  <label htmlFor="isActive" className="ml-2 text-sm">
+                  <label htmlFor="isActive" className="ml-2 text-sm text-[var(--color-text-secondary)]">
                     Ativo
                   </label>
                 </div>
               </div>
-              
-              <div className="flex justify-end gap-3 mt-6">
+
+              {/* Botões de Ação */}
+              <div className="flex justify-end gap-4 mt-8">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 rounded-lg border border-[var(--color-accent)] bg-red-800 hover:bg-red-600 transition-colors"
+                  className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-green-800 hover:bg-green-600 transition-colors"
+                  className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
                 >
                   {currentProduct ? 'Atualizar' : 'Salvar'}
                 </button>

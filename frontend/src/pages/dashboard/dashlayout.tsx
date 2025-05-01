@@ -6,7 +6,7 @@ import { useSidebar } from '../../hooks/usersidebar';
 import { useState, useEffect } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, OfertasTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../context/NotificationContext';
+import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
 
 
 export function Dashboard() {
@@ -19,7 +19,7 @@ export function Dashboard() {
     const [username, setUsername] = useState<string | null>(null);
     const [email, setEmail] = useState<string | null>(null);
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-    const { notifications, clearNotifications } = useNotification();
+    const { notifications, clearNotifications, addNotification } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
     const navigate = useNavigate();
@@ -239,7 +239,7 @@ export function Dashboard() {
         }
     }, [notifications]);
 
-    
+  
 
     const handleOpenNotificationModal = () => {
         setNotificationModalOpen(true);
@@ -525,11 +525,11 @@ export function Dashboard() {
             {/* Notification Modal */}
             {notificationModalOpen && (
                 <div
-                    className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center p-4 z-50"
                     onClick={() => setNotificationModalOpen(false)} // Fecha o modal ao clicar fora
                 >
                     <div
-                        className="bg-[var(--color-bg-tertiary)] rounded-lg p-6 w-full max-w-md shadow-xl"
+                        className="bg-[var(--color-bg-primary)] bg-opacity-80 rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]"
                         onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
                     >
                         <div className="flex justify-between items-center mb-4">
@@ -548,17 +548,17 @@ export function Dashboard() {
                             </button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-80 overflow-y-auto">
                             {notifications.length === 0 ? (
                                 <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
                             ) : (
                                 notifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md"
+                                        className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md border border-[var(--color-border)]"
                                     >
                                         <p className="text-sm text-gray-300">{notification.message}</p>
-                                        <p className="text-sm text-gray-400">{notification.timestamp}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{notification.timestamp}</p>
                                     </div>
                                 ))
                             )}

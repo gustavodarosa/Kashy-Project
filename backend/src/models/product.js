@@ -10,6 +10,7 @@ const productSchema = new mongoose.Schema({
   category: { type: String, required: true },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
+  minimum: { type: Number, required: true },
 });
 
 module.exports = mongoose.model('Product', productSchema);

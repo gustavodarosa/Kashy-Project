@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FiBarChart2, FiCalendar, FiDownload, FiTrash2, FiEdit } from 'react-icons/fi';
+import jsPDF from 'jspdf';
 
 type Report = {
   id: string;
@@ -9,6 +10,67 @@ type Report = {
   generatedAt: string;
   previewData: any;
   isAIGenerated?: boolean;
+};
+
+const generatePDF = (report: Report) => {
+  const doc = new jsPDF();
+
+  // Título do relatório
+  doc.setFontSize(18);
+  doc.text(report.title, 10, 10);
+
+  // Informações gerais
+  doc.setFontSize(12);
+  doc.text(`Tipo: ${report.type}`, 10, 20);
+  doc.text(`Período: ${report.dateRange}`, 10, 30);
+  doc.text(`Gerado em: ${report.generatedAt}`, 10, 40);
+
+  // Dados do relatório
+  doc.setFontSize(14);
+  doc.text('Dados do Relatório:', 10, 50);
+
+  let yPosition = 60; // Posição inicial para os dados
+  if (report.type === 'sales') {
+    doc.text(`Total de Vendas: R$ ${report.previewData.totalSales.toLocaleString('pt-BR')}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Total de Transações: ${report.previewData.totalTransactions}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Produto Mais Vendido: ${report.previewData.bestSellingProduct}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Comparativo: ${report.previewData.comparison}`, 10, yPosition);
+  } else if (report.type === 'transactions') {
+    doc.text(`Total BCH: ${report.previewData.totalBCH} BCH`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Média por Transação: ${report.previewData.avgTransaction} BCH`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Dia com Mais Transações: ${report.previewData.peakDay}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Comparativo: ${report.previewData.comparison}`, 10, yPosition);
+  } else if (report.type === 'inventory') {
+    doc.text(`Produtos Cadastrados: ${report.previewData.totalProducts}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Itens com Baixo Estoque: ${report.previewData.lowStockItems}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Itens Esgotados: ${report.previewData.outOfStockItems}`, 10, yPosition);
+    yPosition += 10;
+    doc.text(`Categoria com Mais Itens: ${report.previewData.mostStockedCategory}`, 10, yPosition);
+  } else if (report.type === 'custom') {
+    if (Array.isArray(report.previewData.insights)) {
+      report.previewData.insights.forEach((insight: string, index: number) => {
+        doc.text(`${index + 1}. ${insight}`, 10, yPosition);
+        yPosition += 10;
+      });
+    } else {
+      doc.text(report.previewData.insights || report.previewData.summary, 10, yPosition);
+    }
+    yPosition += 10;
+    if (report.previewData.conclusion) {
+      doc.text(`Conclusão: ${report.previewData.conclusion}`, 10, yPosition);
+    }
+  }
+
+  // Salvar o PDF
+  doc.save(`${report.title}.pdf`);
 };
 
 export function RelatoriosTab() {
@@ -115,32 +177,58 @@ export function RelatoriosTab() {
   };
 
   // Gerar relatório com IA (simulação)
-  const generateAIReport = () => {
+  const generateAIReport = async () => {
     setIsGenerating(true);
-    
-    setTimeout(() => {
+
+    if (!aiPrompt.trim()) {
+      alert("Por favor, insira um prompt válido para gerar o relatório.");
+      setIsGenerating(false);
+      return;
+    }
+
+    try {
+      console.log("Prompt enviado para IA:", aiPrompt);
+
+      const response = await fetch("http://localhost:3000/api/reports/generate-ai-report", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      console.log("Resposta do servidor:", response);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro do servidor:", errorText);
+        throw new Error("Erro ao gerar relatório com IA.");
+      }
+
+      const data = await response.json();
+      console.log("Dados recebidos da IA:", data);
+
       const newReport: Report = {
         id: `ai-report-${Date.now()}`,
-        title: reportTitle || `Análise IA: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`,
-        type: 'custom',
-        dateRange: dateRange.start && dateRange.end ? 
-          `${dateRange.start} - ${dateRange.end}` : 'Período completo',
-        generatedAt: new Date().toLocaleString('pt-BR'),
+        title: `Resposta da IA`,
+        type: "custom",
+        dateRange: "N/A",
+        generatedAt: new Date().toLocaleString("pt-BR"),
         previewData: {
-          insights: [
-            "Padrão identificado: aumento de vendas às sextas-feiras",
-            "Recomendação: promoções especiais nas quintas para impulsionar vendas",
-            "Produto com potencial: Câmera Digital aumentou 25% em buscas"
-          ],
-          conclusion: "O período analisado mostra crescimento consistente com oportunidades claras de otimização."
+          insights: data.insights.split("\n"),
+          conclusion: "Resposta gerada com sucesso pela IA.",
         },
-        isAIGenerated: true
+        isAIGenerated: true,
       };
-      
-      setReports(prev => [newReport, ...prev]);
+
+      setReports((prev) => [newReport, ...prev]);
       resetForm();
+    } catch (error) {
+      console.error("Erro ao gerar relatório com IA:", error);
+      alert("Erro ao gerar relatório com IA.");
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   // Preparar para edição
@@ -224,7 +312,10 @@ export function RelatoriosTab() {
                   </span>
                 )}
               </h3>
-              <button className="text-gray-400 hover:text-blue-400">
+              <button 
+                onClick={() => generatePDF(report)} 
+                className="text-gray-400 hover:text-blue-400"
+              >
                 <FiDownload />
               </button>
             </div>
@@ -375,17 +466,21 @@ export function RelatoriosTab() {
                 </div>
                 
                 {newReportType === 'ai' && !isEditModalOpen && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      O que você gostaria de analisar?
-                    </label>
-                    <textarea
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="Ex: Analise o padrão de vendas por dia da semana e sugira promoções..."
-                      className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      rows={3}
-                    />
+                  <div className="mb-6">
+                    {newReportType === 'ai' && !isEditModalOpen && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Insira o prompt para a IA:
+                        </label>
+                        <textarea
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder="Ex: Explique o impacto das vendas no último mês..."
+                          className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          rows={3}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -404,35 +499,39 @@ export function RelatoriosTab() {
                     updateReport();
                   } else if (newReportType === 'ai') {
                     generateAIReport();
-                  } else {
-                    generateNewReport();
                   }
                 }}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  newReportType === 'ai' && !isEditModalOpen
-                    ? 'bg-purple-600 hover:bg-purple-700' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+                className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
                 disabled={isGenerating}
               >
                 {isGenerating ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
-                    {isEditModalOpen ? 'Atualizando...' : 'Gerando...'}
+                    Gerando...
                   </>
                 ) : (
                   <>
-                    {isEditModalOpen ? (
-                      <FiEdit />
-                    ) : newReportType === 'ai' ? (
-                      <FiCalendar />
-                    ) : (
-                      <FiBarChart2 />
-                    )}
-                    {isEditModalOpen ? 'Atualizar Relatório' : newReportType === 'ai' ? 'Gerar com IA' : 'Gerar Relatório'}
+                    <FiCalendar />
+                    Gerar com IA
                   </>
                 )}
               </button>

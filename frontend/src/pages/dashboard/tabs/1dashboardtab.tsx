@@ -3,30 +3,12 @@ import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlert
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CryptoChart } from '../../../components/CryptoChart';
 
-const salesData = [
-  { name: 'Seg', value: 400 },
-  { name: 'Ter', value: 600 },
-  { name: 'Qua', value: 800 },
-  { name: 'Qui', value: 1200 },
-  { name: 'Sex', value: 1800 },
-  { name: 'Sáb', value: 1000 },
-  { name: 'Dom', value: 500 },
-];
-
-
 const recentTransactions = [
-  { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '10/06/2024 14:30', customer: 'Cliente A' },
-  { id: 'tx2', amountBRL: 420.50, amountBCH: 0.014, status: 'pending', date: '10/06/2024 12:15', customer: 'Cliente B' },
-  { id: 'tx3', amountBRL: 189.90, amountBCH: 0.006, status: 'confirmed', date: '10/06/2024 09:45', customer: 'Cliente C' },
-  { id: 'tx4', amountBRL: 750.00, amountBCH: 0.025, status: 'confirmed', date: '09/06/2024 18:20', customer: 'Cliente D' },
-  { id: 'tx5', amountBRL: 230.40, amountBCH: 0.008, status: 'failed', date: '09/06/2024 16:10', customer: 'Cliente E' },
-];
-
-const lowStockProducts = [
-  { id: 101, name: 'Carregador Rápido', current: 2, minimum: 5 },
-  { id: 102, name: 'Película de Vidro', current: 3, minimum: 10 },
-  { id: 103, name: 'Cabo USB-C', current: 1, minimum: 5 },
-  { id: 104, name: 'Suporte para Notebook', current: 0, minimum: 3 },
+  { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '2024-06-10T14:30:00', customer: 'Cliente A' },
+  { id: 'tx2', amountBRL: 420.50, amountBCH: 0.014, status: 'pending', date: '2024-06-10T12:15:00', customer: 'Cliente B' },
+  { id: 'tx3', amountBRL: 189.90, amountBCH: 0.006, status: 'confirmed', date: '2024-06-09T09:45:00', customer: 'Cliente C' },
+  { id: 'tx4', amountBRL: 750.00, amountBCH: 0.025, status: 'confirmed', date: '2024-06-09T18:20:00', customer: 'Cliente D' },
+  { id: 'tx5', amountBRL: 230.40, amountBCH: 0.008, status: 'failed', date: '2024-06-08T16:10:00', customer: 'Cliente E' },
 ];
 
 export function DashboardTab() {
@@ -36,6 +18,8 @@ export function DashboardTab() {
   const [salesToday, setSalesToday] = useState<number>(0);
   const [totalSales, setTotalSales] = useState<number>(0);
   const [totalBCH, setTotalBCH] = useState<number>(0);
+  const [salesData, setSalesData] = useState<{ date: string; total: number }[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; current: number; minimum: number }[]>([]);
 
   useEffect(() => {
     const fetchUserCount = async () => {
@@ -155,6 +139,45 @@ export function DashboardTab() {
     };
 
     fetchTotalBCH();
+  }, []);
+
+  useEffect(() => {
+    // Processar transações para agrupar por data
+    const groupedData = recentTransactions.reduce((acc, transaction) => {
+      if (transaction.status === 'confirmed') {
+        const date = new Date(transaction.date).toLocaleDateString('pt-BR');
+        acc[date] = (acc[date] || 0) + transaction.amountBRL;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Converter para o formato necessário para o gráfico
+    const formattedData = Object.entries(groupedData).map(([date, total]) => ({
+      date,
+      total,
+    }));
+
+    // Ordenar por data
+    formattedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    setSalesData(formattedData);
+  }, []);
+
+  useEffect(() => {
+    const fetchLowStockProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products/low-stock');
+        if (!response.ok) {
+          throw new Error('Erro ao buscar produtos com estoque baixo');
+        }
+        const data = await response.json();
+        setLowStockProducts(data);
+      } catch (error) {
+        console.error('Erro ao carregar produtos com estoque baixo:', error);
+      }
+    };
+
+    fetchLowStockProducts();
   }, []);
 
   const checkBlockchainStatus = () => {
@@ -323,38 +346,6 @@ export function DashboardTab() {
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Faturamento</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setTimeRange('day')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'day' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Hoje
-              </button>
-              <button
-                onClick={() => setTimeRange('week')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'week' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Semana
-              </button>
-              <button
-                onClick={() => setTimeRange('month')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'month' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Mês
-              </button>
-            </div>
           </div>
           
           <div className="h-64">
@@ -362,7 +353,7 @@ export function DashboardTab() {
               <LineChart data={salesData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
                 <XAxis 
-                  dataKey="name" 
+                  dataKey="date" 
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#6b7280' }} 
@@ -383,7 +374,7 @@ export function DashboardTab() {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="value" 
+                  dataKey="total" 
                   stroke="#3b82f6" 
                   strokeWidth={2} 
                   dot={{ r: 4 }} 
@@ -406,7 +397,9 @@ export function DashboardTab() {
               <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-[var(--color-text-primary)]">{tx.customer}</p>
-                  <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">{tx.date}</p>
+                  <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
+                    {new Date(tx.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-green-500">
@@ -441,7 +434,7 @@ export function DashboardTab() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Alerta de Estoque</h2>
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
-              Reabastecer
+              Conferir
             </button>
           </div>
           
