@@ -1,544 +1,653 @@
-import { useState } from 'react';
-import { FiBarChart2, FiCalendar, FiDownload, FiTrash2, FiEdit } from 'react-icons/fi';
+import { useState, useEffect } from 'react'; // Added useEffect if needed later
+import { FiBarChart2, FiCalendar, FiDownload, FiTrash2, FiEdit, FiCpu, FiPlus, FiAlertTriangle } from 'react-icons/fi'; // Added icons
 import jsPDF from 'jspdf';
 
+
+// --- Report Type Definition ---
 type Report = {
+  _id?: string;
   id: string;
   title: string;
-  type: 'sales' | 'transactions' | 'inventory' | 'custom';
-  dateRange: string;
-  generatedAt: string;
-  previewData: any;
+  type: 'sales' | 'transactions' | 'inventory' | 'custom'; // Keep existing types
+  dateRange: string; // String for display (e.g., "01/01/2024 - 31/01/2024" or "Período completo")
+  generatedAt: string; // Timestamp string
+  previewData: any; // Consider more specific types for each report.type if possible
+                     // For AI: { insights: string, conclusion?: string }
   isAIGenerated?: boolean;
+  promptUsed?: string; // Store the prompt used for AI reports
 };
 
+// --- PDF Generation Function ---
 const generatePDF = (report: Report) => {
-  const doc = new jsPDF();
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    let yPosition = 22; // Initial Y position with margin
 
-  // Título do relatório
-  doc.setFontSize(18);
-  doc.text(report.title, 10, 10);
+    // Helper to add text and check for page breaks
+    const addText = (text: string | string[], x: number, y: number, options?: any) => {
+        doc.text(text, x, y, options);
+        // Basic check, might need adjustment based on line height/font size
+        const textHeight = Array.isArray(text) ? (text.length * 5) : 5; // Approximate height
+         if (y + textHeight > pageHeight - 20) { // Check if text exceeds page boundary (with margin)
+            doc.addPage();
+            return 20; // Return new Y position for the new page
+         }
+         return y + textHeight + 3; // Return new Y position + small margin
+    };
 
-  // Informações gerais
-  doc.setFontSize(12);
-  doc.text(`Tipo: ${report.type}`, 10, 20);
-  doc.text(`Período: ${report.dateRange}`, 10, 30);
-  doc.text(`Gerado em: ${report.generatedAt}`, 10, 40);
 
-  // Dados do relatório
-  doc.setFontSize(14);
-  doc.text('Dados do Relatório:', 10, 50);
+    // --- PDF Content ---
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    yPosition = addText(report.title, 14, yPosition); // Add title
 
-  let yPosition = 60; // Posição inicial para os dados
-  if (report.type === 'sales') {
-    doc.text(`Total de Vendas: R$ ${report.previewData.totalSales.toLocaleString('pt-BR')}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Total de Transações: ${report.previewData.totalTransactions}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Produto Mais Vendido: ${report.previewData.bestSellingProduct}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Comparativo: ${report.previewData.comparison}`, 10, yPosition);
-  } else if (report.type === 'transactions') {
-    doc.text(`Total BCH: ${report.previewData.totalBCH} BCH`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Média por Transação: ${report.previewData.avgTransaction} BCH`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Dia com Mais Transações: ${report.previewData.peakDay}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Comparativo: ${report.previewData.comparison}`, 10, yPosition);
-  } else if (report.type === 'inventory') {
-    doc.text(`Produtos Cadastrados: ${report.previewData.totalProducts}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Itens com Baixo Estoque: ${report.previewData.lowStockItems}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Itens Esgotados: ${report.previewData.outOfStockItems}`, 10, yPosition);
-    yPosition += 10;
-    doc.text(`Categoria com Mais Itens: ${report.previewData.mostStockedCategory}`, 10, yPosition);
-  } else if (report.type === 'custom') {
-    if (Array.isArray(report.previewData.insights)) {
-      report.previewData.insights.forEach((insight: string, index: number) => {
-        doc.text(`${index + 1}. ${insight}`, 10, yPosition);
-        yPosition += 10;
-      });
-    } else {
-      doc.text(report.previewData.insights || report.previewData.summary, 10, yPosition);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100); // Gray color for metadata
+
+    yPosition = addText(`Tipo: ${report.type.toUpperCase()}`, 14, yPosition + 2); // Add space before metadata
+    yPosition = addText(`Período: ${report.dateRange}`, 14, yPosition);
+    yPosition = addText(`Gerado em: ${report.generatedAt}`, 14, yPosition);
+    if (report.isAIGenerated && report.promptUsed) {
+       // Split long prompt for display
+       const promptLines = doc.splitTextToSize(`Prompt: ${report.promptUsed}`, pageWidth - 28); // Max width
+       yPosition = addText(promptLines, 14, yPosition);
     }
-    yPosition += 10;
-    if (report.previewData.conclusion) {
-      doc.text(`Conclusão: ${report.previewData.conclusion}`, 10, yPosition);
-    }
-  }
 
-  // Salvar o PDF
-  doc.save(`${report.title}.pdf`);
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200); // Light gray line
+    doc.line(14, yPosition + 2, pageWidth - 14, yPosition + 2); // Separator line
+    yPosition += 8;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0); // Black color
+    yPosition = addText('Conteúdo do Relatório:', 14, yPosition);
+    yPosition += 2; // Space before content
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+
+
+    // --- Report Specific Data ---
+    try {
+      if (report.type === 'custom' && report.isAIGenerated && report.previewData?.insights) {
+          const insightsText = report.previewData.insights;
+          // Split the text into lines that fit the page width
+          const lines = doc.splitTextToSize(insightsText, pageWidth - 28); // 14 margin each side
+          yPosition = addText(lines, 14, yPosition);
+
+      } else if (report.type === 'sales' && report.previewData) {
+          yPosition = addText(`- Total de Vendas: R$ ${report.previewData.totalSales?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/D'}`, 14, yPosition);
+          yPosition = addText(`- Total de Transações: ${report.previewData.totalTransactions || 'N/D'}`, 14, yPosition);
+          yPosition = addText(`- Produto Mais Vendido: ${report.previewData.bestSellingProduct || 'N/D'}`, 14, yPosition);
+          yPosition = addText(`- Comparativo: ${report.previewData.comparison || 'N/D'}`, 14, yPosition);
+      } else if (report.type === 'transactions' && report.previewData) {
+           yPosition = addText(`- Total BCH: ${report.previewData.totalBCH?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
+           yPosition = addText(`- Média por Transação: ${report.previewData.avgTransaction?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
+           yPosition = addText(`- Dia com Mais Transações: ${report.previewData.peakDay || 'N/D'}`, 14, yPosition);
+           yPosition = addText(`- Comparativo: ${report.previewData.comparison || 'N/D'}`, 14, yPosition);
+      } else if (report.type === 'inventory' && report.previewData) {
+           yPosition = addText(`- Produtos Cadastrados: ${report.previewData.totalProducts || 'N/D'}`, 14, yPosition);
+           yPosition = addText(`- Itens com Baixo Estoque: ${report.previewData.lowStockItems || 'N/D'}`, 14, yPosition);
+           yPosition = addText(`- Itens Esgotados: ${report.previewData.outOfStockItems || 'N/D'}`, 14, yPosition);
+           yPosition = addText(`- Categoria com Mais Itens: ${report.previewData.mostStockedCategory || 'N/D'}`, 14, yPosition);
+      } else if (report.type === 'custom' && report.previewData) {
+          // Handle non-AI custom reports if they exist
+          const summaryText = report.previewData.summary || report.previewData.insights || 'Relatório personalizado sem conteúdo detalhado.';
+          const lines = doc.splitTextToSize(summaryText, pageWidth - 28);
+          yPosition = addText(lines, 14, yPosition);
+      }
+      else {
+          yPosition = addText('Dados do relatório não disponíveis ou formato não reconhecido.', 14, yPosition);
+      }
+
+       // Add conclusion if it exists
+       if (report.previewData?.conclusion) {
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(100);
+          const conclusionLines = doc.splitTextToSize(`Conclusão: ${report.previewData.conclusion}`, pageWidth - 28);
+          yPosition = addText(conclusionLines, 14, yPosition + 5); // Add extra space before conclusion
+       }
+
+    } catch (error) {
+        console.error("Erro ao adicionar dados ao PDF:", error);
+        addText("Erro ao renderizar o conteúdo do relatório no PDF.", 14, yPosition);
+    }
+
+    // --- Save the PDF ---
+    // Sanitize title for filename
+    const safeTitle = report.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    doc.save(`${safeTitle}_${report.id.substring(0, 8)}.pdf`);
 };
 
-export function RelatoriosTab() {
-  // Estado para os relatórios
-  const [reports, setReports] = useState<Report[]>([
-    {
-      id: '1',
-      title: 'Relatório de Vendas Mensal',
-      type: 'sales',
-      dateRange: '01/05/2024 - 31/05/2024',
-      generatedAt: '02/06/2024 14:30',
-      previewData: {
-        totalSales: 12540.75,
-        totalTransactions: 84,
-        bestSellingProduct: 'Smartphone XYZ',
-        comparison: '+12% vs mês anterior'
-      }
-    },
-    {
-      id: '2',
-      title: 'Fluxo de Transações em BCH',
-      type: 'transactions',
-      dateRange: '01/04/2024 - 30/04/2024',
-      generatedAt: '01/05/2024 09:15',
-      previewData: {
-        totalBCH: 8.5421,
-        avgTransaction: 0.1245,
-        peakDay: '15/04/2024',
-        comparison: '+5% vs mês anterior'
-      }
-    },
-    {
-      id: '3',
-      title: 'Análise de Estoque',
-      type: 'inventory',
-      dateRange: 'Atual',
-      generatedAt: '15/05/2024 16:45',
-      previewData: {
-        totalProducts: 42,
-        lowStockItems: 5,
-        outOfStockItems: 2,
-        mostStockedCategory: 'Eletrônicos'
-      },
-      isAIGenerated: true
-    }
-  ]);
 
-  // Estados para modais
+// --- Main React Component ---
+export function RelatoriosTab() {
+  // --- State Definitions ---
+  const [reports, setReports] = useState<Report[]>([]); // Start with empty reports, load from API if needed
+  const [isLoadingReports, setIsLoadingReports] = useState(false); // State for loading initial reports
   const [isNewReportModalOpen, setIsNewReportModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentReport, setCurrentReport] = useState<Report | null>(null);
-  
-  // Estados para formulários
+  const [currentReport, setCurrentReport] = useState<Report | null>(null); // Report being edited
+
+  // Form States
   const [newReportType, setNewReportType] = useState<'standard' | 'ai'>('standard');
-  const [dateRange, setDateRange] = useState({
-    start: '',
-    end: ''
-  });
+  const [dateRange, setDateRange] = useState({ start: '', end: '' }); // YYYY-MM-DD format from input type="date"
   const [reportTitle, setReportTitle] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Gerar novo relatório
-  const generateNewReport = () => {
-    const newReport: Report = {
-      id: `report-${Date.now()}`,
-      title: reportTitle || `Relatório de ${newReportType === 'standard' ? 'Vendas' : 'Personalizado'} ${dateRange.start ? dateRange.start + ' a ' + dateRange.end : 'Geral'}`,
-      type: 'custom',
-      dateRange: dateRange.start && dateRange.end ? 
-        `${dateRange.start} - ${dateRange.end}` : 'Período completo',
-      generatedAt: new Date().toLocaleString('pt-BR'),
-      previewData: {
-        summary: 'Dados coletados conforme parâmetros selecionados',
-        insights: newReportType === 'ai' ? 'Análise gerada por IA' : 'Relatório padrão'
-      },
-      isAIGenerated: newReportType === 'ai'
-    };
-    
-    setReports(prev => [newReport, ...prev]);
-    resetForm();
+  // Action States
+  const [isGenerating, setIsGenerating] = useState(false); // For AI generation specifically
+  const [isSaving, setIsSaving] = useState(false); // For standard report generation/update
+  const [error, setError] = useState<string | null>(null); // Error messages for modal/user feedback
+
+  // --- Form Reset ---
+  const resetForm = () => {
+    setIsNewReportModalOpen(false);
+    setIsEditModalOpen(false);
+    setCurrentReport(null);
+    setNewReportType('standard'); // Default to standard
+    setDateRange({ start: '', end: '' });
+    setReportTitle('');
+    setAiPrompt('');
+    setError(null); // Clear any previous errors
+    setIsGenerating(false); // Ensure loading states are reset
+    setIsSaving(false);
   };
 
-  // Atualizar relatório existente
-  const updateReport = () => {
-    if (!currentReport) return;
-    
-    const updatedReport = {
-      ...currentReport,
-      title: reportTitle || currentReport.title,
-      dateRange: dateRange.start && dateRange.end ? 
-        `${dateRange.start} - ${dateRange.end}` : currentReport.dateRange,
-      generatedAt: new Date().toLocaleString('pt-BR')
-    };
-    
-    setReports(prev => prev.map(r => r.id === currentReport.id ? updatedReport : r));
-    resetForm();
+  // --- Modal Open/Close Handlers ---
+  const openNewModal = () => {
+    resetForm(); // Ensure clean state
+    setIsNewReportModalOpen(true);
   };
 
-  // Excluir relatório
-  const deleteReport = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este relatório?')) {
-      setReports(prev => prev.filter(r => r.id !== id));
+  const openEditModal = (report: Report) => {
+    console.log('Abrindo modal de edição para o relatório:', report); // Adicione este log
+    resetForm(); // Ensure clean state before populating
+    setCurrentReport(report);
+    setReportTitle(report.title);
+
+    const dates = report.dateRange.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/);
+    if (dates && dates.length === 3) {
+      const formatDateToInput = (d: string) => {
+        const parts = d.split('/');
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      };
+      setDateRange({ start: formatDateToInput(dates[1]), end: formatDateToInput(dates[2]) });
+    } else {
+      setDateRange({ start: '', end: '' });
+    }
+
+    setIsEditModalOpen(true);
+  };
+
+  // --- Backend Save Function ---
+  const saveReportToBackend = async (report: Report) => {
+    try {
+      console.log('Enviando relatório para o backend:', report); // Log para depuração
+      const response = await fetch('http://localhost:3000/api/reports/save-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar relatório no backend.');
+      }
+
+      const savedReport = await response.json();
+      setReports((prev) => [savedReport, ...prev]); // Atualiza o histórico local
+    } catch (error) {
+      console.error('Erro ao salvar relatório:', error);
+      setError('Erro ao salvar relatório no backend.');
     }
   };
 
-  // Gerar relatório com IA (simulação)
-  const generateAIReport = async () => {
-    setIsGenerating(true);
+  // --- CRUD Operations ---
 
-    if (!aiPrompt.trim()) {
-      alert("Por favor, insira um prompt válido para gerar o relatório.");
-      setIsGenerating(false);
+  // Generate Standard Report
+  const generateStandardReport = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    const newReport: Report = {
+      id: `std-report-${Date.now()}`,
+      title: reportTitle || `Relatório Padrão ${dateRange.start ? dateRange.start + ' a ' + dateRange.end : 'Geral'}`,
+      type: 'custom',
+      dateRange: dateRange.start && dateRange.end
+        ? `${dateRange.start.split('-').reverse().join('/')} - ${dateRange.end.split('-').reverse().join('/')}`
+        : 'Período completo',
+      generatedAt: new Date().toLocaleString('pt-BR'),
+      previewData: { summary: 'Relatório padrão gerado (simulação).' },
+      isAIGenerated: false,
+    };
+
+    try {
+      await saveReportToBackend(newReport);
+      resetForm();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Update Report
+  const updateReport = async () => {
+    if (!currentReport) {
+      console.error('Nenhum relatório selecionado para atualização.');
       return;
     }
 
-    try {
-      console.log("Prompt enviado para IA:", aiPrompt);
+    console.log('Atualizando relatório:', currentReport); // Adicione este log
 
-      const response = await fetch("http://localhost:3000/api/reports/generate-ai-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt: aiPrompt }),
+    setIsSaving(true);
+    setError(null);
+
+    const updatedReport = {
+      ...currentReport,
+      title: reportTitle || currentReport.title,
+      dateRange: dateRange.start && dateRange.end
+        ? `${dateRange.start.split('-').reverse().join('/')} - ${dateRange.end.split('-').reverse().join('/')}`
+        : currentReport.dateRange,
+    };
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/reports/${currentReport._id}`, { // Use `_id` aqui
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedReport),
       });
 
-      console.log("Resposta do servidor:", response);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Erro do servidor:", errorText);
-        throw new Error("Erro ao gerar relatório com IA.");
+        throw new Error('Erro ao atualizar relatório.');
       }
 
       const data = await response.json();
-      console.log("Dados recebidos da IA:", data);
-
-      const newReport: Report = {
-        id: `ai-report-${Date.now()}`,
-        title: `Resposta da IA`,
-        type: "custom",
-        dateRange: "N/A",
-        generatedAt: new Date().toLocaleString("pt-BR"),
-        previewData: {
-          insights: data.insights.split("\n"),
-          conclusion: "Resposta gerada com sucesso pela IA.",
-        },
-        isAIGenerated: true,
-      };
-
-      setReports((prev) => [newReport, ...prev]);
+      setReports((prev) => prev.map((r) => (r._id === data._id ? data : r))); // Atualize usando `_id`
       resetForm();
     } catch (error) {
-      console.error("Erro ao gerar relatório com IA:", error);
-      alert("Erro ao gerar relatório com IA.");
+      console.error('Erro ao atualizar relatório:', error);
+      setError('Erro ao atualizar relatório.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete Report
+  const deleteReport = async (id: string) => {
+    console.log('Tentando deletar relatório com ID:', id); // Adicione este log
+    if (!window.confirm(`Tem certeza que deseja excluir o relatório ID: ${id}?`)) return;
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/reports/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao deletar relatório.');
+      }
+
+      setReports((prev) => prev.filter((r) => r._id !== id)); // Use `_id` para identificar o relatório
+    } catch (error) {
+      console.error('Erro ao deletar relatório:', error);
+      setError('Erro ao deletar relatório.');
+    }
+  };
+
+  // Generate AI Report
+  const generateAIReport = async () => {
+    setIsGenerating(true);
+    setError(null);
+
+    const { start, end } = dateRange;
+    const payload = {
+      prompt: aiPrompt,
+      startDate: start || null,
+      endDate: end || null,
+    };
+
+    try {
+      const response = await fetch('http://localhost:3000/api/reports/generate-ai-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao gerar relatório com IA.');
+      }
+
+      const data = await response.json();
+      const newReport: Report = {
+        id: `ai-report-${Date.now()}`,
+        title: reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`,
+        type: 'custom',
+        dateRange: start && end
+          ? `${start.split('-').reverse().join('/')} - ${end.split('-').reverse().join('/')}`
+          : 'Período completo',
+        generatedAt: new Date().toLocaleString('pt-BR'),
+        previewData: {
+          insights: data.insights,
+          conclusion: 'Análise gerada por IA com base nos dados e prompt fornecidos.',
+        },
+        isAIGenerated: true,
+        promptUsed: aiPrompt,
+      };
+
+      await saveReportToBackend(newReport);
+      resetForm();
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório com IA:', error);
+      setError(error.message || 'Falha ao gerar relatório com IA.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Preparar para edição
-  const prepareForEdit = (report: Report) => {
-    setCurrentReport(report);
-    setReportTitle(report.title);
-    
-    // Extrai datas do dateRange se existir
-    const dates = report.dateRange.split(' - ');
-    if (dates.length === 2) {
-      setDateRange({ start: dates[0], end: dates[1] });
-    }
-    
-    setIsEditModalOpen(true);
-  };
+  // --- Fetch Reports ---
+  useEffect(() => {
+    const fetchReports = async () => {
+      setIsLoadingReports(true);
+      try {
+        const response = await fetch('http://localhost:3000/api/reports');
+        if (!response.ok) {
+          throw new Error('Erro ao carregar relatórios.');
+        }
+        const data = await response.json();
+        setReports(data);
+      } catch (error) {
+        console.error('Erro ao carregar relatórios:', error);
+        setError('Falha ao carregar relatórios.');
+      } finally {
+        setIsLoadingReports(false);
+      }
+    };
 
-  // Resetar formulários
-  const resetForm = () => {
-    setIsNewReportModalOpen(false);
-    setIsEditModalOpen(false);
-    setCurrentReport(null);
-    setDateRange({ start: '', end: '' });
-    setReportTitle('');
-    setAiPrompt('');
-  };
+    fetchReports();
+  }, []);
 
-  // Formatar data
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
+  // --- JSX Rendering ---
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <FiBarChart2 /> Relatórios e Análises
-      </h2>
-
-      {/* Cabeçalho com ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="text-gray-300">
-          <p>Gerencie seus relatórios e análises</p>
-          <p className="text-sm">{reports.length} relatórios disponíveis</p>
+    <div className="p-4 md:p-6 bg-gray-900 text-white min-h-screen">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+            <FiBarChart2 /> Relatórios e Análises
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">Gerencie e gere relatórios padrão ou análises personalizadas com IA.</p>
         </div>
-        
         <button
-          onClick={() => setIsNewReportModalOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+          onClick={openNewModal}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
         >
-           Novo Relatório
+           <FiPlus size={18}/> Novo Relatório
         </button>
       </div>
 
-      {/* Grid de Relatórios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((report) => (
-          <div key={report.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-blue-500 transition-colors group relative">
-            {/* Menu de ações */}
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-              <button
-                onClick={() => prepareForEdit(report)}
-                className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded"
-                title="Editar"
-              >
-                <FiEdit size={16} />
-              </button>
-              <button
-                onClick={() => deleteReport(report.id)}
-                className="p-1.5 bg-gray-700 hover:bg-red-600 rounded"
-                title="Excluir"
-              >
-                <FiTrash2 size={16} />
-              </button>
-            </div>
-            
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-bold">
-                {report.title}
-                {report.isAIGenerated && (
-                  <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-full">
-                    IA
-                  </span>
-                )}
-              </h3>
-              <button 
-                onClick={() => generatePDF(report)} 
-                className="text-gray-400 hover:text-blue-400"
-              >
-                <FiDownload />
-              </button>
-            </div>
-            
-            <div className="mb-4 text-sm text-gray-400 flex items-center gap-2">
-              <FiCalendar /> {report.dateRange}
-            </div>
-            
-            <div className="mb-6">
-              {report.type === 'sales' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Total vendas:</span> R$ {report.previewData.totalSales.toLocaleString('pt-BR')}</p>
-                  <p><span className="text-gray-400">Transações:</span> {report.previewData.totalTransactions}</p>
-                  <p><span className="text-gray-400">Produto mais vendido:</span> {report.previewData.bestSellingProduct}</p>
-                  <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>
-                    {report.previewData.comparison}
-                  </span></p>
-                </div>
-              )}
-              
-              {report.type === 'transactions' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Total BCH:</span> {report.previewData.totalBCH} BCH</p>
-                  <p><span className="text-gray-400">Média por transação:</span> {report.previewData.avgTransaction} BCH</p>
-                  <p><span className="text-gray-400">Dia com mais transações:</span> {report.previewData.peakDay}</p>
-                  <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>
-                    {report.previewData.comparison}
-                  </span></p>
-                </div>
-              )}
-              
-              {report.type === 'inventory' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Produtos cadastrados:</span> {report.previewData.totalProducts}</p>
-                  <p><span className="text-gray-400">Itens com baixo estoque:</span> {report.previewData.lowStockItems}</p>
-                  <p><span className="text-gray-400">Itens esgotados:</span> {report.previewData.outOfStockItems}</p>
-                  <p><span className="text-gray-400">Categoria com mais itens:</span> {report.previewData.mostStockedCategory}</p>
-                </div>
-              )}
-              
-              {report.type === 'custom' && (
-                <div className="space-y-3">
-                  {Array.isArray(report.previewData.insights) ? (
-                    <ul className="list-disc pl-5 space-y-1">
-                      {report.previewData.insights.map((insight: string, index: number) => (
-                        <li key={index}>{insight}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{report.previewData.insights || report.previewData.summary}</p>
-                  )}
-                  {report.previewData.conclusion && (
-                    <p className="mt-2 p-2 bg-gray-700 rounded italic">{report.previewData.conclusion}</p>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <div className="text-xs text-gray-500">
-              Gerado em: {report.generatedAt}
-            </div>
-          </div>
-        ))}
-      </div>
+       {/* Loading State / Report Grid */}
+       {isLoadingReports ? (
+           <div className="text-center py-10 text-gray-400">Carregando relatórios...</div>
+       ) : reports.length === 0 ? (
+           <div className="text-center py-10 px-6 bg-gray-800 rounded-lg border border-gray-700">
+               <FiBarChart2 size={40} className="mx-auto text-gray-500 mb-4"/>
+               <h3 className="text-lg font-semibold text-gray-300">Nenhum relatório encontrado</h3>
+               <p className="text-gray-400 mt-1">Clique em "Novo Relatório" para gerar seu primeiro.</p>
+           </div>
+       ) : (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+             {reports.map((report) => (
+               <div key={report.id} className="bg-gray-800 rounded-lg p-4 flex flex-col justify-between border border-gray-700 hover:border-blue-500 transition-colors group relative shadow-md">
+                  {/* Action Buttons */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5 z-10">
+                    <button
+                      onClick={() => openEditModal(report)} // Certifique-se de que `report` contém um ID válido
+                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                      title="Editar Título/Datas"
+                    >
+                      <FiEdit size={14} />
+                    </button>
+                    <button
+                      onClick={() => report._id && deleteReport(report._id)} // Verifica se `_id` existe
+                      className="p-1.5 bg-gray-700 hover:bg-red-600 rounded text-gray-300 hover:text-white"
+                      title="Excluir"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
 
-      {/* Modal de Novo Relatório */}
+                 {/* Card Content */}
+                 <div>
+                   {/* Card Header */}
+                   <div className="flex justify-between items-start mb-3">
+                     <h3 className="text-sm font-semibold pr-16"> {/* Smaller title, padding right */}
+                       {report.title}
+                       {report.isAIGenerated && (
+                         <span className="ml-1.5 text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded-full align-middle">IA</span>
+                       )}
+                     </h3>
+                     <button
+                       onClick={() => generatePDF(report)} // Trigger PDF generation
+                       className="text-gray-400 hover:text-blue-400 flex-shrink-0"
+                       title="Baixar PDF"
+                     >
+                       <FiDownload size={16} />
+                     </button>
+                   </div>
+
+                   {/* Date Range */}
+                   <div className="mb-3 text-xs text-gray-400 flex items-center gap-1.5">
+                     <FiCalendar size={12}/> {report.dateRange}
+                   </div>
+
+                   {/* Preview Data Area */}
+                   <div className="mb-4 text-xs max-h-32 overflow-y-auto pr-1 text-gray-300 border-t border-b border-gray-700 py-2">
+                     {report.type === 'custom' && report.isAIGenerated && typeof report.previewData?.insights === 'string' ? (
+                       <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
+                         {report.previewData.insights}
+                       </pre>
+                     ) : report.type === 'sales' && report.previewData ? (
+                       <div className="space-y-1">
+                         <p><span className="text-gray-500">Vendas:</span> R$ {report.previewData.totalSales?.toLocaleString('pt-BR')}</p>
+                         <p><span className="text-gray-500">Trans.:</span> {report.previewData.totalTransactions}</p>
+                         {/* Add more sales data if needed */}
+                       </div>
+                     ) : report.type === 'transactions' && report.previewData ? (
+                       <div className="space-y-1">
+                          <p><span className="text-gray-500">Total:</span> {report.previewData.totalBCH} BCH</p>
+                          <p><span className="text-gray-500">Média:</span> {report.previewData.avgTransaction} BCH</p>
+                          {/* Add more transaction data if needed */}
+                       </div>
+                     ) : report.type === 'inventory' && report.previewData ? (
+                        <div className="space-y-1">
+                          <p><span className="text-gray-500">Prods.:</span> {report.previewData.totalProducts}</p>
+                          <p><span className="text-gray-500">Baixo Est.:</span> {report.previewData.lowStockItems}</p>
+                          {/* Add more inventory data if needed */}
+                        </div>
+                     ) : (
+                        <p className="italic text-gray-500">Preview não disponível para este tipo.</p>
+                     )}
+                   </div>
+                 </div>
+
+                 {/* Card Footer */}
+                 <div className="mt-auto text-xs text-gray-500 pt-2">
+                   Gerado em: {report.generatedAt}
+                   {report.isAIGenerated && report.promptUsed && (
+                     <div className="mt-1 truncate" title={report.promptUsed}>
+                       Prompt: <span className="italic">{report.promptUsed}</span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             ))}
+           </div>
+       )}
+
+      {/* --- Modal (Novo/Editar) --- */}
       {(isNewReportModalOpen || isEditModalOpen) && (
-        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
+        <div className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center p-4 z-50 ">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-xl border border-gray-700 shadow-xl">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold">
                 {isEditModalOpen ? 'Editar Relatório' : 'Gerar Novo Relatório'}
               </h3>
-              <button
-                onClick={resetForm}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+              <button onClick={resetForm} className="text-gray-400 hover:text-white" title="Fechar">✕</button>
             </div>
-            
-            <div className="mb-6">
-              {!isEditModalOpen && (
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <button
-                    onClick={() => setNewReportType('standard')}
-                    className={`p-4 rounded-lg border transition-colors ${
-                      newReportType === 'standard' 
-                        ? 'bg-blue-900 border-blue-600' 
-                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center">
-                      <FiBarChart2 size={24} className="mb-2" />
-                      <span>Relatório Padrão</span>
-                      <span className="text-xs text-gray-400 mt-1">Dados estruturados</span>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => setNewReportType('ai')}
-                    className={`p-4 rounded-lg border transition-colors ${
-                      newReportType === 'ai' 
-                        ? 'bg-purple-900 border-purple-600' 
-                        : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center">
-                      
-                      <span>Análise por IA</span>
-                      <span className="text-xs text-gray-400 mt-1">Insights personalizados</span>
-                    </div>
-                  </button>
-                </div>
-              )}
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Título do Relatório</label>
-                  <input
-                    type="text"
-                    value={reportTitle}
-                    onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder="Digite um título descritivo"
-                    className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Data inicial</label>
-                    <input
-                      type="date"
-                      value={dateRange.start}
-                      onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                      className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Data final</label>
-                    <input
-                      type="date"
-                      value={dateRange.end}
-                      onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                      className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                {newReportType === 'ai' && !isEditModalOpen && (
-                  <div className="mb-6">
-                    {newReportType === 'ai' && !isEditModalOpen && (
-                      <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Insira o prompt para a IA:
-                        </label>
-                        <textarea
-                          value={aiPrompt}
-                          onChange={(e) => setAiPrompt(e.target.value)}
-                          placeholder="Ex: Explique o impacto das vendas no último mês..."
-                          className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          rows={3}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+
+            {/* Type Selection (Only for New Report) */}
+            {!isEditModalOpen && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                 {/* Botão Padrão */}
+                 <button
+                   onClick={() => setNewReportType('standard')}
+                   className={`p-3 rounded-lg border text-center transition-colors ${
+                     newReportType === 'standard'
+                       ? 'bg-blue-900 border-blue-600 ring-1 ring-blue-500'
+                       : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                   }`} >
+                   <FiBarChart2 size={18} className="mx-auto mb-1" />
+                   <span className="text-sm font-medium">Padrão</span>
+                   <span className="block text-xs text-gray-400 mt-0.5">Modelos fixos</span>
+                 </button>
+                 {/* Botão IA */}
+                 <button
+                   onClick={() => setNewReportType('ai')}
+                   className={`p-3 rounded-lg border text-center transition-colors ${
+                     newReportType === 'ai'
+                       ? 'bg-purple-900 border-purple-600 ring-1 ring-purple-500'
+                       : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                   }`} >
+                    <FiCpu size={18} className="mx-auto mb-1" />
+                    <span className="text-sm font-medium">Análise IA</span>
+                    <span className="block text-xs text-gray-400 mt-0.5">Insights via prompt</span>
+                 </button>
               </div>
+            )}
+
+            {/* Form Fields */}
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label htmlFor="reportTitle" className="block text-xs font-medium mb-1 text-gray-300">Título do Relatório</label>
+                <input
+                  id="reportTitle"
+                  type="text"
+                  value={reportTitle}
+                  onChange={(e) => setReportTitle(e.target.value)}
+                  placeholder={ newReportType === 'ai' ? "Ex: Análise vendas Q1 com IA" : "Ex: Vendas - Maio 2024"}
+                  className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-white"
+                />
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div>
+                   <label htmlFor="startDate" className="block text-xs font-medium mb-1 text-gray-300">Data inicial (Opcional)</label>
+                   <input
+                     id="startDate"
+                     type="date"
+                     value={dateRange.start}
+                     onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                     className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-300 appearance-none"
+                     style={{ colorScheme: 'dark' }} // Hint for browser styling
+                     max={dateRange.end || undefined} // Prevent start date after end date
+                   />
+                 </div>
+                 <div>
+                   <label htmlFor="endDate" className="block text-xs font-medium mb-1 text-gray-300">Data final (Opcional)</label>
+                   <input
+                     id="endDate"
+                     type="date"
+                     value={dateRange.end}
+                     onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                     className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-300 appearance-none"
+                     style={{ colorScheme: 'dark' }}
+                     min={dateRange.start || undefined} // Prevent end date before start date
+                   />
+                 </div>
+               </div>
+               <p className="text-xs text-gray-400 -mt-2">
+                 Use datas para filtrar dados para a IA ou para relatórios padrão. Deixe em branco se não aplicável.
+               </p>
+
+              {/* AI Prompt (Only for New AI Report) */}
+               {newReportType === 'ai' && !isEditModalOpen && (
+                 <div>
+                   <label htmlFor="aiPrompt" className="block text-xs font-medium mb-1 text-gray-300">
+                     Seu Pedido para a IA: <span className="text-red-500">*</span>
+                   </label>
+                   <textarea
+                     id="aiPrompt"
+                     value={aiPrompt}
+                     onChange={(e) => setAiPrompt(e.target.value)}
+                     placeholder="Ex: Qual foi o produto mais vendido no período e por quê?"
+                     className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm text-white"
+                     rows={3}
+                     required={newReportType === 'ai'} // HTML5 validation hint
+                   />
+                    <p className="text-xs text-gray-400 mt-1">
+                      A IA usará os dados do período selecionado (se houver) como contexto. Seja específico!
+                    </p>
+                 </div>
+               )}
+
+               {/* Error Display Area */}
+               {error && (
+                  <div className="p-3 my-2 bg-red-900/50 border border-red-700/50 text-red-200 rounded-md text-xs flex items-center gap-2">
+                     <FiAlertTriangle size={14}/>
+                     {error}
+                  </div>
+               )}
             </div>
-            
-            <div className="flex justify-end gap-3">
+
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-3 mt-6 border-t border-gray-700 pt-4">
               <button
                 onClick={resetForm}
-                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors"
+                type="button" // Prevent form submission if wrapped in <form>
+                className="px-4 py-1.5 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors text-sm text-gray-300"
               >
                 Cancelar
               </button>
-              <button
-                onClick={() => {
-                  if (isEditModalOpen) {
-                    updateReport();
-                  } else if (newReportType === 'ai') {
-                    generateAIReport();
-                  }
-                }}
-                className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <FiCalendar />
-                    Gerar com IA
-                  </>
-                )}
-              </button>
+
+              {/* Primary Action Button */}
+               <button
+                 type="button" // Or "submit" if inside a form
+                 onClick={() => {
+                   if (isEditModalOpen) { updateReport(); }
+                   else if (newReportType === 'ai') { generateAIReport(); }
+                   else { generateStandardReport(); }
+                 }}
+                  className={`px-4 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium min-w-[120px]
+                    ${(isGenerating || isSaving)
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : newReportType === 'ai'
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                 disabled={isGenerating || isSaving || (newReportType === 'ai' && !aiPrompt.trim() && !isEditModalOpen)}
+               >
+                 {(isGenerating || isSaving) ? (
+                   <>
+                     <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg>
+                     {isGenerating ? 'Gerando IA...' : 'Salvando...'}
+                   </>
+                 ) : (
+                    isEditModalOpen
+                    ? 'Salvar Alterações'
+                    : newReportType === 'ai'
+                    ? <><FiCpu size={14}/> Gerar com IA</>
+                    : <><FiBarChart2 size={14}/> Gerar Padrão</>
+                 )}
+               </button>
             </div>
-          </div>
-        </div>
+
+          </div> {/* End Modal Content */}
+        </div> // End Modal Backdrop
       )}
-    </div>
+
+    </div> // End Main Container
   );
 }

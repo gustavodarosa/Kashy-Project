@@ -1,21 +1,11 @@
-app.post("/api/reports/generate-ai-report", async (req, res) => {
-  const { prompt } = req.body;
+// backend/src/routes/reportRoutes.js
+const express = require("express");
+const { generateAIReport } = require("../controllers/reportController"); // Importa o controlador
 
-  console.log("Prompt recebido no backend:", prompt);
+const router = express.Router();
 
-  if (!prompt) {
-    console.error("Erro: Prompt não fornecido.");
-    return res.status(400).json({ message: "O campo 'prompt' é obrigatório." });
-  }
+// Define a rota POST que usará a função generateAIReport do controlador
+// O caminho completo será /api/reports/generate-ai-report (prefixo definido em server.js)
+router.post("/generate-ai-report", generateAIReport);
 
-  try {
-    // Simulação de chamada para a API da IA
-    const aiResponse = await callAIService(prompt);
-    console.log("Resposta da IA:", aiResponse);
-
-    res.status(200).json({ insights: aiResponse });
-  } catch (error) {
-    console.error("Erro ao processar a solicitação:", error.message);
-    res.status(500).json({ message: "Erro interno no servidor ao processar a solicitação." });
-  }
-});
+module.exports = router; // Exporta o router configurado
