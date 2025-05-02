@@ -1,10 +1,7 @@
 // z:\Kashy-Project\backend\src\controllers\walletController.js
-const User = require('../models/user');
 const bchService = require('../services/bchService');
-const logger = require('../utils/logger');
 const { getBchToBrlRate } = require('../services/exchangeRate'); // Import BRL rate function
 const Transaction = require('../models/transaction'); // Supondo que exista um modelo de transações
-
 const User = require('../models/user');
 // --- MODIFICATION: Use walletService for core logic ---
 const walletService = require('../services/walletService');
