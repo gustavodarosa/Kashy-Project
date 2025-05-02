@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   minimum: { type: Number, required: true },
+  store: { type: String, required: true },
 });
 
 module.exports = mongoose.model('Product', productSchema);

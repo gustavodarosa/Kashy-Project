@@ -25,7 +25,6 @@ export function DashboardTab() {
     const fetchUserCount = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('[DEBUG] Token obtido para fetchUserCount:', token);
 
         const response = await fetch('http://localhost:3000/api/users/count', {
           headers: {
@@ -33,15 +32,11 @@ export function DashboardTab() {
           },
         });
 
-        console.log('[DEBUG] Resposta de fetchUserCount:', response);
-
         if (!response.ok) {
           throw new Error('Erro ao buscar contagem de usuários');
         }
 
         const data = await response.json();
-        console.log('[DEBUG] Dados de contagem de usuários:', data);
-
         setUserCount(data.count);
       } catch (error) {
         console.error('[ERROR] Erro ao carregar contagem de usuários:', error);
@@ -55,7 +50,6 @@ export function DashboardTab() {
     const fetchSalesToday = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('[DEBUG] Token obtido para fetchSalesToday:', token);
 
         const response = await fetch('http://localhost:3000/api/wallet/sales/today', {
           headers: {
@@ -63,15 +57,11 @@ export function DashboardTab() {
           },
         });
 
-        console.log('[DEBUG] Resposta de fetchSalesToday:', response);
-
         if (!response.ok) {
           throw new Error('Erro ao buscar vendas de hoje');
         }
 
         const data = await response.json();
-        console.log('[DEBUG] Dados de vendas de hoje:', data);
-
         setSalesToday(data.total);
       } catch (error) {
         console.error('[ERROR] Erro ao carregar vendas de hoje:', error);
@@ -85,7 +75,6 @@ export function DashboardTab() {
     const fetchTotalSales = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('[DEBUG] Token obtido para fetchTotalSales:', token);
 
         const response = await fetch('http://localhost:3000/api/wallet/sales/total', {
           headers: {
@@ -93,15 +82,11 @@ export function DashboardTab() {
           },
         });
 
-        console.log('[DEBUG] Resposta de fetchTotalSales:', response);
-
         if (!response.ok) {
           throw new Error('Erro ao buscar total de vendas');
         }
 
         const data = await response.json();
-        console.log('[DEBUG] Dados de total de vendas:', JSON.stringify(data, null, 2));
-
         setTotalSales(data.total);
       } catch (error) {
         console.error('[ERROR] Erro ao carregar total de vendas:', error);
@@ -115,7 +100,6 @@ export function DashboardTab() {
     const fetchTotalBCH = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('[DEBUG] Token obtido para fetchTotalBCH:', token);
 
         const response = await fetch('http://localhost:3000/api/wallet/sales/total-bch', {
           headers: {
@@ -123,15 +107,11 @@ export function DashboardTab() {
           },
         });
 
-        console.log('[DEBUG] Resposta de fetchTotalBCH:', response);
-
         if (!response.ok) {
           throw new Error('Erro ao buscar total de BCH recebido');
         }
 
         const data = await response.json();
-        console.log('[DEBUG] Dados de total de BCH recebido:', JSON.stringify(data, null, 2));
-
         setTotalBCH(data.total);
       } catch (error) {
         console.error('[ERROR] Erro ao carregar total de BCH recebido:', error);
@@ -140,6 +120,31 @@ export function DashboardTab() {
 
     fetchTotalBCH();
   }, []);
+
+  useEffect(() => {
+    const fetchLowStockProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products/low-stock');
+        if (!response.ok) {
+          throw new Error('Erro ao buscar produtos com estoque baixo');
+        }
+        const data = await response.json();
+        setLowStockProducts(data);
+      } catch (error) {
+        console.error('Erro ao carregar produtos com estoque baixo:', error);
+      }
+    };
+
+    fetchLowStockProducts();
+  }, []);
+
+  const checkBlockchainStatus = () => {
+    setBlockchainStatus('checking');
+    setTimeout(() => {
+      const newStatus = Math.random() > 0.1 ? 'online' : 'offline';
+      setBlockchainStatus(newStatus);
+    }, 1000);
+  };
 
   useEffect(() => {
     // Processar transações para agrupar por data
@@ -162,33 +167,6 @@ export function DashboardTab() {
 
     setSalesData(formattedData);
   }, []);
-
-  useEffect(() => {
-    const fetchLowStockProducts = async () => {
-      try {
-        const response = await fetch('http://localhost:3000/api/products/low-stock');
-        if (!response.ok) {
-          throw new Error('Erro ao buscar produtos com estoque baixo');
-        }
-        const data = await response.json();
-        setLowStockProducts(data);
-      } catch (error) {
-        console.error('Erro ao carregar produtos com estoque baixo:', error);
-      }
-    };
-
-    fetchLowStockProducts();
-  }, []);
-
-  const checkBlockchainStatus = () => {
-    console.log('[DEBUG] Verificando status da blockchain...');
-    setBlockchainStatus('checking');
-    setTimeout(() => {
-      const newStatus = Math.random() > 0.1 ? 'online' : 'offline';
-      console.log('[DEBUG] Novo status da blockchain:', newStatus);
-      setBlockchainStatus(newStatus);
-    }, 1000);
-  };
 
   return (
     <div className="p-6 bg-gray-100 dark:bg-[var(--color-bg-primary)]">

@@ -18,4 +18,13 @@ router.get('/low-stock', async (req, res) => {
   }
 });
 
+router.get('/products', async (req, res) => {
+  const { store } = req.query;
+  const filter = store && store !== 'all' ? { store } : {};
+  const products = await Product.find(filter);
+  res.json(products);
+});
+
+router.get('/marketplace', productController.getMarketplaceProducts);
+
 module.exports = router;

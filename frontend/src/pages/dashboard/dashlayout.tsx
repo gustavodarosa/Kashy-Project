@@ -2,6 +2,7 @@ import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
     NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil
 } from 'lucide-react';
+import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
 import { useSidebar } from '../../hooks/usersidebar';
 import { useState, useEffect } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, OfertasTab, SettingsTab, TransacoesTab } from './tabs';
@@ -21,6 +22,12 @@ export function Dashboard() {
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
     const { notifications, clearNotifications, addNotification } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+
+    // Chatbot state
+    const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+    const [chatInput, setChatInput] = useState("");
+    const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
+    const [isChatLoading, setIsChatLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -239,13 +246,40 @@ export function Dashboard() {
         }
     }, [notifications]);
 
-  
-
     const handleOpenNotificationModal = () => {
         setNotificationModalOpen(true);
         setHasUnreadNotifications(false);
-   
-      };
+    };
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim()) return;
+
+        // Add user message to chat
+        setChatMessages((prev) => [...prev, { sender: "user", message: chatInput }]);
+        setChatInput("");
+
+        // Simulate AI response
+        setIsChatLoading(true);
+        try {
+            const response = await fetch("http://localhost:3000/api/reports/generate-ai-report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: chatInput }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Erro ao obter resposta do chatbot.");
+            }
+
+            const data = await response.json();
+            setChatMessages((prev) => [...prev, { sender: "bot", message: data.insights || "Resposta não disponível." }]);
+        } catch (error) {
+            console.error("Erro no chatbot:", error);
+            setChatMessages((prev) => [...prev, { sender: "bot", message: "Desculpe, ocorreu um erro ao processar sua mensagem." }]);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
 
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
@@ -562,6 +596,85 @@ export function Dashboard() {
                                     </div>
                                 ))
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Chatbot Button */}
+            <button
+                onClick={() => setIsChatbotOpen(true)}
+                className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-50"
+                title="Abrir Chatbot"
+            >
+                <FiMessageCircle size={24} />
+            </button>
+
+            {/* Chatbot Modal */}
+            {isChatbotOpen && (
+                <div
+                    className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center z-50"
+                    onClick={() => setIsChatbotOpen(false)} // Fecha o modal ao clicar fora
+                >
+                    <div
+                        className="bg-gray-900 text-white rounded-lg shadow-lg w-full max-w-md p-6 relative"
+                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
+                    >
+                        {/* Header */}
+                        <div className="bg-blue-600 text-white rounded-t-lg p-4 flex justify-between items-center">
+                            <h2 className="text-lg font-bold">Chatbot de Suporte</h2>
+                            <button
+                                onClick={() => setIsChatbotOpen(false)}
+                                className="text-white hover:text-gray-200"
+                                title="Fechar"
+                            >
+                                <FiX size={20} />
+                            </button>
+                        </div>
+
+                        {/* Chat Messages */}
+                        <div className="bg-gray-800 p-4 rounded-b-lg mb-4 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-800">
+                            {chatMessages.length === 0 ? (
+                                <p className="text-gray-400 text-center">Digite sua mensagem abaixo para começar.</p>
+                            ) : (
+                                chatMessages.map((msg, index) => (
+                                    <div
+                                        key={index}
+                                        className={`mb-3 flex ${
+                                            msg.sender === "user" ? "justify-end" : "justify-start"
+                                        }`}
+                                    >
+                                        <div
+                                            className={`px-4 py-2 rounded-lg max-w-xs ${
+                                                msg.sender === "user"
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-700 text-gray-300"
+                                            }`}
+                                        >
+                                            {msg.message}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            {isChatLoading && <p className="text-gray-400 text-center">Carregando...</p>}
+                        </div>
+
+                        {/* Chat Input */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                placeholder="Digite sua mensagem..."
+                                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white flex items-center gap-2"
+                                disabled={isChatLoading || !chatInput.trim()}
+                            >
+                                {isChatLoading ? "Enviando..." : <FiSend size={16} />}
+                            </button>
                         </div>
                     </div>
                 </div>
