@@ -1,4 +1,4 @@
-// src/pages/dashboard/tabs/2wallettab.tsx
+// z:\Kashy-Project\frontend\src\pages\dashboard\tabs\2wallettab.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 // Removed FiAlertCircle as it's not used
 import { FiArrowUp, FiArrowDown, FiCopy, FiDollarSign, FiCode, FiClock, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
@@ -20,8 +20,8 @@ const estimatedFeeClientSide = 0.00000220; // Approx 220 sats (Used for optimist
 type Transaction = {
   _id: string;
   type: 'received' | 'sent' | 'unknown' | 'self'; // Added 'self'
-  amountBCH: number;
-  amountBRL: number;
+  amount: number; // <--- CHANGE: Field for BCH amount (matches DB)
+  convertedBRL: number; // <--- CHANGE: Field for BRL amount (matches DB)
   address: string;
   txid: string;
   timestamp: string;
@@ -77,7 +77,7 @@ export function WalletTab() {
     try {
       const [balRes, txRes] = await Promise.all([
         fetch(`${API_BASE_URL}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/wallet/transactions`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${API_BASE_URL}/wallet/transactions`, { headers: { Authorization: `Bearer ${token}` } }) // TODO: Add pagination params ?page=1&limit=20
       ]);
 
       // Process Balance Response
@@ -96,10 +96,19 @@ export function WalletTab() {
         console.error(`[WalletTab] Transactions fetch failed: ${txRes.status}`, d);
         throw new Error(`Erro ao buscar transações: ${d.message || txRes.statusText}`);
       }
-      const fetchedTxs: Transaction[] = await txRes.json();
-      // Sort transactions by date descending
-      fetchedTxs.sort((a, b) => (new Date(b.timestamp).getTime()) - (new Date(a.timestamp).getTime()));
-      setTransactions(fetchedTxs);
+      // --- MODIFICATION: Handle paginated response ---
+      const txResponseData = await txRes.json();
+      const fetchedTxs: Transaction[] = txResponseData.transactions; // Access the array
+
+      if (Array.isArray(fetchedTxs)) {
+        // Sort transactions by date descending
+        fetchedTxs.sort((a, b) => (new Date(b.timestamp).getTime()) - (new Date(a.timestamp).getTime()));
+        setTransactions(fetchedTxs);
+        // TODO: Store txResponseData.total, txResponseData.page, txResponseData.limit for pagination UI if needed
+      } else {
+        console.error("[WalletTab] Fetched transactions data is not an array:", txResponseData);
+        setTransactions([]); // Set to empty array on error
+      }
       console.log(`[WalletTab] Transactions fetched (${fetchedTxs.length}).`);
 
     } catch (err: any) {
@@ -268,11 +277,11 @@ export function WalletTab() {
 
               const newTx: Transaction = {
                   _id: result.txid, type: 'sent',
-                  amountBCH: optimisticAmountBCH, // Include fee here
-                  amountBRL: optimisticAmountBRL,
+                  amount: optimisticAmountBCH, // CHANGE: Use 'amount'
+                  convertedBRL: optimisticAmountBRL, // CHANGE: Use 'convertedBRL'
                   address: sendForm.address.trim(), txid: result.txid, timestamp: new Date().toISOString(),
                   status: 'pending', confirmations: 0,
-                  fee: undefined // Fee is now part of amountBCH
+                  fee: undefined // Fee is now part of amount
               };
               // Add to transactions list
               setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
@@ -482,9 +491,9 @@ export function WalletTab() {
                 </div>
                 <div className="flex flex-col items-end ml-auto sm:ml-0 pl-16 sm:pl-0 flex-shrink-0">
                   <p className={`font-bold text-sm sm:text-base whitespace-nowrap ${ tx.type === 'received' ? 'text-green-400' : tx.type === 'sent' ? 'text-red-400' : 'text-gray-400' }`}>
-                    {tx.type === 'received' ? '+' : tx.type === 'sent' ? '-' : ''} {formatBCH(tx.amountBCH)}
+                    {tx.type === 'received' ? '+' : tx.type === 'sent' ? '-' : ''} {formatBCH(tx.amount)} {/* <--- CHANGE: Use amount */}
                   </p>
-                  <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] whitespace-nowrap">{formatCurrency(tx.amountBRL)}</p>
+                  <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] whitespace-nowrap">{formatCurrency(tx.convertedBRL)}</p> {/* <--- CHANGE: Use convertedBRL */}
                   <div className="mt-1">
                     {tx.status === 'confirmed' ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">

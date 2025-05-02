@@ -328,7 +328,7 @@ class SpvMonitorService {
         logger.debug(`SPV: [Process/Notify Full] User: ${userId}, Addr: ${bchAddress}`);
 
         let fetchedBalanceData;
-        let fetchedTransactions;
+        let fetchedTransactionsResult; // Renamed to avoid conflict
 
         try {
             // 1. Fetch Current Live Balance using walletService
@@ -344,8 +344,10 @@ class SpvMonitorService {
             // 2. Fetch Processed Transaction History using walletService
             try {
                 // Ensure cache is bypassed by invalidation done in handleSubscriptionUpdate
-                fetchedTransactions = await walletService.getWalletTransactions(userId);
-                logger.debug(`SPV: Fetched ${fetchedTransactions.length} processed transactions via walletService.`);
+                // Fetch page 1, limit 20 for the notification payload
+                fetchedTransactionsResult = await walletService.getWalletTransactions(userId, 1, 20);
+                // --- FIX: Log the length of the transactions array ---
+                logger.debug(`SPV: Fetched ${fetchedTransactionsResult?.transactions?.length ?? 'undefined'} processed transactions (page 1) via walletService. Total count: ${fetchedTransactionsResult?.totalCount}`);
             } catch (historyError) {
                 logger.error(`SPV: Failed getting history via walletService (User: ${userId}): ${historyError.message}`);
                 throw historyError; // Throw error, prevent caching status if history fails
@@ -356,7 +358,8 @@ class SpvMonitorService {
                 // --- MODIFICATION: Construct payload from walletService data ---
                 const payload = {
                     balance: fetchedBalanceData, // Use the structure returned by getWalletBalance
-                    transactions: fetchedTransactions, // Use the structure returned by getWalletTransactions
+                    // Use the transactions array from the result object
+                    transactions: fetchedTransactionsResult?.transactions || [],
                 };
                 // --- END MODIFICATION ---
 

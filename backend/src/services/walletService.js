@@ -17,6 +17,9 @@ const cache = require('./cacheService'); // Cache service
 const User = require('../models/user');
 const cryptoUtils = require('../utils/cryptoUtils');
 // --- END MODIFICATION ---
+// --- ADDED: Import Transaction model ---
+const Transaction = require('../models/transaction');
+// --- END ADDED ---
 
 const SATOSHIS_PER_BCH = 100_000_000;
 const DUST_THRESHOLD = 546; // Dust threshold in satoshis
@@ -125,6 +128,81 @@ function addressToScriptHash(address) {
     }
 }
 
+// --- ADDED: Function to save transaction if it doesn't exist ---
+/**
+ * Saves a transaction to the database if it doesn't already exist based on txid.
+ * Also updates existing transactions if their confirmation status changes.
+ * @param {object} tx - The formatted transaction object (matching the Transaction model schema).
+ * @param {string|mongoose.Types.ObjectId} userId - The ID of the user associated with the transaction.
+ */
+async function saveTransactionIfNotExists(tx, userId) {
+  if (!tx || !tx.txid) {
+    logger.warn('[Save TX] Attempted to save invalid transaction data:', tx);
+    return;
+  }
+  try {
+    // Data structure for saving/updating, ensuring consistency
+    const txDataForDb = {
+      userId: userId,
+      address: tx.address, // Use the display address from processing
+      txid: tx.txid,
+      amount: tx.amountBCH, // Assuming 'amount' in schema is BCH
+      type: tx.type, // 'sent', 'received', 'unknown'
+      timestamp: new Date(tx.timestamp), // Ensure it's a Date object
+      confirmed: tx.status === 'confirmed', // Set based on processed status
+      confirmations: tx.confirmations || 0, // Save confirmations count
+      // seen: false, // Don't reset 'seen' status on update
+      convertedBRL: tx.amountBRL, // Store the calculated BRL value
+      // linkedOrderId: tx.linkedOrderId, // Add linkedOrderId here when available
+    };
+
+    // Validate type before saving/updating
+    if (!['sent', 'received', 'unknown'].includes(txDataForDb.type)) {
+        logger.warn(`[Save TX] Invalid transaction type '${txDataForDb.type}' for txid ${txDataForDb.txid}. Saving as 'unknown'.`);
+        txDataForDb.type = 'unknown';
+    }
+    // Skip saving types not in the enum if desired (e.g., 'error', 'self')
+    if (txDataForDb.type === 'error' || txDataForDb.type === 'self') {
+        logger.info(`[Save TX] Skipping save for txid ${txDataForDb.txid} due to type: ${txDataForDb.type}`);
+        return;
+    }
+
+    // Find existing transaction first
+    const existingTx = await Transaction.findOne({ txid: tx.txid, userId: userId });
+
+    if (!existingTx) {
+      // Transaction doesn't exist, create it
+      logger.debug(`[Save TX - Create] Saving new TX: ${JSON.stringify({ ...txDataForDb, seen: false })}`); // Log data being created
+      await Transaction.create({ ...txDataForDb, seen: false }); // Add default 'seen' for new ones
+      logger.info(`[Save TX] Saved new transaction: User ${userId}, TXID ${tx.txid}`);
+
+    } else {
+      // Transaction exists, check if it needs updating (e.g., confirmation status)
+      // --- MODIFICATION: Always update with the latest processed data ---
+      // Use findOneAndUpdate to ensure atomicity and update based on latest data
+      // We only preserve the 'seen' status from the existing document.
+      const updatePayload = { $set: { ...txDataForDb, seen: existingTx.seen } };
+      logger.debug(`[Save TX - Update] Updating TX ${tx.txid} with payload: ${JSON.stringify(updatePayload)}`); // Log data being updated
+      const updateResult = await Transaction.findOneAndUpdate(
+        { txid: tx.txid, userId: userId },
+        updatePayload, // Update all fields except 'seen'
+        { new: true, upsert: false } // Don't upsert, return updated doc
+      );
+      if (updateResult) {
+          logger.info(`[Save TX] Updated existing transaction: User ${userId}, TXID ${tx.txid}`);
+      } else {
+          // This case should ideally not happen if findOne found it, but log just in case
+          logger.warn(`[Save TX] Failed to find and update existing transaction: User ${userId}, TXID ${tx.txid}`);
+      }
+      // --- END MODIFICATION ---
+    }
+  } catch (error) {
+    logger.error(`[Save TX] Error saving/updating transaction ${tx.txid} for user ${userId}: ${error.message}`, error.stack);
+    // Decide if you want to throw the error or just log it
+  }
+}
+// --- END ADDED ---
+
 
 // --- Service Functions (Using electrumRequestManager AND Cache) ---
 
@@ -134,7 +212,10 @@ async function getWalletAddress(userId) {
     return keys.address;
 }
 
-async function getWalletBalance(userId) {
+/**
+ * Gets the wallet balance, optionally skipping BRL calculation.
+ */
+async function getWalletBalance(userId, skipBrlCalculation = false) {
     const cacheKey = `balance:${userId}`;
     logger.debug(`[Balance] Checking cache for key: ${cacheKey}`);
     const cachedBalance = cache.get(cacheKey);
@@ -150,7 +231,14 @@ async function getWalletBalance(userId) {
     const scriptHash = addressToScriptHash(keys.address); // Use derived address
     logger.debug(`[Balance] User: ${userId}, Address: ${keys.address}, ScriptHash: ${scriptHash}`);
 
-    const rate = await getBchToBrlRate(); // Rate is cached in its own service
+    let rate = 0;
+    if (!skipBrlCalculation) {
+        try {
+            rate = await getBchToBrlRate(); // Rate is cached in its own service
+        } catch (rateError) {
+            logger.warn(`[Balance] Failed to get BRL rate for user ${userId}: ${rateError.message}. BRL values will be 0.`);
+        }
+    }
 
     try {
         logger.debug(`[Balance] Calling raceRequest('blockchain.scripthash.get_balance', ['${scriptHash}'])`);
@@ -168,13 +256,15 @@ async function getWalletBalance(userId) {
         const availableBCH = confirmedSatoshis / SATOSHIS_PER_BCH;
         const pendingBCH = unconfirmedSatoshis / SATOSHIS_PER_BCH;
         const totalBCH = totalSatoshis / SATOSHIS_PER_BCH;
-        const totalBRL = totalBCH * rate;
+        const totalBRL = rate > 0 ? totalBCH * rate : 0; // Calculate only if rate is valid
 
         const balanceData = {
             totalBCH,
             availableBCH,
             pendingBCH,
             totalBRL,
+            // Also include satoshi values directly for integrity check
+            totalSatoshis: { confirmed: confirmedSatoshis, unconfirmed: unconfirmedSatoshis },
             totalSatoshis,
             currentRateBRL: rate,
         };
@@ -217,10 +307,22 @@ async function getBlockHeight() {
 }
 
 // --- ACCURATE getWalletTransactions with MORE DETAILED CLASSIFICATION LOGGING ---
-async function getWalletTransactions(userId /*, page, limit */) {
+async function getWalletTransactions(userId, page = 1, limit = 20) { // Add page and limit parameters
+    // Calculate skip based on page and limit
+    const skip = (page - 1) * limit;
+    logger.info(`[History Service] Fetching transactions for User: ${userId}, Page: ${page}, Limit: ${limit}`);
+
     const historyCacheKey = `history:${userId}`;
     logger.debug(`[History] Checking processed history cache for key: ${historyCacheKey}`);
     const cachedHistory = cache.get(historyCacheKey);
+
+    // --- MODIFICATION: Cache check needs to consider pagination ---
+    // Simple approach: Invalidate cache more aggressively (e.g., on any SPV update) and remove pagination from cache key for now.
+    // Complex approach: Cache paginated results `history:${userId}:p${page}:l${limit}` - more complex invalidation.
+    // For now, let's bypass the cache read here as pagination makes it complex.
+    // We will still cache the *full* processed list later if needed, but the paginated result won't be cached directly this way.
+    // TODO: Re-evaluate caching strategy for paginated history if performance becomes an issue.
+    /*
     if (cachedHistory !== undefined) {
         logger.debug(`[History] Processed history Cache HIT for ${userId}. Returning cached list.`);
         return cachedHistory;
@@ -228,6 +330,7 @@ async function getWalletTransactions(userId /*, page, limit */) {
 
     logger.debug(`[History] Processed history Cache MISS for ${userId}. Fetching fresh history...`);
 
+    */
     // Use secure key retrieval
     const keys = await getUserWalletKeys(userId);
     const userAddress = keys.address; // Use derived address
@@ -238,10 +341,15 @@ async function getWalletTransactions(userId /*, page, limit */) {
     logger.debug(`[History] Fetching accurate history for ${userAddress} (SH: ${scriptHash})`);
 
     try {
-        [rate, currentHeight] = await Promise.all([ // currentHeight is defined here
-            getBchToBrlRate(),
-            getBlockHeight()
-        ]);
+        // Fetch rate separately and handle potential errors
+        try {
+            rate = await getBchToBrlRate();
+        } catch (rateError) {
+            logger.warn(`[History] Failed to get BRL rate for user ${userId}: ${rateError.message}. BRL values will be 0.`);
+            rate = 0; // Default to 0 if fetch fails
+        }
+        currentHeight = await getBlockHeight(); // Fetch height
+
         logger.debug(`[History] Current Rate: ${rate}, Current Height: ${currentHeight}`);
 
         const history = await electrumRequestManager.raceRequest(
@@ -251,13 +359,15 @@ async function getWalletTransactions(userId /*, page, limit */) {
 
         if (!history || history.length === 0) {
             logger.debug(`[History] No history found for ${userAddress}`);
-            cache.set(historyCacheKey, [], CACHE_TTL_HISTORY);
-            return [];
+            // Return empty structure matching the final expected output
+            // cache.set(historyCacheKey, [], CACHE_TTL_HISTORY); // Don't cache empty results long
+            // return []; // Old return
+            return { transactions: [], totalCount: 0 }; // Return structure with count
         }
         logger.debug(`[History] Found ${history.length} history items. Fetching details (using cache)...`);
 
-        // --- FIXED: getTxDetailWithCache Definition ---
-        const getTxDetailWithCache = async (txid, historyItemHeight, currentBlockHeight) => { // Added params
+        // --- Helper function to get transaction details with caching ---
+        const getTxDetailWithCache = async (txid, historyItemHeight, currentBlockHeight) => {
             const txCacheKey = `tx:${txid}`;
             const cachedTx = cache.get(txCacheKey);
             if (cachedTx !== undefined) {
@@ -269,11 +379,10 @@ async function getWalletTransactions(userId /*, page, limit */) {
                 const txDetail = await electrumRequestManager.raceRequest('blockchain.transaction.get', [txid, true]);
 
                 if (txDetail) {
-                    // --- FIXED: Use passed parameters for TTL calculation ---
+                    // Determine TTL based on confirmation status
                     const blockheight = txDetail.blockheight || (historyItemHeight > 0 ? historyItemHeight : null);
                     const confirmations = blockheight && currentBlockHeight > 0 ? currentBlockHeight - blockheight + 1 : 0;
                     const ttl = confirmations > 0 ? CACHE_TTL_TX_DETAIL_CONFIRMED : CACHE_TTL_TX_DETAIL_UNCONFIRMED;
-                    // --- END FIX ---
 
                     logger.debug(`[History Detail Cache] Setting tx detail cache for ${txid} with TTL: ${ttl}s`);
                     cache.set(txCacheKey, txDetail, ttl);
@@ -282,29 +391,25 @@ async function getWalletTransactions(userId /*, page, limit */) {
                 }
                 return txDetail;
             } catch (err) {
-                 // Log the error but keep the message generic for the function caller
                  logger.error(`[History Detail] Failed fetching/caching details for ${txid}: ${err.message}`);
                  return null; // Return null on error
             }
         };
         // --- End getTxDetailWithCache ---
 
-        // --- FIXED: Pass item.height and currentHeight in the map call ---
+        // --- Fetch details for all transactions in history ---
         const detailPromises = history.map(item =>
             getTxDetailWithCache(item.tx_hash, item.height, currentHeight) // Pass heights
         );
-        // --- END FIX ---
-
         const transactionDetailsList = await Promise.all(detailPromises);
-        // Filter out nulls before logging count
         logger.debug(`[History] Fetched/retrieved details for ${transactionDetailsList.filter(d => d).length} transactions.`);
 
-        // --- Fetching Previous Output Details (No changes needed here) ---
+        // --- Fetching Previous Output Details ---
         const neededPrevOutputs = new Map();
         transactionDetailsList.forEach(txDetails => {
             if (!txDetails) return;
             txDetails.vin.forEach(vin => {
-                if (vin.coinbase || !vin.txid || vin.vout === undefined) return; // Skip coinbase and invalid inputs
+                if (vin.coinbase || !vin.txid || vin.vout === undefined) return;
                 const key = `${vin.txid}:${vin.vout}`;
                 if (!neededPrevOutputs.has(key)) {
                     neededPrevOutputs.set(key, null);
@@ -314,11 +419,9 @@ async function getWalletTransactions(userId /*, page, limit */) {
 
         if (neededPrevOutputs.size > 0) {
             logger.debug(`[History] Need details for ${neededPrevOutputs.size} previous outputs. Fetching (using cache)...`);
-            // --- FIXED: Pass heights when fetching prev tx details ---
             const uniquePrevTxids = [...new Set([...neededPrevOutputs.keys()].map(key => key.split(':')[0]))];
-            // We don't have the original history item height for *previous* txs, so pass 0 or null
+            // Pass 0 for historyItemHeight as we don't have it for prev txs
             const prevTxDetailPromises = uniquePrevTxids.map(txid => getTxDetailWithCache(txid, 0, currentHeight));
-            // --- END FIX ---
             const prevTransactionDetailsList = await Promise.all(prevTxDetailPromises);
 
             const prevTxDetailsMap = new Map(prevTransactionDetailsList.filter(d => d).map(d => [d.txid, d]));
@@ -340,59 +443,45 @@ async function getWalletTransactions(userId /*, page, limit */) {
 
 
         // --- Process Transactions ---
-        const processedTxs = [];
-        history.forEach((item, index) => { // 'item' is available here
-            const txDetails = transactionDetailsList[index]; // This might be null if fetch failed
+        // const processedTxs = []; // We won't store the full list in memory anymore
+        const savePromises = []; // Array to hold save promises
+
+        history.forEach((item, index) => {
+            const txDetails = transactionDetailsList[index];
             if (!txDetails) {
-                // Log is already handled inside getTxDetailWithCache catch block
-                // logger.warn(`[History Process] Skipping tx index ${index} (tx_hash: ${item.tx_hash}) due to missing details.`);
-                return; // Skip this iteration
+                return; // Skip this iteration if details are missing
             }
 
             try {
                 const txid = item.tx_hash;
-                // Use height from history item as primary source for confirmations *here*
                 const blockHeight = item.height > 0 ? item.height : undefined;
-                const confirmations = blockHeight && currentHeight > 0 ? currentHeight - blockHeight + 1 : 0; // Recalculate using item.height
+                const confirmations = blockHeight && currentHeight > 0 ? currentHeight - blockHeight + 1 : 0;
                 const status = confirmations > 0 ? 'confirmed' : 'pending';
-
-                // Prefer blocktime if available, fallback to server time
                 const blockTimestamp = txDetails.blocktime ? new Date(txDetails.blocktime * 1000).toISOString() : null;
                 const serverReceivedTime = txDetails.time ? new Date(txDetails.time * 1000).toISOString() : null;
-                const timestamp = blockTimestamp || serverReceivedTime || new Date().toISOString(); // Fallback to now if neither exists
-
-                // Fee calculation - Electrum provides 'fees' in BCH units
+                const timestamp = blockTimestamp || serverReceivedTime || new Date().toISOString();
                 const feeSatoshis = txDetails.fees ? Math.round(txDetails.fees * SATOSHIS_PER_BCH) : 0;
 
-                let totalInputFromUser = 0;
-                let sentAmount = 0; // Amount sent to OTHERS
-                let receivedAmount = 0; // Amount received by USER (including change)
-                let isSentToOthers = false;
-                let isOnlyToUser = true; // Assume only to user initially
-                let recipient = null; // First recipient address (if sent)
+                let totalSpentByUser = 0; // Total value from inputs belonging to the user
+                let totalReceivedByUser = 0; // Total value in outputs belonging to the user (including change)
+                let firstOtherRecipientAddress = null; // First recipient address (if sent)
+                let amountSentToOthers = 0; // Sum of outputs NOT going to the user
                 let userInputsInTx = false;
 
                 // Analyze Inputs
                 for (const vin of txDetails.vin) {
                     if (vin.coinbase || !vin.txid || vin.vout === undefined) continue;
-
                     const key = `${vin.txid}:${vin.vout}`;
                     const prevOutputDetail = neededPrevOutputs.get(key);
 
                     if (!prevOutputDetail) {
-                        // This is critical, classification might be wrong
-                        logger.error(`[History Process - Input] CRITICAL: Missing previous output detail for input ${key} in tx ${txid}. Input analysis will be INCORRECT.`);
-                        // Decide how to handle: skip tx, mark as error, or proceed with potentially wrong classification?
-                        // For now, log and proceed, but this indicates a problem in prev output fetching/caching.
+                        logger.error(`[History Process - Input] CRITICAL: Missing previous output detail for input ${key} in tx ${txid}. Classification may be incorrect.`);
                     } else {
-                         const inputValueSat = prevOutputDetail.valueSat ?? Math.round((prevOutputDetail.value || 0) * SATOSHIS_PER_BCH);
-                         const prevAddr = prevOutputDetail.scriptPubKey?.addresses?.[0]; // Can be undefined
+                         const inputValueSat = prevOutputDetail.valueSat ?? Math.round((prevOutputDetail.value || 0) * SATOSHIS_PER_BCH); // Electrum provides 'value', bch-js might use 'valueSat'
+                         const prevAddr = prevOutputDetail.scriptPubKey?.addresses?.[0]; // Assuming single address outputs for inputs for simplicity
                          if (prevAddr === userAddress) {
-                              totalInputFromUser += inputValueSat;
+                              totalSpentByUser += inputValueSat; // Accumulate value spent from user's UTXOs
                               userInputsInTx = true;
-                              // logger.debug(`[History Process - Input] TX: ${txid}, Input ${key} belongs to user ${userAddress}. Adding ${inputValueSat}. userInputsInTx = true.`);
-                         } else {
-                              // logger.debug(`[History Process - Input] TX: ${txid}, Input ${key} does NOT belong to user ${userAddress}. Belongs to: ${prevAddr || 'Unknown'}`);
                          }
                     }
                 }
@@ -400,43 +489,39 @@ async function getWalletTransactions(userId /*, page, limit */) {
                 // Analyze Outputs
                 for (const vout of txDetails.vout) {
                     const outputValueSat = vout.valueSat ?? Math.round((vout.value || 0) * SATOSHIS_PER_BCH);
-                    const outputAddr = vout.scriptPubKey?.addresses?.[0]; // Can be undefined
+                    const outputAddr = vout.scriptPubKey?.addresses?.[0];
 
-                    if (outputAddr && outputAddr !== userAddress) {
-                        isSentToOthers = true;
-                        sentAmount += outputValueSat; // Add to amount sent to others
-                        recipient = recipient || outputAddr; // Capture first recipient
-                        isOnlyToUser = false;
-                        // logger.debug(`[History Process - Output] TX: ${txid}, Output ${vout.n} to OTHER: ${outputAddr}, Value: ${outputValueSat}.`);
-                    } else if (outputAddr === userAddress) {
-                        receivedAmount += outputValueSat; // Add to amount received by user (includes change)
-                        // logger.debug(`[History Process - Output] TX: ${txid}, Output ${vout.n} to USER: ${outputAddr}, Value: ${outputValueSat}.`);
-                    } else {
-                        // Output to unknown or non-standard script
-                        isOnlyToUser = false;
-                        // logger.debug(`[History Process - Output] TX: ${txid}, Output ${vout.n} to UNKNOWN/NON-STANDARD.`);
+                    if (outputAddr === userAddress) {
+                        totalReceivedByUser += outputValueSat; // FIX: Use the renamed variable
+                    } else if (outputAddr) {
+                        // This output goes to someone else
+                        amountSentToOthers += outputValueSat;
+                        firstOtherRecipientAddress = firstOtherRecipientAddress || outputAddr;
                     }
                 }
 
-                // --- CLASSIFICATION LOGIC (No change needed here) ---
+                // --- CLASSIFICATION LOGIC ---
+                const netSatoshisChange = totalReceivedByUser - totalSpentByUser;
                 let type = 'unknown';
-                let amountSatoshis = 0; // The amount relevant to the classification type
+                let amountSatoshis = 0;
                 let displayAddress = 'N/A';
 
-                if (userInputsInTx && isSentToOthers) { // User sent funds to someone else (might include change back)
+                if (netSatoshisChange > 0 && !userInputsInTx) { // Received funds from external source
+                    type = 'received';
+                    amountSatoshis = netSatoshisChange; // Net gain is the received amount
+                    // Find the sender? Hard without full input details. Display own address.
+                    displayAddress = userAddress; // Or potentially find sender from inputs if needed
+                } else if (netSatoshisChange < 0 && userInputsInTx) { // Sent funds
                     type = 'sent';
-                    amountSatoshis = sentAmount + feeSatoshis;
-                    displayAddress = recipient || 'Multiple Recipients';
-                } else if (!userInputsInTx && receivedAmount > 0) { // User received funds from external source
-                     type = 'received';
-                     amountSatoshis = receivedAmount;
-                     displayAddress = userAddress;
-                } else if (userInputsInTx && !isSentToOthers && receivedAmount > 0) { // User sent funds only to themselves (consolidation, change from failed send?)
-                    type = 'self';
-                    amountSatoshis = feeSatoshis;
-                    displayAddress = userAddress;
-                } else { // Complex or unusual transaction
-                    logger.warn(`[History Process] Complex/Unknown TX ${txid}. UserInputs: ${userInputsInTx}, SentToOthers: ${isSentToOthers}, ReceivedAmt: ${receivedAmount}, SentAmt: ${sentAmount}`);
+                    // Amount should be what was sent to others, EXCLUDING change
+                    amountSatoshis = amountSentToOthers;
+                    displayAddress = firstOtherRecipientAddress || 'Multiple Recipients';
+                } else if (netSatoshisChange === -feeSatoshis && userInputsInTx && amountSentToOthers === 0) { // Self-send / Consolidation
+                    type = 'sent'; // Still involves spending UTXOs
+                    amountSatoshis = 0; // No value sent externally, only fee paid
+                    displayAddress = userAddress; // Sent to self
+                } else {
+                    logger.warn(`[History Process] Complex/Unknown TX type ${txid}. NetChange: ${netSatoshisChange}, UserInputs: ${userInputsInTx}, ReceivedByUser: ${totalReceivedByUser}, SentToOthers: ${amountSentToOthers}, Fee: ${feeSatoshis}`);
                     type = 'unknown';
                     amountSatoshis = 0;
                     displayAddress = 'Complex Interaction';
@@ -444,14 +529,13 @@ async function getWalletTransactions(userId /*, page, limit */) {
                 // --- END CLASSIFICATION LOGIC ---
 
                 logger.debug(`[TX Classify - Result] TXID: ${txid} - Classified as ${type}. Amount: ${amountSatoshis} sats.`);
-
                 if (amountSatoshis < 0) amountSatoshis = 0;
 
                 const amountBCH = amountSatoshis / SATOSHIS_PER_BCH;
-                const amountBRL = amountBCH * rate;
-                const feeBCH = (type === 'sent' || type === 'self') ? (feeSatoshis / SATOSHIS_PER_BCH) : undefined;
+                const amountBRL = rate > 0 ? amountBCH * rate : 0; // Calculate only if rate is valid
+                const feeBCH = (type === 'sent') ? (feeSatoshis / SATOSHIS_PER_BCH) : undefined;
 
-                processedTxs.push({
+                const processedTx = {
                     _id: txid,
                     type,
                     amountBCH,
@@ -463,96 +547,143 @@ async function getWalletTransactions(userId /*, page, limit */) {
                     confirmations,
                     blockHeight,
                     fee: feeBCH,
-                });
+                };
+
+                // processedTxs.push(processedTx); // Don't collect in memory
+                savePromises.push(saveTransactionIfNotExists(processedTx, userId));
 
             } catch (procError) {
                  logger.error(`[History Process] Error processing tx ${item.tx_hash}: ${procError.message}`, procError.stack);
+                 // Optionally save an 'error' transaction state if needed
+                 /*
                  processedTxs.push({
                      _id: item.tx_hash, type: 'error', amountBCH: 0, amountBRL: 0, address: 'Processing Error',
                      txid: item.tx_hash, timestamp: new Date().toISOString(), status: 'unknown',
                      confirmations: 0, blockHeight: item.height > 0 ? item.height : undefined,
                      fee: undefined, errorMessage: procError.message
                  });
+                 */
             }
         }); // End history.forEach
         // --- End Process Transactions ---
 
-        // Sort by timestamp descending (most recent first)
-        processedTxs.sort((a, b) => {
-            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-            return timeB - timeA;
-        });
+        // Wait for all save operations to complete
+        await Promise.allSettled(savePromises);
+        logger.info(`[History] Finished attempting to save/update ${savePromises.length} transactions to DB for user ${userId}.`);
 
-        logger.info(`[History] Successfully processed ${processedTxs.length} transactions for ${userAddress}.`);
+        // --- MODIFICATION: Fetch paginated results from DB AFTER saving/updating ---
+        logger.info(`[History] Fetching final paginated results from DB. Skip: ${skip}, Limit: ${limit}`);
+        const [paginatedTransactions, totalCount] = await Promise.all([
+             Transaction.find({ userId: userId })
+                .sort({ timestamp: -1 }) // Ensure consistent sorting
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+             Transaction.countDocuments({ userId: userId })
+        ]);
+        // --- ADDED DEBUG LOG ---
+        // Log the first few transactions fetched from DB to check their amounts
+        logger.debug(`[History] Data fetched from DB for page ${page}: ${JSON.stringify(paginatedTransactions.slice(0, 5))}... (showing max 5)`);
+        logger.info(`[History] Returning ${paginatedTransactions.length} transactions for page ${page}. Total count: ${totalCount}.`);
+        // --- END MODIFICATION ---
 
-        // Cache the processed result
-        cache.set(historyCacheKey, processedTxs, CACHE_TTL_HISTORY);
-        logger.warn(`[History] Caching processed history for ${userAddress}. TTL: ${CACHE_TTL_HISTORY}s. Requires external invalidation for real-time accuracy.`);
+        // Cache the processed result (Optional: Cache the full list? Or paginated? For now, skip caching paginated result)
+        // cache.set(historyCacheKey, processedTxs, CACHE_TTL_HISTORY); // Caching full list might be heavy
+        // logger.warn(`[History] Caching processed history for ${userAddress}. TTL: ${CACHE_TTL_HISTORY}s. Requires external invalidation for real-time accuracy.`);
 
-        return processedTxs;
+        // Return the paginated data and total count
+        return { transactions: paginatedTransactions, totalCount };
 
     } catch (error) {
-        // Catch errors from key retrieval, electrum requests, or processing
         logger.error(`[History] Top-level error fetching/processing history for user ${userId}: ${error.message}`, error.stack);
-        // Throw a user-friendly error
         throw new Error(`Failed to fetch transaction history. Please try again later.`);
     }
 }
 // --- END ACCURATE getWalletTransactions ---
 
 
-// --- Send Transaction (Uses secure key retrieval) ---
+// --- Send Transaction (Wrapper with Cache Invalidation and DB Save) ---
 async function sendTransaction(userId, recipientAddress, amountBchStr, feeLevel) {
-    // --- IMPORTANT: Invalidate cache after sending ---
+    let txid = null;
     try {
-        // Call internal logic which now uses secure key retrieval implicitly
+        // Call internal logic
         const result = await sendTransactionInternal(userId, recipientAddress, amountBchStr, feeLevel);
+        txid = result.txid;
 
-        // If broadcast is successful, invalidate relevant caches
-        logger.info(`[Send TX Success] Invalidating cache for user ${userId} after sending ${result.txid}`);
-        cache.invalidateUserWalletCache(userId); // Use the helper function
-        cache.invalidateBlockHeightCache(); // Invalidate block height as well
+        // Invalidate cache on success
+        logger.info(`[Send TX Success] Invalidating cache for user ${userId} after sending ${txid}`);
+        cache.invalidateUserWalletCache(userId);
+        cache.invalidateBlockHeightCache();
 
-        return result;
+        // --- Save sent transaction to DB (fire-and-forget) ---
+        if (txid) {
+            getBchToBrlRate().then(rate => {
+                const amountBCH = parseFloat(amountBchStr);
+                const amountBRL = rate > 0 ? amountBCH * rate : 0; // Handle missing rate
+                const sentTxData = {
+                    type: 'sent',
+                    amountBCH: amountBCH,
+                    amountBRL: amountBRL,
+                    address: recipientAddress,
+                    txid: txid,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending',
+                    confirmations: 0,
+                    blockHeight: undefined,
+                    fee: undefined, // Fee details might need to be fetched/updated later
+                };
+                saveTransactionIfNotExists(sentTxData, userId)
+                    .then(() => logger.info(`[Send TX Save] Initiated save for sent transaction ${txid}`))
+                    .catch(saveError => logger.error(`[Send TX Save] Failed to save sent transaction ${txid} to DB: ${saveError.message}`));
+            }).catch(rateError => {
+                logger.error(`[Send TX Save] Could not get BRL rate to save sent transaction ${txid}: ${rateError.message}. Saving with BRL 0.`);
+                // Save without BRL if rate fetch fails
+                 const amountBCH = parseFloat(amountBchStr);
+                 const sentTxData = {
+                     type: 'sent', amountBCH: amountBCH, amountBRL: 0, address: recipientAddress,
+                     txid: txid, timestamp: new Date().toISOString(), status: 'pending',
+                     confirmations: 0, blockHeight: undefined, fee: undefined,
+                 };
+                 saveTransactionIfNotExists(sentTxData, userId)
+                     .then(() => logger.info(`[Send TX Save] Initiated save for sent transaction ${txid} (BRL 0)`))
+                     .catch(saveError => logger.error(`[Send TX Save] Failed to save sent transaction ${txid} to DB (BRL 0): ${saveError.message}`));
+            });
+        }
+        // --- End Save ---
+
+        return result; // Return { txid }
     } catch (error) {
-         // Log error and re-throw
          logger.error(`[Send TX Failure] Error during send transaction: ${error.message}`);
-         // Do NOT invalidate cache on failure, as the state might not have changed
-         throw error; // Re-throw the original error to be handled by the controller
+         throw error; // Re-throw the original error
     }
 }
 
-// Internal function containing the original send logic
-// It now implicitly uses the secure getUserWalletKeys
+// Internal function containing the core send logic
 async function sendTransactionInternal(userId, recipientAddress, amountBchStr, feeLevel) {
-    // Use secure key retrieval
     const keys = await getUserWalletKeys(userId);
     const fromAddress = keys.address;
-    const wif = keys.wif; // Get WIF from securely derived keys
+    const wif = keys.wif;
     const amountBCH = parseFloat(amountBchStr);
 
     logger.info(`[Send TX Internal] User: ${userId}, From: ${fromAddress}, To: ${recipientAddress}, Amount: ${amountBchStr} BCH, FeeLevel: ${feeLevel}`);
 
-    // --- Input Validation ---
+    // Input Validation
     if (isNaN(amountBCH) || amountBCH <= 0) { throw new Error('Invalid amount specified.'); }
-    // Use bitcore for robust validation
     if (!bitcore.Address.isValid(recipientAddress, network)) { throw new Error('Invalid recipient address.'); }
     const amountSatoshis = Math.round(amountBCH * SATOSHIS_PER_BCH);
     if (amountSatoshis < DUST_THRESHOLD) { throw new Error(`Amount ${amountSatoshis} is below dust threshold ${DUST_THRESHOLD}`); }
 
-    // --- Fee Rate ---
+    // Fee Rate
     let feeRateSatsPerByte;
-    // TODO: Fetch dynamic fee rate using electrumRequestManager.raceRequest('blockchain.estimatefee', [blocks_target])
     switch (feeLevel) {
-      case 'low': feeRateSatsPerByte = 1.0; break; // Absolute minimum relay fee
-      case 'high': feeRateSatsPerByte = 1.5; break; // Slightly higher
-      case 'medium': default: feeRateSatsPerByte = 1.1; break; // Default slightly above minimum
+      case 'low': feeRateSatsPerByte = 1.0; break;
+      case 'high': feeRateSatsPerByte = 1.5; break;
+      case 'medium': default: feeRateSatsPerByte = 1.1; break;
     }
     logger.info(`[Send TX Internal] Using fee rate: ${feeRateSatsPerByte} sats/byte for level '${feeLevel}'`);
 
     try {
-        // 1. Get UTXOs using racing manager
+        // 1. Get UTXOs
         const scriptHash = addressToScriptHash(fromAddress);
         logger.debug(`[Send TX Internal] Fetching UTXOs for ${fromAddress} (SH: ${scriptHash})`);
         const utxosRaw = await electrumRequestManager.raceRequest('blockchain.scripthash.listunspent', [scriptHash]);
@@ -561,36 +692,30 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
             logger.warn(`[Send TX Internal] No UTXOs found for ${fromAddress}.`);
             throw new Error('Insufficient funds (no UTXOs found).');
         }
-        logger.debug(`[Send TX Internal] Found ${utxosRaw.length} UTXOs.`);
-        // Map to the format bchjs expects (txid, vout, satoshis)
-        const utxos = utxosRaw.map(utxo => ({
-            txid: utxo.tx_hash,
-            vout: utxo.tx_pos,
-            satoshis: utxo.value,
-        }));
+        const utxos = utxosRaw.map(utxo => ({ txid: utxo.tx_hash, vout: utxo.tx_pos, satoshis: utxo.value }));
+        logger.debug(`[Send TX Internal] Found ${utxos.length} UTXOs.`);
 
-        // 2. Build Transaction using bchjs
+        // 2. Build Transaction
         const transactionBuilder = new bchjs.TransactionBuilder(network);
         let totalInputSatoshis = 0;
         utxos.forEach(utxo => {
             transactionBuilder.addInput(utxo.txid, utxo.vout);
             totalInputSatoshis += utxo.satoshis;
         });
-        logger.debug(`[Send TX Internal] Total input value: ${totalInputSatoshis} satoshis from ${utxos.length} UTXOs.`);
+        logger.debug(`[Send TX Internal] Total input value: ${totalInputSatoshis} satoshis.`);
 
-        // 3. Estimate fee accurately
-        const preliminaryOutputCount = 2; // Assume recipient + change
+        // 3. Estimate fee
+        const preliminaryOutputCount = 2;
         const byteCountEstimate = bchjs.BitcoinCash.getByteCount({ P2PKH: utxos.length }, { P2PKH: preliminaryOutputCount });
         const feeEstimate = Math.ceil(byteCountEstimate * feeRateSatsPerByte);
         const changeAmountEstimate = totalInputSatoshis - amountSatoshis - feeEstimate;
         const needsChangeOutput = changeAmountEstimate >= DUST_THRESHOLD;
-
         const finalOutputCount = needsChangeOutput ? 2 : 1;
         const finalByteCount = bchjs.BitcoinCash.getByteCount({ P2PKH: utxos.length }, { P2PKH: finalOutputCount });
         const feeSatoshis = Math.ceil(finalByteCount * feeRateSatsPerByte);
         logger.debug(`[Send TX Internal] Estimated bytes: ${finalByteCount}, Final fee: ${feeSatoshis} satoshis. Needs change: ${needsChangeOutput}`);
 
-        // 4. Check funds against final fee
+        // 4. Check funds
         if (totalInputSatoshis < amountSatoshis + feeSatoshis) {
             logger.error(`[Send TX Internal] Insufficient funds. Required: ${amountSatoshis + feeSatoshis}, Available: ${totalInputSatoshis}`);
             throw new Error(`Insufficient funds. Required: ${amountSatoshis + feeSatoshis} satoshis, Available: ${totalInputSatoshis} satoshis.`);
@@ -604,12 +729,8 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
             logger.debug(`[Send TX Internal] Added change output: ${changeAmountSatoshis} satoshis to ${fromAddress}`);
             transactionBuilder.addOutput(fromAddress, changeAmountSatoshis);
         } else {
-            const implicitMinerFee = totalInputSatoshis - amountSatoshis - feeSatoshis;
-            if (implicitMinerFee > 0) {
-                 logger.debug(`[Send TX Internal] No change output needed. ${implicitMinerFee} satoshis added to miner fee.`);
-            } else {
-                 logger.debug(`[Send TX Internal] No change output needed.`);
-            }
+             const implicitMinerFee = totalInputSatoshis - amountSatoshis - feeSatoshis;
+             logger.debug(`[Send TX Internal] No change output needed. ${implicitMinerFee} satoshis added to miner fee.`);
         }
 
         // 6. Sign Transaction
@@ -624,38 +745,26 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
         const txHex = tx.toHex();
         logger.debug(`[Send TX Internal] Transaction built. Hex length: ${txHex.length}`);
 
-        // 8. Broadcast using racing manager
+        // 8. Broadcast
         logger.info(`[Send TX Internal] Broadcasting transaction hex via racing manager...`);
         const txid = await electrumRequestManager.raceRequest('blockchain.transaction.broadcast', [txHex]);
 
-        // Validate response
         if (!txid || typeof txid !== 'string' || txid.length < 64) {
              logger.error(`[Send TX Internal] Broadcast attempt did not return a valid txid string. Result: ${JSON.stringify(txid)}`);
              throw new Error('Transaction broadcast may have failed or succeeded without confirmation. Please check history.');
         }
 
         logger.info(`[Send TX Internal] Transaction sent successfully. Txid: ${txid}`);
-        return { txid }; // Return result object
+        return { txid };
 
     } catch (error) {
         logger.error(`[Send TX Internal] Error: ${error.message}`, error.stack);
-        // Pass specific error messages for better handling in the controller
-        if (error.message.includes('Insufficient funds')) {
-            throw new Error('Insufficient funds to cover the amount and transaction fee.');
-        }
-        if (error.message.includes('Invalid recipient address')) {
-             throw new Error('Invalid recipient address.');
-        }
-        if (error.message.includes('below dust threshold')) {
-             throw new Error('Transaction amount is too small (below dust threshold).');
-        }
-        if (error.message.includes('Invalid amount')) {
-             throw new Error('Invalid amount specified.');
-        }
-        if (error.message.includes('timeout') || error.message.includes('No connected Electrum servers')) {
-            throw new Error('Network error during transaction broadcast. Please check your transaction history to confirm status.');
-        }
-        // Generic fallback for other errors (like key derivation issues caught earlier)
+        // Pass specific error messages
+        if (error.message.includes('Insufficient funds')) { throw new Error('Insufficient funds to cover the amount and transaction fee.'); }
+        if (error.message.includes('Invalid recipient address')) { throw new Error('Invalid recipient address.'); }
+        if (error.message.includes('below dust threshold')) { throw new Error('Transaction amount is too small (below dust threshold).'); }
+        if (error.message.includes('Invalid amount')) { throw new Error('Invalid amount specified.'); }
+        if (error.message.includes('timeout') || error.message.includes('No connected Electrum servers')) { throw new Error('Network error during transaction broadcast. Please check your transaction history to confirm status.'); }
         throw new Error(`Failed to send transaction: ${error.message}`);
     }
 }
@@ -663,7 +772,65 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
 
 
 // --- WebSocket Subscription Logic is Handled by spvMonitorService ---
-// (No changes needed here)
+
+
+// --- ADDED: Function to check DB vs Blockchain balance consistency ---
+async function checkTransactionIntegrity(userId) {
+  logger.debug(`[Integrity Check] Starting check for user ${userId}`);
+  try {
+    // Fetch live balance (satoshi value needed) and DB transactions concurrently
+    // No need to fetch BRL rate here anymore.
+    const [liveBalanceData, dbTransactions] = await Promise.all([
+      getWalletBalance(userId, true), // Pass flag to skip BRL calculation in getWalletBalance
+      Transaction.find({ userId }).lean()
+    ]);
+
+    // Calculate the net balance based *only* on transactions stored in the DB
+    // This calculation needs to accurately reflect how the balance changes
+    let totalFromDbSatoshis = 0;
+    // --- REVISED CALCULATION: Only sum confirmed 'received' transactions ---
+    logger.debug(`[Integrity Check] Calculating DB balance from confirmed 'received' transactions (${dbTransactions.length} total)...`);
+    for (const tx of dbTransactions) {
+        const txidShort = tx.txid.substring(0, 8);
+        // Ensure amount is treated as a number, default to 0 if invalid/missing
+        const txAmountBCH = typeof tx.amount === 'number' ? tx.amount : 0;
+        const amountSat = Math.round(txAmountBCH * SATOSHIS_PER_BCH);
+
+        // Only add confirmed received amounts to the total
+        if (tx.type === 'received' && tx.confirmed) {
+            logger.debug(`[Integrity Check Loop] TX ${txidShort} (${tx.type}): Adding ${amountSat} sats. Prev total: ${totalFromDbSatoshis}`);
+            totalFromDbSatoshis += amountSat;
+        }
+    }
+
+
+    // Compare against the *confirmed* live balance
+    // Use totalSatoshis directly if available, otherwise calculate from availableBCH
+    const liveConfirmedSatoshis = liveBalanceData.totalSatoshis?.confirmed ?? Math.round(liveBalanceData.availableBCH * SATOSHIS_PER_BCH);
+
+    // Use a tolerance for potential fee discrepancies or minor rounding issues if needed
+    // const tolerance = 10; // Example: Allow 10 satoshi difference
+    // const isConsistent = Math.abs(liveConfirmedSatoshis - totalFromDbSatoshis) <= tolerance;
+    // --- END REVISED CALCULATION ---
+
+    // Direct comparison: Live balance should equal the sum of confirmed received transactions
+    // --- REVISED CONSISTENCY LOGIC ---
+    // It's consistent if the live balance is LESS THAN OR EQUAL TO the total received according to DB.
+    // It's INCONSISTENT only if the live balance is GREATER than what the DB accounts for as received.
+    const isConsistent = liveConfirmedSatoshis <= totalFromDbSatoshis;
+    // --- END REVISED CONSISTENCY LOGIC ---
+
+    // Add more context to the log message
+    logger.debug(`[Integrity Check] User ${userId}: Live Confirmed Sats = ${liveConfirmedSatoshis}, DB Sum of Confirmed Received Sats = ${totalFromDbSatoshis}. Consistent = ${isConsistent} (Live <= DB Received? ${isConsistent})`);
+    return { isConsistent, onChainSatoshis: liveConfirmedSatoshis, dbCalculatedSatoshis: totalFromDbSatoshis };
+
+  } catch (error) {
+    logger.error(`[Integrity Check] Error checking integrity for user ${userId}: ${error.message}`, error.stack);
+    throw new Error(`Failed to check wallet integrity: ${error.message}`); // Re-throw wrapped error
+  }
+}
+// --- END ADDED ---
+
 
 // --- Module Exports ---
 module.exports = {
@@ -672,4 +839,6 @@ module.exports = {
     getWalletTransactions, // Export the accurate version
     sendTransaction,
     // getUserWalletKeys // Keep internal unless needed elsewhere
+    checkTransactionIntegrity, // Export the new function
+    // syncWalletTransactions, // This logic is now integrated into getWalletTransactions
 };

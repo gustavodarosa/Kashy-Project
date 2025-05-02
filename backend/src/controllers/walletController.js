@@ -1,14 +1,10 @@
 // z:\Kashy-Project\backend\src\controllers\walletController.js
-const bchService = require('../services/bchService');
-const { getBchToBrlRate } = require('../services/exchangeRate'); // Import BRL rate function
-const Transaction = require('../models/transaction'); // Supondo que exista um modelo de transações
-const User = require('../models/user');
-// --- MODIFICATION: Use walletService for core logic ---
-const walletService = require('../services/walletService');
-// const bchService = require('../services/bchService'); // Commented out - use walletService instead
-// --- END MODIFICATION ---
+const { validationResult } = require('express-validator');
+const Transaction = require('../models/transaction'); // Model for DB operations
+const User = require('../models/user'); // Needed for some sales calculations
+const walletService = require('../services/walletService'); // Use the main service
 const logger = require('../utils/logger');
-const { validationResult } = require('express-validator'); // Keep if using validation
+// const bchService = require('../services/bchService'); // Keep commented out or remove if not used directly
 
 // --- Helper Function (Keep existing) ---
 function formatAddress(address) {
@@ -108,8 +104,7 @@ const getBalance = async (req, res, next) => {
     }
 };
 
-// --- NEW: getTransactions Controller (Uses walletService) ---
-// --- !!! THIS IS THE CORRECTED FUNCTION !!! ---
+// --- UPDATED: getTransactions Controller with Integrity Check & Sync ---
 const getTransactions = async (req, res, next) => {
     const endpoint = '/api/wallet/transactions (GET)';
     const userId = req.user?.id;
@@ -117,30 +112,52 @@ const getTransactions = async (req, res, next) => {
         logger.error(`[${endpoint}] Error: userId not found in req.user.`);
         return res.status(401).json({ message: 'User not identified' });
     }
-    logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions using walletService.`);
 
-    // TODO: Get pagination params from req.query if implemented in walletService
-    // const page = parseInt(req.query.page) || 1;
-    // const limit = parseInt(req.query.limit) || 50; // Default limit 50
+    // Pagination Logic
+    const limit = parseInt(req.query.limit) || 20; // Default limit 20
+    const page = parseInt(req.query.page) || 1;    // Default page 1
+    const skip = (page - 1) * limit;
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions. Page: ${page}, Limit: ${limit}`);
 
     try {
-        // --- MODIFICATION: Call walletService.getWalletTransactions ---
-        // Pass pagination params if implemented: await walletService.getWalletTransactions(userId, page, limit);
-        const transactions = await walletService.getWalletTransactions(userId);
-        // --- END MODIFICATION ---
+        // 1. Check Integrity
+        logger.info(`[${endpoint}] User ${userId}: Checking transaction integrity...`);
+        const integrity = await walletService.checkTransactionIntegrity(userId);
 
-        res.status(200).json(transactions); // Send the already formatted transactions from walletService
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${transactions.length} transactions.`);
+        // 2. Sync if inconsistent
+        if (!integrity.isConsistent) {
+            logger.warn(`[${endpoint}] User ${userId}: Balance inconsistency detected! Blockchain Sats: ${integrity.onChainSatoshis}, DB Calc Sats: ${integrity.dbCalculatedSatoshis}. Triggering sync AND waiting...`);
+            // Sync is implicitly handled within getWalletTransactions now, just log it happened.
+            logger.info(`[${endpoint}] User ${userId}: Sync completed after inconsistency.`);
+        } else {
+            logger.info(`[${endpoint}] User ${userId}: Integrity OK.`);
+        }
+
+        // 3. ALWAYS Fetch transactions using the service function, which handles processing, saving, and pagination
+        logger.info(`[${endpoint}] User ID: ${userId} - Calling walletService.getWalletTransactions for paginated data.`);
+        const { transactions, totalCount } = await walletService.getWalletTransactions(userId, page, limit);
+        // The service now returns both the paginated transactions and the total count
+
+        // 4. Return paginated result
+        res.status(200).json({
+            transactions: transactions, // Use the list returned by the service
+            total: totalCount,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(totalCount / limit)
+        });
+        const sentCount = Array.isArray(transactions) ? transactions.length : 0;
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${sentCount} transactions (Page ${page}/${Math.ceil(totalCount/limit)}).`);
 
     } catch (error) {
-        // Log the specific error from walletService
-        logger.error(`[${endpoint}] Error fetching transactions via walletService for user ${userId}: ${error.message}`, error.stack);
-        // Determine appropriate status code based on error if possible
-        const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
-        res.status(statusCode).json({ message: error.message || 'Server error fetching transactions' });
+        logger.error(`[${endpoint}] User ID: ${userId}: Error during transaction fetch/check/sync: ${error.message}`, error.stack);
+        // --- FIX: Only send error response if headers haven't been sent yet ---
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Error fetching transaction history.', error: error.message });
+        }
     }
 };
-// --- !!! END OF CORRECTION !!! ---
+// --- END UPDATED getTransactions ---
 
 
 // --- UPDATED: sendBCH Controller (Uses walletService) ---
@@ -206,7 +223,7 @@ const sendBCH = async (req, res) => {
         } else if (error.message.includes('Network error') || error.message.includes('timeout') || error.message.includes('No connected Electrum servers')) {
              statusCode = 503; // Service Unavailable
              clientMessage = 'Erro de rede durante o envio da transação. Verifique seu histórico de transações mais tarde para confirmar o status.';
-        } else if (error.message.includes('User WIF not configured') || error.message.includes('Failed to initialize wallet keys')) {
+        } else if (error.message.includes('User WIF not configured') || error.message.includes('Failed to initialize wallet keys') || error.message.includes('Failed to access or derive wallet keys')) {
             // This indicates a server config issue or problem fetching keys
             statusCode = 500;
             clientMessage = 'Erro ao acessar a chave da carteira no servidor.';
@@ -219,87 +236,165 @@ const sendBCH = async (req, res) => {
     }
 };
 
+// --- Sales Calculation Endpoints (Consider moving to a dedicated report/stats controller) ---
+
 const getTotalSalesToday = async (req, res) => {
+  const endpoint = '/api/wallet/sales/today (GET)';
+  const userId = req.user?.id;
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales for today.`);
+
   try {
-    const userId = req.user.id;
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
+    // Aggregate directly from the Transaction model for confirmed received transactions today
     const totalSales = await Transaction.aggregate([
-      { $match: { userId, status: 'confirmed', createdAt: { $gte: startOfDay } } },
-      { $group: { _id: null, totalBRL: { $sum: '$amountBRL' } } },
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true, // Only count confirmed transactions
+          timestamp: { $gte: startOfDay } // Only transactions from today onwards
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBRL: { $sum: '$convertedBRL' } // Sum the BRL value
+        }
+      },
     ]);
 
     const total = totalSales[0]?.totalBRL || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales today: ${total} BRL.`);
     res.status(200).json({ total });
   } catch (error) {
-    console.error('Erro ao calcular vendas de hoje:', error);
-    res.status(500).json({ message: 'Erro ao calcular vendas de hoje' });
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating today's sales: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular vendas de hoje', error: error.message });
   }
 };
 
 const getTotalSales = async (req, res) => {
+  const endpoint = '/api/wallet/sales/total (GET)';
+  const userId = req.user?.id;
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales (all time).`);
+
   try {
-    const userId = req.user.id;
+    // Aggregate directly from the Transaction model for all confirmed received transactions
+    const totalSales = await Transaction.aggregate([
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true // Only count confirmed transactions
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBRL: { $sum: '$convertedBRL' } // Sum the BRL value
+        }
+      },
+    ]);
 
-    // Obtenha o endereço BCH do usuário
-    const user = await User.findById(userId).select('bchAddress');
-    if (!user || !user.bchAddress) {
-      return res.status(404).json({ message: 'Endereço BCH não encontrado para o usuário.' });
-    }
-
-    const bchAddress = user.bchAddress;
-
-    // Use o serviço BCH para buscar o histórico de transações
-    const transactions = await bchService.getTransactionHistoryFromElectrum(bchAddress);
-
-    // Filtre apenas as transações confirmadas e calcule o total
-    const totalSales = transactions
-      .filter(tx => tx.type === 'received' && tx.status === 'confirmed')
-      .reduce((sum, tx) => sum + tx.amountBRL, 0);
-
-    res.status(200).json({ total: totalSales });
+    const total = totalSales[0]?.totalBRL || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales (all time): ${total} BRL.`);
+    res.status(200).json({ total });
   } catch (error) {
-    console.error('Erro ao calcular total de vendas:', error);
-    res.status(500).json({ message: 'Erro ao calcular total de vendas' });
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating total sales: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas', error: error.message });
   }
 };
 
 const getTotalSalesInBCH = async (req, res) => {
+  const endpoint = '/api/wallet/sales/total-bch (GET)';
+  const userId = req.user?.id;
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales in BCH (all time).`);
+
   try {
-    const userId = req.user.id;
+    // Aggregate directly from the Transaction model for all confirmed received transactions
+    const totalSales = await Transaction.aggregate([
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true // Only count confirmed transactions
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBCH: { $sum: '$amount' } // Sum the BCH amount (assuming 'amount' field stores BCH)
+        }
+      },
+    ]);
 
-    // Obtenha o endereço BCH do usuário
-    const user = await User.findById(userId).select('bchAddress');
-    if (!user || !user.bchAddress) {
-      return res.status(404).json({ message: 'Endereço BCH não encontrado para o usuário.' });
-    }
-
-    const bchAddress = user.bchAddress;
-
-    // Use o serviço BCH para buscar o histórico de transações
-    const transactions = await bchService.getTransactionHistoryFromElectrum(bchAddress);
-
-    // Filtre apenas as transações confirmadas e calcule o total em BCH
-    const totalBCH = transactions
-      .filter(tx => tx.type === 'received' && tx.status === 'confirmed')
-      .reduce((sum, tx) => sum + tx.amountBCH, 0);
-
-    res.status(200).json({ total: totalBCH });
+    const total = totalSales[0]?.totalBCH || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales (all time): ${total} BCH.`);
+    res.status(200).json({ total });
   } catch (error) {
-    console.error('Erro ao calcular total de vendas em BCH:', error);
-    res.status(500).json({ message: 'Erro ao calcular total de vendas em BCH' });
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating total sales in BCH: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas em BCH', error: error.message });
   }
 };
+
+// --- ADDED: markTransactionAsSeen Controller ---
+async function markTransactionAsSeen(req, res) {
+  const endpoint = '/api/wallet/transactions/:txid/seen (PATCH)';
+  const userId = req.user?.id;
+  const txid = req.params.txid;
+
+  if (!userId) {
+    logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+    return res.status(401).json({ message: 'User not identified' });
+  }
+  if (!txid) {
+    logger.warn(`[${endpoint}] User ID: ${userId} - Missing txid parameter.`);
+    return res.status(400).json({ message: 'Transaction ID is required' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Marking transaction ${txid} as seen.`);
+
+  try {
+    const tx = await Transaction.findOneAndUpdate(
+      { txid: txid, userId: userId }, // Match both txid and userId for security
+      { seen: true },
+      { new: true } // Return the updated document
+    );
+    if (!tx) {
+        logger.warn(`[${endpoint}] User ID: ${userId} - Transaction ${txid} not found or doesn't belong to user.`);
+        return res.status(404).json({ message: 'Transaction not found or access denied' });
+    }
+    logger.info(`[${endpoint}] User ID: ${userId} - Successfully marked transaction ${txid} as seen.`);
+    res.status(200).json(tx); // Return the updated transaction
+  } catch (err) {
+    logger.error(`[${endpoint}] User ID: ${userId} - Error marking transaction ${txid} as seen: ${err.message}`);
+    logger.error(err.stack);
+    res.status(500).json({ message: 'Erro ao marcar transação como vista', error: err.message });
+  }
+}
+// --- END ADDED ---
 
 // --- Module Exports ---
 module.exports = {
     getWalletData, // Keep existing endpoint for now
     getAddress,    // Add new endpoint
     getBalance,    // Add new endpoint
-    getTransactions,// Add new endpoint
+    getTransactions,// Export updated getTransactions
     sendBCH,       // Export updated sendBCH
-    getTotalSalesToday, // Export new getTotalSalesToday
-    getTotalSales, // Exporta a nova função
-    getTotalSalesInBCH, // Exporta a nova função
+    getTotalSalesToday,
+    getTotalSales,
+    getTotalSalesInBCH,
+    markTransactionAsSeen // Export the new function
 };
