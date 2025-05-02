@@ -1,4 +1,9 @@
 // z:\Kashy-Project\backend\src\controllers\walletController.js
+const User = require('../models/user');
+const bchService = require('../services/bchService');
+const logger = require('../utils/logger');
+const { getBchToBrlRate } = require('../services/exchangeRate'); // Import BRL rate function
+const Transaction = require('../models/transaction'); // Supondo que exista um modelo de transações
 
 const User = require('../models/user');
 // --- MODIFICATION: Use walletService for core logic ---
@@ -217,11 +222,87 @@ const sendBCH = async (req, res) => {
     }
 };
 
+const getTotalSalesToday = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const totalSales = await Transaction.aggregate([
+      { $match: { userId, status: 'confirmed', createdAt: { $gte: startOfDay } } },
+      { $group: { _id: null, totalBRL: { $sum: '$amountBRL' } } },
+    ]);
+
+    const total = totalSales[0]?.totalBRL || 0;
+    res.status(200).json({ total });
+  } catch (error) {
+    console.error('Erro ao calcular vendas de hoje:', error);
+    res.status(500).json({ message: 'Erro ao calcular vendas de hoje' });
+  }
+};
+
+const getTotalSales = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Obtenha o endereço BCH do usuário
+    const user = await User.findById(userId).select('bchAddress');
+    if (!user || !user.bchAddress) {
+      return res.status(404).json({ message: 'Endereço BCH não encontrado para o usuário.' });
+    }
+
+    const bchAddress = user.bchAddress;
+
+    // Use o serviço BCH para buscar o histórico de transações
+    const transactions = await bchService.getTransactionHistoryFromElectrum(bchAddress);
+
+    // Filtre apenas as transações confirmadas e calcule o total
+    const totalSales = transactions
+      .filter(tx => tx.type === 'received' && tx.status === 'confirmed')
+      .reduce((sum, tx) => sum + tx.amountBRL, 0);
+
+    res.status(200).json({ total: totalSales });
+  } catch (error) {
+    console.error('Erro ao calcular total de vendas:', error);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas' });
+  }
+};
+
+const getTotalSalesInBCH = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Obtenha o endereço BCH do usuário
+    const user = await User.findById(userId).select('bchAddress');
+    if (!user || !user.bchAddress) {
+      return res.status(404).json({ message: 'Endereço BCH não encontrado para o usuário.' });
+    }
+
+    const bchAddress = user.bchAddress;
+
+    // Use o serviço BCH para buscar o histórico de transações
+    const transactions = await bchService.getTransactionHistoryFromElectrum(bchAddress);
+
+    // Filtre apenas as transações confirmadas e calcule o total em BCH
+    const totalBCH = transactions
+      .filter(tx => tx.type === 'received' && tx.status === 'confirmed')
+      .reduce((sum, tx) => sum + tx.amountBCH, 0);
+
+    res.status(200).json({ total: totalBCH });
+  } catch (error) {
+    console.error('Erro ao calcular total de vendas em BCH:', error);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas em BCH' });
+  }
+};
+
 // --- Module Exports ---
 module.exports = {
-    getWalletData, // Keep legacy endpoint for now
-    getAddress,    // Export new endpoint
-    getBalance,    // Export new endpoint
-    getTransactions,// Export corrected endpoint
-    sendBCH        // Export updated sendBCH
+    getWalletData, // Keep existing endpoint for now
+    getAddress,    // Add new endpoint
+    getBalance,    // Add new endpoint
+    getTransactions,// Add new endpoint
+    sendBCH,       // Export updated sendBCH
+    getTotalSalesToday, // Export new getTotalSalesToday
+    getTotalSales, // Exporta a nova função
+    getTotalSalesInBCH, // Exporta a nova função
 };

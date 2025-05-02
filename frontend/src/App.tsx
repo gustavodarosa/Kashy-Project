@@ -5,6 +5,7 @@ import Register from './pages/auth/register';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastContainer } from 'react-toastify';
 import { NotificationProvider } from './context/NotificationContext';
+import { TestAI } from "./components/TestAI";
 import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/test-ai" element={<TestAI />} />
           <Route
             path="/DashboardHome"
             element={

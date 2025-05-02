@@ -10,7 +10,10 @@ const {
     getBalance,
     getTransactions,
     sendBCH,
-    getWalletData // Keep if you still need the old endpoint
+    getWalletData, // Keep if you still need the old endpoint
+    getTotalSalesToday,
+    getTotalSales,
+    getTotalSalesInBCH
 } = require('../controllers/walletController'); // Adjust path if needed
 
 const router = express.Router();
@@ -24,6 +27,12 @@ router.get('/balance', getBalance);
 router.get('/transactions', getTransactions);
 router.post('/send', sendBCH); // Use sendBCH which handles the 'fee' parameter
 
+// Nova rota para somar o valor recebido hoje
+router.get('/sales/today', getTotalSalesToday);
+
+// Nova rota para o total acumulado de vendas
+router.get('/sales/total', getTotalSales); 
+router.get('/sales/total-bch', getTotalSalesInBCH);
 // --- Optional: Keep the old combined endpoint if needed for backward compatibility ---
 // router.get('/', getWalletData);
 

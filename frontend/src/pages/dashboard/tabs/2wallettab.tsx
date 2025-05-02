@@ -518,7 +518,7 @@ export function WalletTab() {
 
       {/* --- Send Modal --- */}
       {sendModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Enviar Bitcoin Cash</h3>

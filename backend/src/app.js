@@ -4,6 +4,8 @@ const routes = require('./routes');
 const userRoutes = require('./routes/userRoutes');
 const cryptoProxy = require('./routes/cryptoProxy');
 const walletRoutes = require('./routes/walletRoutes'); 
+const reportRoutes = require("./routes/reportRoutes");
+const productRoutes = require('./routes/productRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
 require('dotenv').config(); 
@@ -25,8 +27,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/crypto', cryptoProxy);
 app.use('/api', routes); 
-
+app.use("/api/reports", reportRoutes);
+app.use('/api/products', productRoutes);
 
 app.use(errorHandler);
 
-module.exports = app; 
+module.exports = app;

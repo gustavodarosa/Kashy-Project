@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema({
   bchAddress: { type: String, index: true, required: true },
   balance: { type: Number, required: true, default: 0 },
   processedTxIds: { type: [String], default: [] },
+  role: { type: String, enum: ['user', 'merchant'], required: true, default: 'user' }, // Novo campo
+  transactionCount: { type: Number, required: true, default: 0 }, // Novo campo
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

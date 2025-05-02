@@ -50,7 +50,8 @@ class AuthController {
         encryptedMnemonic,
         encryptedDerivationPath,
         bchAddress: walletDetails.address,
-        // balance and processedTxIds will use defaults from the schema
+        role: req.body.role || 'user', // Novo campo
+        transactionCount: 0, // Inicializa com 0
       });
 
       // Salva o usuário no banco de dados (only once)
