@@ -19,6 +19,7 @@ const { protect: authMiddleware } = require('./middlewares/authMiddleware'); // 
 // --- Route Imports ---
 const reportRoutes = require('./routes/reportRoutes'); // Routes for AI reports
 const productRoutes = require('./routes/productRoutes'); // Routes for Products
+const orderRoutes = require('./routes/orderRoutes'); // Routes for Orders
 
 // --- Environment Variables ---
 const PORT = process.env.PORT || 3000;
@@ -147,6 +148,9 @@ app.use('/api/reports', reportRoutes); // ADDED/ENSURED: Mount the AI report rou
 
 // Mount Product Routes (Keep existing)
 app.use('/api/products', productRoutes);
+
+// Mount Order Routes
+app.use('/api/orders', orderRoutes);
 
 // --- Direct API Route Definitions (Keep existing - ideally move to route files later) ---
 // Keep all your existing app.get/app.post/app.put routes here exactly as they were:

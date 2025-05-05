@@ -245,7 +245,7 @@ export function ProdutosTab() {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar produtos..."
+              placeholder="Buscar por produto..."
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => {
@@ -295,7 +295,7 @@ export function ProdutosTab() {
       
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0  bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-[var(--color-bg-secondary)] rounded-lg p-8 w-full max-w-3xl shadow-lg">
             <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-6">
               {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
@@ -497,7 +497,7 @@ export function ProdutosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Estoque</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loja</th> {/* Nova coluna */}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loja</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
