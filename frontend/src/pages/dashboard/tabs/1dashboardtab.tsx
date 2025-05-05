@@ -1,25 +1,58 @@
-import { useEffect, useState } from 'react';
-import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useEffect, useState, useCallback } from 'react'; // Added useCallback
+import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle, FiBarChart2, FiDollarSign } from 'react-icons/fi'; // Added FiBarChart2, FiDollarSign
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'; // Added Legend
 import { CryptoChart } from '../../../components/CryptoChart';
+import { toast } from 'react-toastify'; // Added toast
 
-const recentTransactions = [
-  { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '2024-06-10T14:30:00', customer: 'Cliente A' },
-  { id: 'tx2', amountBRL: 420.50, amountBCH: 0.014, status: 'pending', date: '2024-06-10T12:15:00', customer: 'Cliente B' },
-  { id: 'tx3', amountBRL: 189.90, amountBCH: 0.006, status: 'confirmed', date: '2024-06-09T09:45:00', customer: 'Cliente C' },
-  { id: 'tx4', amountBRL: 750.00, amountBCH: 0.025, status: 'confirmed', date: '2024-06-09T18:20:00', customer: 'Cliente D' },
-  { id: 'tx5', amountBRL: 230.40, amountBCH: 0.008, status: 'failed', date: '2024-06-08T16:10:00', customer: 'Cliente E' },
-];
+// --- Configuration ---
+const API_BASE_URL = 'http://localhost:3000/api';
+
+// --- Types (Copied/Adapted from 10statstab.tsx) ---
+type SalesPeriodStats = {
+  totalBRL: number;
+  totalBCH: number;
+  count: number;
+  averageTicketBRL: number;
+};
+
+type SalesSummary = {
+  today: SalesPeriodStats;
+  last30Days: SalesPeriodStats;
+  allTime: SalesPeriodStats;
+};
+
+type SalesOverTimePoint = {
+  period: string; // e.g., "2023-10-27" or "2023-43" (week) or "2023-10" (month)
+  totalBRL: number;
+  totalBCH: number;
+  count: number;
+};
+
+// --- Helper Functions (Copied/Adapted from 10statstab.tsx) ---
+const formatCurrency = (value: number | undefined) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+const formatBCH = (value: number | undefined) => (Number(value) || 0).toFixed(6) + ' BCH';
+
+// --- Mock Data (Keep or Remove as needed) ---
+// const recentTransactions = [ ... ]; // Removed for brevity, use API data
 
 export function DashboardTab() {
   const [timeRange, setTimeRange] = useState('week');
   const [blockchainStatus, setBlockchainStatus] = useState('online');
   const [userCount, setUserCount] = useState<number>(0);
-  const [salesToday, setSalesToday] = useState<number>(0);
-  const [totalSales, setTotalSales] = useState<number>(0);
-  const [totalBCH, setTotalBCH] = useState<number>(0);
-  const [salesData, setSalesData] = useState<{ date: string; total: number }[]>([]);
+  // const [salesToday, setSalesToday] = useState<number>(0); // REMOVED - Replaced by statsSummary
+  // const [totalSales, setTotalSales] = useState<number>(0); // REMOVED - Replaced by statsSummary
+  // const [totalBCH, setTotalBCH] = useState<number>(0); // REMOVED - Replaced by statsSummary
+  // const [salesData, setSalesData] = useState<{ date: string; total: number }[]>([]); // Replaced by salesOverTimeData
   const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; current: number; minimum: number }[]>([]);
+
+  // --- ADDED: State for Statistics Section ---
+  const [statsSummary, setStatsSummary] = useState<SalesSummary | null>(null);
+  const [salesOverTimeData, setSalesOverTimeData] = useState<SalesOverTimePoint[]>([]);
+  const [loadingStats, setLoadingStats] = useState<boolean>(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [chartParams, setChartParams] = useState({ groupBy: 'day', days: 30 });
+  // Placeholder for user role - replace with actual logic (context, fetch, etc.)
+  const [isMerchant, setIsMerchant] = useState<boolean>(true); // Assume merchant for now
 
   useEffect(() => {
     const fetchUserCount = async () => {
@@ -46,7 +79,7 @@ export function DashboardTab() {
     fetchUserCount();
   }, []);
 
-  useEffect(() => {
+  /* useEffect(() => { // REMOVED - Data now comes from statsSummary
     const fetchSalesToday = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -69,9 +102,9 @@ export function DashboardTab() {
     };
 
     fetchSalesToday();
-  }, []);
+  }, []); */ // END REMOVED useEffect
 
-  useEffect(() => {
+  /* useEffect(() => { // REMOVED - Data now comes from statsSummary
     const fetchTotalSales = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -94,9 +127,9 @@ export function DashboardTab() {
     };
 
     fetchTotalSales();
-  }, []);
+  }, []); */ // END REMOVED useEffect
 
-  useEffect(() => {
+  /* useEffect(() => { // REMOVED - Data now comes from statsSummary
     const fetchTotalBCH = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -119,7 +152,7 @@ export function DashboardTab() {
     };
 
     fetchTotalBCH();
-  }, []);
+  }, []); */ // END REMOVED useEffect
 
   useEffect(() => {
     const fetchLowStockProducts = async () => {
@@ -138,6 +171,59 @@ export function DashboardTab() {
     fetchLowStockProducts();
   }, []);
 
+  // --- ADDED: Fetch Statistics Data ---
+  const fetchDashboardStats = useCallback(async () => {
+    if (!isMerchant) { // Don't fetch if not a merchant
+      setLoadingStats(false);
+      return;
+    }
+    setLoadingStats(true);
+    setStatsError(null);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setStatsError("Usuário não autenticado.");
+      setLoadingStats(false);
+      return;
+    }
+
+    try {
+      // Fetch Summary and Chart data concurrently
+      const [summaryRes, chartRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/stats/sales-summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/stats/sales-over-time?groupBy=${chartParams.groupBy}&days=${chartParams.days}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      // Process Summary
+      if (!summaryRes.ok) {
+        const errData = await summaryRes.json().catch(() => ({}));
+        throw new Error(`Erro ao buscar resumo de estatísticas: ${errData.message || summaryRes.statusText}`);
+      }
+      const summaryData: SalesSummary = await summaryRes.json();
+      setStatsSummary(summaryData);
+
+      // Process Chart Data
+      if (!chartRes.ok) {
+        const errData = await chartRes.json().catch(() => ({}));
+        throw new Error(`Erro ao buscar dados do gráfico de vendas: ${errData.message || chartRes.statusText}`);
+      }
+      const chartData: SalesOverTimePoint[] = await chartRes.json();
+      setSalesOverTimeData(chartData);
+
+    } catch (err: any) {
+      console.error('[DashboardTab] Error fetching stats:', err);
+      setStatsError(err.message || 'Falha ao carregar estatísticas.');
+      toast.error(err.message || 'Falha ao carregar estatísticas.');
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [chartParams, isMerchant]); // Refetch when chartParams or isMerchant change
+
+  useEffect(() => { fetchDashboardStats(); }, [fetchDashboardStats]); // Fetch stats on load/param change
+
   const checkBlockchainStatus = () => {
     setBlockchainStatus('checking');
     setTimeout(() => {
@@ -146,27 +232,27 @@ export function DashboardTab() {
     }, 1000);
   };
 
-  useEffect(() => {
-    // Processar transações para agrupar por data
-    const groupedData = recentTransactions.reduce((acc, transaction) => {
-      if (transaction.status === 'confirmed') {
-        const date = new Date(transaction.date).toLocaleDateString('pt-BR');
-        acc[date] = (acc[date] || 0) + transaction.amountBRL;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+  // useEffect(() => { // Removed - using salesOverTimeData now
+  //   // Processar transações para agrupar por data
+  //   const groupedData = recentTransactions.reduce((acc, transaction) => {
+  //     if (transaction.status === 'confirmed') {
+  //       const date = new Date(transaction.date).toLocaleDateString('pt-BR');
+  //       acc[date] = (acc[date] || 0) + transaction.amountBRL;
+  //     }
+  //     return acc;
+  //   }, {} as Record<string, number>);
 
-    // Converter para o formato necessário para o gráfico
-    const formattedData = Object.entries(groupedData).map(([date, total]) => ({
-      date,
-      total,
-    }));
+  //   // Converter para o formato necessário para o gráfico
+  //   const formattedData = Object.entries(groupedData).map(([date, total]) => ({
+  //     date,
+  //     total,
+  //   }));
 
-    // Ordenar por data
-    formattedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  //   // Ordenar por data
+  //   formattedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    setSalesData(formattedData);
-  }, []);
+  //   setSalesData(formattedData);
+  // }, []);
 
   return (
     <div className="p-6 bg-gray-100 dark:bg-[var(--color-bg-primary)]">
@@ -178,7 +264,7 @@ export function DashboardTab() {
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        
+
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <div className="flex text-white items-center gap-2">
             <span>Status Blockchain:</span>
@@ -195,7 +281,7 @@ export function DashboardTab() {
                 <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Verificando...
               </span>
             )}
-            <button 
+            <button
               onClick={checkBlockchainStatus}
               className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
               title="Verificar status"
@@ -203,7 +289,7 @@ export function DashboardTab() {
               <FiRefreshCw size={14} />
             </button>
           </div>
-          
+
           <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-3 rounded-lg shadow">
             <div className="flex items-center gap-4">
               <span className="font-medium text-white">Saldo:</span>
@@ -219,10 +305,11 @@ export function DashboardTab() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
+            {/* UPDATED: Use statsSummary for total sales */}
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Total de Vendas</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
-                R$ {totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {loadingStats ? '...' : formatCurrency(statsSummary?.allTime?.totalBRL)}
               </p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
@@ -233,13 +320,14 @@ export function DashboardTab() {
             <FiTrendingUp className="mr-1" /> Total acumulado de vendas
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
+            {/* UPDATED: Use statsSummary for total BCH */}
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Recebido em BCH</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
-                ₿ {totalBCH.toFixed(8)}
+                {loadingStats ? '...' : formatBCH(statsSummary?.allTime?.totalBCH)}
               </p>
             </div>
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
@@ -250,7 +338,7 @@ export function DashboardTab() {
             Total acumulado em Bitcoin Cash
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
@@ -265,7 +353,7 @@ export function DashboardTab() {
             0 produtos esgotados
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
@@ -280,7 +368,7 @@ export function DashboardTab() {
             0 aguardando pagamento
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
@@ -295,7 +383,7 @@ export function DashboardTab() {
             0 confirmadas, 0 pendente
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
@@ -311,8 +399,105 @@ export function DashboardTab() {
           </div>
         </div>
 
-        
+
       </div>
+
+      {/* --- ADDED: Statistics Section (Conditional) --- */}
+      {isMerchant && (
+        <div className="mt-8 p-6 bg-white dark:bg-[var(--color-bg-secondary)] rounded-lg shadow">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6 flex items-center gap-2">
+            <FiBarChart2 /> Estatísticas de Vendas
+          </h2>
+
+          {/* Stats Error Display */}
+          {statsError && (
+            <div className="bg-red-800 border border-red-600 text-white px-4 py-3 rounded relative mb-6 shadow-md" role="alert">
+              <strong>Erro nas Estatísticas: </strong> <span className="block sm:inline">{statsError}</span>
+              <button onClick={() => setStatsError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
+            </div>
+          )}
+
+          {/* Stats Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {loadingStats || !statsSummary ? (
+              // ADDED: Unique key prop for loading skeletons
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-gray-100 dark:bg-[var(--color-bg-tertiary)] p-4 rounded-lg shadow animate-pulse">
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3 mb-3"></div>
+                  <div className="h-6 bg-gray-400 dark:bg-gray-600 rounded w-1/2 mb-2"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
+                </div>
+              ))
+            ) : (
+              <>
+                {/* Total Vendido (30 dias) */}
+                <div className="bg-gray-100 dark:bg-[var(--color-bg-tertiary)] p-4 rounded-lg shadow">
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--color-text-secondary)] mb-1">Vendas (30d)</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{formatCurrency(statsSummary.last30Days.totalBRL)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{statsSummary.last30Days.count} transações</p>
+                </div>
+                {/* Nº Transações (30 dias) */}
+                <div className="bg-gray-100 dark:bg-[var(--color-bg-tertiary)] p-4 rounded-lg shadow">
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--color-text-secondary)] mb-1">Nº Transações (30d)</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{statsSummary.last30Days.count}</p>
+                  <p className="text-xs text-gray-400 mt-1">&nbsp;</p> {/* Placeholder for alignment */}
+                </div>
+                {/* Ticket Médio (30 dias) */}
+                <div className="bg-gray-100 dark:bg-[var(--color-bg-tertiary)] p-4 rounded-lg shadow">
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--color-text-secondary)] mb-1">Ticket Médio (30d)</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{formatCurrency(statsSummary.last30Days.averageTicketBRL)}</p>
+                  <p className="text-xs text-gray-400 mt-1">&nbsp;</p> {/* Placeholder for alignment */}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Sales Over Time Chart */}
+          <div className="bg-gray-100 dark:bg-[var(--color-bg-tertiary)] p-4 rounded-lg shadow">
+            <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--color-text-primary)]">Vendas ao Longo do Tempo ({chartParams.days} dias)</h3>
+              {/* Add controls for groupBy and days later if needed */}
+            </div>
+
+            {loadingStats ? (
+              <div className="h-64 flex items-center justify-center text-gray-500 animate-pulse"> Carregando gráfico... </div>
+            ) : salesOverTimeData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-gray-500"> Nenhum dado de vendas para exibir no período. </div>
+            ) : (
+              <div className="h-64"> {/* Fixed height container */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={salesOverTimeData} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}> {/* Adjusted margins */}
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis dataKey="period" stroke="var(--color-text-secondary)" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--color-text-secondary)" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} width={55} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)', borderRadius: '0.5rem', color: 'var(--color-text-primary)', fontSize: '12px' }}
+                      formatter={(value: number, name: string) => {
+                        if (name === 'Vendas (BRL)') return formatCurrency(value);
+                        if (name === 'Transações') return value;
+                        return value;
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Line type="monotone" dataKey="totalBRL" name="Vendas (BRL)" stroke="var(--color-accent)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="count" name="Transações" stroke="var(--color-text-secondary)" strokeWidth={1} strokeDasharray="5 5" dot={false} activeDot={false} yAxisId="right" /> {/* Assign to potential right axis */}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Placeholder for Top Selling Products */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--color-text-primary)] mb-4">Produtos Mais Vendidos</h3>
+            <div className="p-4 bg-gray-100 dark:bg-[var(--color-bg-tertiary)] rounded-lg text-center text-gray-500">
+              (Em breve: Lista dos produtos mais vendidos no período)
+            </div>
+          </div>
+
+        </div>
+      )}
+      {/* --- END Statistics Section --- */}
 
       {/* Seções de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -321,28 +506,28 @@ export function DashboardTab() {
           <CryptoChart />
         </div>
         {/* Gráfico de Faturamento */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        {/* <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow"> // Commented out - Replaced by stats chart
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Faturamento</h2>
           </div>
-          
+
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280' }}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280' }}
                   width={40}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
                     borderRadius: '0.5rem',
@@ -350,18 +535,18 @@ export function DashboardTab() {
                     border: 'none'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2} 
-                  dot={{ r: 4 }} 
-                  activeDot={{ r: 6, strokeWidth: 0 }} 
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Segunda Linha de Seções Detalhadas */}
@@ -369,9 +554,9 @@ export function DashboardTab() {
         {/* Transações Recentes */}
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Transações Recentes</h2>
-          
+
           <div className="space-y-4">
-            {recentTransactions.map((tx) => (
+            {/* {recentTransactions.map((tx) => ( // Removed mock data display
               <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-[var(--color-text-primary)]">{tx.customer}</p>
@@ -403,7 +588,10 @@ export function DashboardTab() {
                   </div>
                 </div>
               </div>
-            ))}
+            ))} */}
+            <div className="text-center py-4 text-gray-500 dark:text-[var(--color-text-secondary)]">
+              (Transações recentes agora na aba 'Carteira')
+            </div>
           </div>
         </div>
 
@@ -415,7 +603,7 @@ export function DashboardTab() {
               Conferir
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {lowStockProducts.map((product) => (
               <div key={product.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">

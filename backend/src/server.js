@@ -3,6 +3,10 @@ require('dotenv').config(); // Load .env variables FIRST
 const http = require('http');
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+// --- MODIFICATION: Import Swagger dependencies ---
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+// --- END MODIFICATION ---
 const mongoose = require('mongoose'); // Assuming Mongoose is used throughout
 const logger = require('./utils/logger'); // Assuming logger is correctly set up
 const bcrypt = require('bcryptjs'); // Keep for password update route
@@ -140,6 +144,35 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- MODIFICATION: Swagger Setup ---
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Kashy API',
+      version: '1.0.0',
+      description: 'API for the Kashy Point-of-Sale system using Bitcoin Cash.',
+    },
+    // Define server URL (adjust if needed for production)
+    servers: [ { url: `http://localhost:${PORT}/api`, description: 'Development Server' } ], // Use PORT variable
+    // Define security scheme for JWT Bearer token
+    components: {
+      securitySchemes: {
+        bearerAuth: { // Name for the security scheme
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        }
+      }
+    },
+    security: [ { bearerAuth: [] } ] // Apply JWT globally by default to all endpoints
+  },
+  // Path to the API docs (your route files) - Ensure this matches your structure
+  apis: ['./src/routes/*.js'],
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// --- END MODIFICATION ---
+
 // --- Route Mounting ---
 
 // Mount AI Report Routes
@@ -147,6 +180,11 @@ app.use('/api/reports', reportRoutes); // ADDED/ENSURED: Mount the AI report rou
 
 // Mount Product Routes (Keep existing)
 app.use('/api/products', productRoutes);
+
+// --- MODIFICATION: Serve Swagger UI ---
+// Serve Swagger UI documentation at the /api-docs endpoint
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// --- END MODIFICATION ---
 
 // --- Direct API Route Definitions (Keep existing - ideally move to route files later) ---
 // Keep all your existing app.get/app.post/app.put routes here exactly as they were:
@@ -157,7 +195,8 @@ app.get('/', (req, res) => { // Keep the main root route
 
 app.post('/api/update-profile-image', authMiddleware, async (req, res) => {
   const { username, profileImage } = req.body;
-  const userId = req.user.id;
+  // --- FIX: Use req.userId ---
+  const userId = req.userId;
   try {
     logger.info(`User ID: ${userId} - Attempting to update profile image.`);
     const user = await User.findById(userId);
@@ -171,7 +210,8 @@ app.post('/api/update-profile-image', authMiddleware, async (req, res) => {
 });
 
 app.get('/api/user/username', authMiddleware, async (req, res) => {
-  const userId = req.user.id;
+  // --- FIX: Use req.userId ---
+  const userId = req.userId;
   try {
     logger.info(`User ID: ${userId} - Fetching username.`);
     const user = await User.findById(userId).select('username');
@@ -182,7 +222,8 @@ app.get('/api/user/username', authMiddleware, async (req, res) => {
 
 app.get('/api/user/:id', authMiddleware, async (req, res) => {
   const requestedUserId = req.params.id;
-  const requesterUserId = req.user.id;
+  // --- FIX: Use req.userId ---
+  const requesterUserId = req.userId;
   try {
     logger.info(`User ID: ${requesterUserId} - Fetching profile for user ID: ${requestedUserId}.`);
     if (!mongoose.Types.ObjectId.isValid(requestedUserId)) { return res.status(400).json({ message: 'Formato de ID de usuário inválido.' }); }
@@ -194,7 +235,8 @@ app.get('/api/user/:id', authMiddleware, async (req, res) => {
 
 app.put('/api/user/update-username', authMiddleware, async (req, res) => {
   const { username } = req.body;
-  const userId = req.user.id;
+  // --- FIX: Use req.userId ---
+  const userId = req.userId;
   if (!username || typeof username !== 'string' || username.trim().length === 0) { return res.status(400).json({ message: 'Username inválido ou ausente.' }); }
   try {
     logger.info(`User ID: ${userId} - Attempting to update username to "${username}".`);
@@ -209,7 +251,8 @@ app.put('/api/user/update-username', authMiddleware, async (req, res) => {
 
 app.put('/api/user/update-password', authMiddleware, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const userId = req.user.id;
+  // --- FIX: Use req.userId ---
+  const userId = req.userId;
   if (!currentPassword || !newPassword) { return res.status(400).json({ message: 'Senha atual e nova senha são obrigatórias.' }); }
   if (newPassword.length < 6) { return res.status(400).json({ message: 'Nova senha deve ter pelo menos 6 caracteres.' }); }
   if (currentPassword === newPassword) { return res.status(400).json({ message: 'Nova senha não pode ser igual à senha atual.' }); }

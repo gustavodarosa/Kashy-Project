@@ -13,6 +13,7 @@ const [loading, setLoading] = useState(false);
 const [showPassword, setShowPassword] = useState(false);
 const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 const [cnpjError, setCnpjError] = useState("");
+const [usernameError, setUsernameError] = useState(""); // <-- Add state for username error
 const navigate = useNavigate();
 
 const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,27 +26,41 @@ const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   }
 };
 
+// --- Add handler for username validation ---
+const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setName(value); // Update the state
+  // Check if value contains only letters and numbers
+  if (!/^[a-zA-Z0-9]*$/.test(value)) { // Allow empty string initially
+    setUsernameError("Username deve conter apenas letras e números.");
+  } else if (value.length > 0 && value.length < 3) { // Check length only if not empty
+    setUsernameError("Username deve ter pelo menos 3 caracteres.");
+  } else {
+    setUsernameError(""); // Clear error if valid or empty
+  }
+};
+// --- End handler ---
+
 const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-    if (password !== confirmPassword) {
+    if (password !== confirmPassword || usernameError || cnpjError) { // <-- Check for errors before submitting
       setMessage("As senhas não coincidem.");
       setLoading(false);
       return;
     }
     try {
-const response = await fetch("http://localhost:3000/api/auth/register", {
+const response = await fetch("http://localhost:3000/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          cnpj,
-          username,
-          password,
-          token,
+          email: email,
+          username: username, // Ensure this only contains letters/numbers if backend is strict
+          password: password,
+          // Removed cnpj and token as they are likely not expected by the backend registration route
         }),
       });
       if (response.ok) {
@@ -91,12 +106,17 @@ className="bg-gray-800 border border-gray-600 w-full max-w-md p-8 rounded-lg sha
 <input
 type="text"
 value={username}
-onChange={(e) => setName(e.target.value)}
-className="pl-10 pr-4 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[rgb(112,255,189)]"
+onChange={handleUsernameChange} // <-- Use the new handler
+className={`pl-10 pr-4 py-2 bg-gray-700 hover:bg-gray-600 border text-gray-100 rounded-lg w-full placeholder-gray-400 focus:outline-none focus:ring-2 ${
+  usernameError
+    ? "border-red-500 focus:ring-red-500"
+    : "border-gray-600 focus:ring-[rgb(112,255,189)]"
+}`}
 placeholder="Digite seu nome..."
 required
           />
 </div>
+{usernameError && <p className="text-xs text-red-500 -mt-4 w-full text-left">{usernameError}</p>} {/* <-- Display username error */}
         {/* Email */}
         <div className="relative w-full">
 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -129,13 +149,7 @@ required
       required
     />
   </div>
-  
-  {/* Mensagem de erro */}
-  {cnpjError && (
-    <p className="absolute bottom mt-5 text-xs text-red-500">
-      {cnpjError}
-    </p>
-  )}
+  {cnpjError && <p className="text-xs text-red-500 -mt-4 w-full text-left">{cnpjError}</p>} {/* <-- Display CNPJ error */}
 
 
         {/* Senha */}
@@ -190,7 +204,7 @@ onClick={() => setShowConfirmPassword(!showConfirmPassword)}
         {/* Botão de Cadastrar */}
 <button
 type="submit"
-disabled={loading}
+disabled={loading || !!cnpjError || !!usernameError} // <-- Disable button if there are errors
 className={`bg-[rgb(112,255,189)] hover:bg-[rgb(90,230,160)] text-gray-900 font-medium py-3 px-6 rounded-lg transition-colors w-full ${
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}

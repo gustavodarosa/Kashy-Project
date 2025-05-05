@@ -1,47 +1,118 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator'); 
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { authMiddleware } = require('../middlewares/authMiddleware');
-const User = require('../models/user'); // Adicione esta linha para importar o modelo User
+// --- MODIFICATION: Import validation middleware and schemas ---
+const { validate } = require('../middlewares/validators'); // Import the base validator
+const { registerSchema, updateUserSchema } = require('../middlewares/validators/userValidators');
+// --- END MODIFICATION ---
+// --- MODIFICATION: Import authMiddleware correctly ---
+const { protect: authMiddleware } = require('../middlewares/authMiddleware'); // Import the protect function directly
+// --- END MODIFICATION --- // Using 'protect' alias as 'authMiddleware'
+// const User = require('../models/user'); // Controller should handle DB interactions
 
-// --- Define Validation Middleware ---
-// Example: Assuming you want to validate email for registration
-const validateEmail = [
-    body('email', 'Invalid email format').isEmail().normalizeEmail(),
-    // Add other validations if needed (e.g., password for actual login/registration)
-];
 
 // --- Routes ---
 
-// Route to register a new user and generate a wallet
-// POST /api/users/register
+// POST /api/users - Register a new user
 router.post(
-    '/register',
-    validateEmail, // Apply validation middleware
-    userController.registerUser // Use the correct controller function
+    '/',
+    validate(registerSchema), // Apply Joi validation
+    userController.registerUser
 );
 
-// Route to recover a user's *encrypted* wallet data
-// GET /api/users/recover-wallet
+// --- MODIFICATION: Add Swagger JSDoc for Get Profile ---
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get the profile of the currently authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: [] # Indicates this endpoint requires the JWT token
+ *     responses:
+ *       200:
+ *         description: User profile data retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserProfile' # Define this schema below or elsewhere
+ *       401:
+ *         description: Unauthorized (token missing, invalid, or expired).
+ */
+// GET /api/users/me - Get current user's profile
 router.get(
-  '/recover-wallet',
-  authMiddleware, // Requires authentication
-  // No specific body validation needed here usually, relies on auth user
-  userController.recoverWallet
+    '/me',
+    authMiddleware, // Now correctly refers to the protect function
+    userController.getUserProfile
 );
 
-router.get('/', authMiddleware, async (req, res) => {
-  try {
-    const users = await User.find().select('_id email role isActive createdAt');
-    res.status(200).json(users);
-  } catch (error) {
-    console.error('Erro ao buscar usuários:', error);
-    res.status(500).json({ message: 'Erro ao buscar usuários' });
-  }
-});
+// --- MODIFICATION: Add Swagger JSDoc for Update Profile ---
+/**
+ * @swagger
+ * /users/me:
+ *   put:
+ *     summary: Update the profile of the currently authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateUserInput' # Define this schema
+ *     responses:
+ *       200:
+ *         description: User profile updated successfully.
+ *       400:
+ *         description: Validation failed.
+ *       401:
+ *         description: Unauthorized.
+ */
+// PUT /api/users/me - Update current user's profile
+router.put(
+    '/me',
+    authMiddleware, // Now correctly refers to the protect function
+    validate(updateUserSchema), // Validate update payload
+    userController.updateUserProfile
+);
 
 // Optional: Add route for linkWallet if it has a separate purpose
 // router.post('/link-wallet', authMiddleware, userController.linkWallet);
 
 module.exports = router;
+
+// --- MODIFICATION: Add component schemas for Swagger ---
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     UserProfile:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: User ID.
+ *         email:
+ *           type: string
+ *           format: email
+ *         username:
+ *           type: string
+ *         bchAddress:
+ *           type: string
+ *           description: User's Bitcoin Cash address.
+ *         role:
+ *           type: string
+ *           enum: [user, admin]
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     UpdateUserInput:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ */

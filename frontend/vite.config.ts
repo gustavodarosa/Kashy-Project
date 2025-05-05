@@ -19,6 +19,18 @@ export default defineConfig({
     }),
   ],
 
+  // Add this server configuration
+  server: {
+    proxy: {
+      // Proxy requests starting with /api to your backend server
+      '/api': {
+        target: 'http://localhost:3000', // Your backend server address
+        changeOrigin: true, // Recommended for virtual hosted sites
+        secure: false,      // Set to true if your backend uses HTTPS with a valid certificate
+      }
+    }
+  },
+
   // --- ADD THIS SECTION ---
   build: {
     // Set the target environment to support top-level await

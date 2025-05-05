@@ -8,7 +8,8 @@ const logger = require('../utils/logger');
 // --- MODIFICATION: Remove direct bchService dependency for history/balance ---
 // const bchService = require('./bchService');
 // --- MODIFICATION: Add walletService dependency ---
-const walletService = require('./walletService'); // Use the main service for processing
+// --- MODIFICATION: Import WalletService CLASS ---
+const WalletService = require('./walletService'); // Use the class for processing
 const cache = require('./cacheService');
 const { withTimeout } = require('../utils/asyncUtils');
 
@@ -272,13 +273,13 @@ class SpvMonitorService {
         logger.debug(`SPV: Attached listeners to ${serverId}.`);
     }
 
-    // --- MODIFIED: handleSubscriptionUpdate (Keep as is, uses processAndNotifyWithHistory) ---
-    async handleSubscriptionUpdate(scriptHash, status, serverId) {
-        logger.debug(`SPV: [Update Handling] Received status update for SH: ${scriptHash}, Status: ${status}, From: ${serverId}`);
+    // --- MODIFIED: handleSubscriptionUpdate (Updates DB status via walletService.syncTransactions) ---
+    async handleSubscriptionUpdate(scriptHash, electrumStatusHash, serverId) {
+        logger.debug(`SPV: [Update Handling] Received status update for SH: ${scriptHash}, Status: ${electrumStatusHash}, From: ${serverId}`);
 
         // 1. Check if status was recently processed
-        if (this.isStatusRecentlyProcessed(status)) {
-            logger.debug(`SPV: [Cache Hit] Status ${status} recently processed. Skipping.`);
+        if (this.isStatusRecentlyProcessed(electrumStatusHash)) {
+            logger.debug(`SPV: [Cache Hit] Status ${electrumStatusHash} recently processed. Skipping.`);
             return;
         }
 
@@ -304,17 +305,25 @@ class SpvMonitorService {
              logger.info(`SPV: [Cache Invalidate Trigger] Invalidating cache for User ${subInfo.userId} due to SPV update.`);
              cache.invalidateUserWalletCache(subInfo.userId);
              cache.invalidateBlockHeightCache();
+             // Invalidate block height specifically as confirmations depend on it
+             cache.del('blockHeight');
              // --- >>> END INVALIDATION <<< ---
 
+             // --- >>> ADDED: Trigger WalletService Sync <<< ---
+             // Instantiate WalletService for the specific user and trigger sync
+             const walletServiceInstance = new WalletService(subInfo.userId);
+             await walletServiceInstance.syncTransactions(); // This now updates the DB status
+             // --- >>> END ADDED <<< ---
+
              // Call the notification logic (which now uses walletService)
-             await this.processAndNotifyWithHistory(subInfo.userId, subInfo.bchAddress, scriptHash, status);
+             await this.processAndNotifyWithHistory(subInfo.userId, subInfo.bchAddress, scriptHash, electrumStatusHash);
 
              // Mark this status hash as processed AFTER successful processing & notification
-             this.processedStatusCache.set(status, Date.now());
-             logger.debug(`SPV: [Cache Set] Added status ${status} to processed cache.`);
+             this.processedStatusCache.set(electrumStatusHash, Date.now());
+             logger.debug(`SPV: [Cache Set] Added status ${electrumStatusHash} to processed cache.`);
 
         } catch (error) {
-             logger.error(`SPV: [Update Error] Error during notification processing for SH ${scriptHash} (Status: ${status}): ${error.message}`);
+             logger.error(`SPV: [Update Error] Error during notification processing for SH ${scriptHash} (Status: ${electrumStatusHash}): ${error.message}`);
              // Do NOT cache status if processing failed, allow retry on next update
         } finally {
              this.processingLocks.delete(scriptHash);
@@ -324,17 +333,22 @@ class SpvMonitorService {
     // --- END MODIFIED handleSubscriptionUpdate ---
 
     // --- MODIFIED: processAndNotifyWithHistory (Uses walletService) ---
-    async processAndNotifyWithHistory(userId, bchAddress, scriptHash, status) {
+    async processAndNotifyWithHistory(userId, bchAddress, scriptHash, electrumStatusHash) {
         logger.debug(`SPV: [Process/Notify Full] User: ${userId}, Addr: ${bchAddress}`);
 
         let fetchedBalanceData;
         let fetchedTransactionsResult; // Renamed to avoid conflict
 
         try {
+            // Instantiate WalletService for the user
+            // Note: This instance is separate from the one used for sync in handleSubscriptionUpdate,
+            // but it will read the data updated by that sync.
+            const walletServiceInstance = new WalletService(userId);
+
             // 1. Fetch Current Live Balance using walletService
             try {
                 // Ensure cache is bypassed by invalidation done in handleSubscriptionUpdate
-                fetchedBalanceData = await walletService.getWalletBalance(userId);
+                fetchedBalanceData = await walletServiceInstance.getWalletBalance();
                 logger.debug(`SPV: Fetched balance via walletService: User=${userId}, TotalBCH=${fetchedBalanceData.totalBCH}`);
             } catch (balanceError) {
                 logger.error(`SPV: Failed getting balance via walletService (User: ${userId}): ${balanceError.message}`);
@@ -345,7 +359,7 @@ class SpvMonitorService {
             try {
                 // Ensure cache is bypassed by invalidation done in handleSubscriptionUpdate
                 // Fetch page 1, limit 20 for the notification payload
-                fetchedTransactionsResult = await walletService.getWalletTransactions(userId, 1, 20);
+                fetchedTransactionsResult = await walletServiceInstance.getWalletTransactions(1, 20);
                 // --- FIX: Log the length of the transactions array ---
                 logger.debug(`SPV: Fetched ${fetchedTransactionsResult?.transactions?.length ?? 'undefined'} processed transactions (page 1) via walletService. Total count: ${fetchedTransactionsResult?.totalCount}`);
             } catch (historyError) {
