@@ -37,13 +37,14 @@ async function fetchRate() {
     return rate;
   } catch (error) {
     // Log the specific error from axios or validation
-    logger.error(`Failed to fetch BCH/BRL rate: ${error.message}`);
+    const errorMessage = error.response ? `status ${error.response.status}` : error.message;
+    logger.error(`Failed to fetch BCH/BRL rate: ${errorMessage}`);
     // Return stale rate if available, otherwise re-throw a more specific error
     if (currentRate) {
       logger.warn('Returning stale rate due to fetch error.');
       return currentRate;
     }
-    // Re-throw if no cached rate is available
+    // Re-throw if no cached/stale rate is available
     throw new Error(`Could not fetch exchange rate: ${error.message}`);
   }
 }

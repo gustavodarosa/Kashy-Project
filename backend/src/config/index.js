@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
-dotenv.config();
+require('dotenv').config();
 
-export default {
+// Use module.exports for CommonJS compatibility
+module.exports = {
   port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || 'YOUR_VERY_SECRET_KEY', // CHANGE THIS!

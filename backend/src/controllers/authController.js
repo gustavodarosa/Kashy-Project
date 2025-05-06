@@ -6,86 +6,12 @@ const bchService = require('../services/bchService');
 const cryptoUtils = require('../utils/cryptoUtils');
 const logger = require('../utils/logger'); // Import logger
 const spvService = require('../services/spvMonitorService'); // Import SPV Service
+// --- MODIFICATION: Import validationResult ---
+const { validationResult } = require('express-validator');
+// --- END MODIFICATION ---
 
 class AuthController {
-  static async register(req, res) {
-    const { email, password, username } = req.body;
-    const endpoint = '/api/register (POST)'; // For logging context
-
-    try {
-      // Verifica se o usuário já existe
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        logger.warn(`[${endpoint}] Registration attempt failed - User already exists: ${email}`);
-        return res.status(400).json({ message: 'Usuário já existe.' });
-      }
-
-      // Gera o hash da senha
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Gera os detalhes da carteira BCH
-      const walletDetails = await bchService.generateAddress();
-      logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
-      // Avoid logging mnemonic in production/staging:
-      // logger.debug(`[${endpoint}] Generated Mnemonic: ${walletDetails.mnemonic}`);
-
-      const encryptionKey = process.env.ENCRYPTION_KEY;
-      if (!encryptionKey) {
-           logger.error(`[${endpoint}] FATAL - ENCRYPTION_KEY is not set during registration.`);
-           throw new Error("Server configuration error: Missing encryption key.");
-      }
-
-      const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, encryptionKey);
-      const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, encryptionKey);
-
-      // Avoid logging sensitive data:
-      // logger.debug(`[${endpoint}] Encrypted Mnemonic: ${encryptedMnemonic}`);
-      // logger.debug(`[${endpoint}] Encrypted Derivation Path: ${encryptedDerivationPath}`);
-
-      // Cria o novo usuário
-      const newUser = new User({
-        email,
-        password: hashedPassword,
-        username,
-        encryptedMnemonic,
-        encryptedDerivationPath,
-        bchAddress: walletDetails.address,
-        // balance and processedTxIds will use defaults from the schema
-      });
-
-      // Salva o usuário no banco de dados (only once)
-      await newUser.save();
-      logger.info(`[${endpoint}] User ${email} (${newUser._id}) saved successfully.`);
-
-      // --- Add user to SPV Monitor ---
-      try {
-        logger.info(`[${endpoint}] Adding new user ${newUser._id} (${newUser.bchAddress}) to SPV monitoring.`);
-        // Call the exported function from the SPV service module
-        // No need to await - let it run in the background, SPV service handles connection/retry
-        spvService.addSubscription(newUser._id.toString(), newUser.bchAddress);
-        logger.info(`[${endpoint}] SPV subscription initiated for user ${newUser._id}.`);
-      } catch (spvError) {
-        // Log the error but don't fail the registration response
-        logger.error(`[${endpoint}] Failed to initiate SPV subscription for user ${newUser._id} during registration: ${spvError.message}`);
-        // Consider adding more details like spvError.stack if needed for debugging
-      }
-      // --- End SPV Monitor addition ---
-
-      // Retorna o usuário criado (without sensitive data)
-      res.status(201).json({
-        _id: newUser._id,
-        email: newUser.email,
-        username: newUser.username,
-        bchAddress: newUser.bchAddress,
-        message: 'Usuário registrado com sucesso.',
-      });
-    } catch (error) {
-      logger.error(`[${endpoint}] Error during user registration for ${email}: ${error.message}`);
-      logger.error(error.stack); // Log stack trace for detailed debugging
-      res.status(500).json({ message: 'Erro interno no servidor durante o registro.' });
-    }
-  }
-
+  // Registration logic moved to userController.registerUser
   static async login(req, res) {
     const { email, password } = req.body;
     const endpoint = '/api/login (POST)'; // For logging context
@@ -93,6 +19,15 @@ class AuthController {
     try {
       // Fetch user WITH password for comparison
       const user = await User.findOne({ email }).select('+password'); // <-- Select password
+
+      // --- MODIFICATION: Add validation check ---
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+          // Avoid logging password in case it's the failing field
+          logger.warn(`[${endpoint}] Login validation failed for ${email}: ${JSON.stringify(errors.array())}`);
+          return res.status(400).json({ message: "Validation failed", errors: errors.array() });
+      }
+      // --- END MODIFICATION ---
       if (!user) {
         logger.warn(`[${endpoint}] Login attempt failed - User not found: ${email}`);
         return res.status(401).json({ message: 'Credenciais inválidas.' });

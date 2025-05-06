@@ -1,11 +1,13 @@
 // z:\Kashy-Project\backend\src\controllers\walletController.js
-const User = require('../models/user');
-const bchService = require('../services/bchService');
+const { validationResult } = require('express-validator');
+const Transaction = require('../models/transaction'); // Model for DB operations
+const User = require('../models/user'); // Needed for some sales calculations
+// --- MODIFICATION: Import the WalletService CLASS ---
+const WalletService = require('../services/walletService');
 const logger = require('../utils/logger');
-const { getBchToBrlRate } = require('../services/exchangeRate'); // Import BRL rate function
-
-const SATOSHIS_PER_BCH = 1e8;
-const DUST_THRESHOLD_SATOSHIS = 546;
+// --- ADDED: Import qrcode library ---
+const qrcode = require('qrcode');
+// const bchService = require('../services/bchService'); // Keep commented out or remove if not used directly
 
 // --- Helper Function (Keep existing) ---
 function formatAddress(address) {
@@ -19,309 +21,445 @@ function formatAddress(address) {
     return address;
 }
 
-// --- Existing getWalletData (Keep for now, maybe deprecate later) ---
+// --- Existing getWalletData (Consider deprecating in favor of specific endpoints) ---
 const getWalletData = async (req, res) => {
     const endpoint = '/api/wallet (GET)';
+    const userId = req.userId; // Use req.userId from updated authMiddleware
+    if (!userId) {
+        logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+        return res.status(401).json({ message: 'User not identified' });
+    }
+    logger.warn(`[${endpoint}] User ID: ${userId} - Using DEPRECATED endpoint. Fetching combined wallet data.`);
+
     try {
-        const userId = req.user?.id;
-        if (!userId) { /* ... auth check ... */ }
-        logger.info(`[${endpoint}] User ID: ${userId} - Fetching wallet data (legacy endpoint).`);
-        const user = await User.findById(userId).select('bchAddress balance');
-        if (!user) { /* ... user check ... */ }
-
-        logger.info(`[${endpoint}] User ID: ${userId} - Fetching live transactions from Electrum for ${user.bchAddress}...`);
-        let transactions = [];
-        try {
-            // Use bchService to get history (format might differ from new getTransactions)
-            transactions = await bchService.getTransactionHistoryFromElectrum(user.bchAddress, 50);
-            logger.info(`[${endpoint}] User ID: ${userId} - Found ${transactions.length} live transactions.`);
-        } catch (txFetchError) {
-            logger.error(`[${endpoint}] User ID: ${userId} - Failed to fetch live transactions: ${txFetchError.message}`);
-        }
-
-        const confirmedSatoshis = user.balance || 0;
-        const balanceData = {
-            confirmedBCH: confirmedSatoshis / SATOSHIS_PER_BCH,
-            unconfirmedBCH: 0, // This endpoint doesn't fetch live unconfirmed balance
-            totalBCH: confirmedSatoshis / SATOSHIS_PER_BCH
-        };
-        logger.info(`[${endpoint}] User ID: ${userId} - Calculated balance from DB: ${JSON.stringify(balanceData)}`);
+        // --- MODIFICATION: Instantiate WalletService ---
+        const walletServiceInstance = new WalletService(userId);
+        // Fetch data using the new service functions for consistency
+        const [address, balance, transactionsResult] = await Promise.all([
+            walletServiceInstance.getWalletAddress(),
+            walletServiceInstance.getWalletBalance(),
+            walletServiceInstance.getWalletTransactions() // Default page/limit
+        ]);
 
         const walletData = {
-            balance: balanceData,
-            transactions: transactions, // Note: Format might not match frontend's AppTransaction exactly
-            address: user.bchAddress,
+            balance: balance, // Use the structure from walletService.getWalletBalance
+            transactions: transactions, // Use the structure from walletService.getWalletTransactions
+            address: address,
         };
         res.status(200).json(walletData);
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent wallet data (legacy endpoint).`);
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent combined wallet data (legacy endpoint).`);
 
     } catch (error) {
-        logger.error(`[${endpoint}] Error fetching wallet data for user ${req.user?.id}: ${error.message}`);
+        logger.error(`[${endpoint}] Error fetching combined wallet data for user ${userId}: ${error.message}`);
         logger.error(error.stack);
         res.status(500).json({ message: 'Erro interno no servidor ao obter dados da carteira.', error: error.message });
     }
 };
 
 
-// --- NEW: getAddress Controller ---
+// --- NEW: getAddress Controller (Uses walletService) ---
 const getAddress = async (req, res, next) => {
     const endpoint = '/api/wallet/address (GET)';
+    const userId = req.userId; // Use req.userId from updated authMiddleware
+    if (!userId) {
+        logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+        return res.status(401).json({ message: 'User not identified' });
+    }
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching address.`);
+
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            logger.error(`[${endpoint}] Error: userId not found in req.user.`);
-            return res.status(401).json({ message: 'User not identified' });
-        }
-        logger.info(`[${endpoint}] User ID: ${userId} - Fetching address.`);
+        // --- MODIFICATION: Instantiate and use WalletService ---
+        const walletServiceInstance = new WalletService(userId);
+        const address = await walletServiceInstance.getWalletAddress();
 
-        // Fetch user to get the address
-        const user = await User.findById(userId).select('bchAddress');
-        if (!user || !user.bchAddress) {
-            logger.error(`[${endpoint}] Error: User or address not found for ID: ${userId}`);
-            return res.status(404).json({ message: 'User or wallet address not found.' });
-        }
-
-        res.status(200).json({ address: user.bchAddress });
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent address: ${user.bchAddress}`);
+        res.status(200).json({ address: address });
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent address: ${address}`);
 
     } catch (error) {
-        logger.error(`[${endpoint}] Error fetching address for user ${req.user?.id}: ${error.message}`);
+        logger.error(`[${endpoint}] Error fetching address for user ${userId}: ${error.message}`);
         logger.error(error.stack);
-        res.status(500).json({ message: error.message || 'Server error fetching address' });
+        // Determine appropriate status code based on error if possible
+        const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
+        res.status(statusCode).json({ message: error.message || 'Server error fetching address' });
     }
 };
 
-// --- NEW: getBalance Controller ---
+// --- NEW: getBalance Controller (Uses walletService) ---
 const getBalance = async (req, res, next) => {
     const endpoint = '/api/wallet/balance (GET)';
+    const userId = req.userId; // Use req.userId from updated authMiddleware
+    if (!userId) {
+        logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+        return res.status(401).json({ message: 'User not identified' });
+    }
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching balance.`);
+
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            logger.error(`[${endpoint}] Error: userId not found in req.user.`);
-            return res.status(401).json({ message: 'User not identified' });
-        }
-        logger.info(`[${endpoint}] User ID: ${userId} - Fetching balance.`);
-
-        // Fetch user to get the address
-        const user = await User.findById(userId).select('bchAddress');
-        if (!user || !user.bchAddress) {
-            logger.error(`[${endpoint}] Error: User or address not found for ID: ${userId}`);
-            return res.status(404).json({ message: 'User or wallet address not found.' });
-        }
-
-        // Fetch live balance using bchService
-        const liveBalance = await bchService.getBalance(user.bchAddress);
-        const rate = await getBchToBrlRate(); // Fetch current BRL rate
-
-        const confirmedSatoshis = Math.round((liveBalance.balance || 0) * SATOSHIS_PER_BCH);
-        const unconfirmedSatoshis = Math.round((liveBalance.unconfirmedBalance || 0) * SATOSHIS_PER_BCH);
-        const totalSatoshis = confirmedSatoshis + unconfirmedSatoshis;
-
-        const availableBCH = confirmedSatoshis / SATOSHIS_PER_BCH;
-        const pendingBCH = unconfirmedSatoshis / SATOSHIS_PER_BCH;
-        const totalBCH = totalSatoshis / SATOSHIS_PER_BCH;
-        const totalBRL = totalBCH * rate;
-
-        // Construct response matching frontend's AppWalletBalance type
-        const balanceResponse = {
-            totalBCH,
-            availableBCH,
-            pendingBCH,
-            totalBRL,
-            totalSatoshis,
-            currentRateBRL: rate,
-        };
+        // --- MODIFICATION: Instantiate and use WalletService ---
+        const walletServiceInstance = new WalletService(userId);
+        const balanceResponse = await walletServiceInstance.getWalletBalance();
 
         res.status(200).json(balanceResponse);
         logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent balance data: ${JSON.stringify(balanceResponse)}`);
 
     } catch (error) {
-        logger.error(`[${endpoint}] Error fetching balance for user ${req.user?.id}: ${error.message}`);
+        logger.error(`[${endpoint}] Error fetching balance for user ${userId}: ${error.message}`);
         logger.error(error.stack);
-        res.status(500).json({ message: error.message || 'Server error fetching balance' });
+        // Determine appropriate status code based on error if possible
+        const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
+        res.status(statusCode).json({ message: error.message || 'Server error fetching balance' });
     }
 };
 
-// --- NEW: getTransactions Controller ---
+// --- UPDATED: getTransactions Controller with Integrity Check & Sync ---
 const getTransactions = async (req, res, next) => {
     const endpoint = '/api/wallet/transactions (GET)';
-    try {
-        const userId = req.user?.id;
-        if (!userId) {
-            logger.error(`[${endpoint}] Error: userId not found in req.user.`);
-            return res.status(401).json({ message: 'User not identified' });
-        }
-        logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions.`);
-
-        // Fetch user to get the address
-        const user = await User.findById(userId).select('bchAddress');
-        if (!user || !user.bchAddress) {
-            logger.error(`[${endpoint}] Error: User or address not found for ID: ${userId}`);
-            return res.status(404).json({ message: 'User or wallet address not found.' });
-        }
-
-        // TODO: Get pagination params from req.query if implemented
-        // const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50; // Default limit 50
-
-        // Fetch live transactions using bchService
-        const rawTransactions = await bchService.getTransactionHistoryFromElectrum(user.bchAddress, limit);
-        const rate = await getBchToBrlRate(); // Fetch current BRL rate
-
-        // Map rawTransactions to the frontend's AppTransaction format
-        const formattedTransactions = rawTransactions.map(tx => {
-            // Determine type and address based on raw data (needs refinement based on bchService output)
-            // This mapping is based on the structure seen in bchService.getTransactionHistoryFromElectrum
-            const amountBCH = tx.amountBCH || 0; // Amount might be positive for received, 0 for sent in current service
-            const amountBRL = amountBCH * rate;
-            const type = tx.type || 'unknown'; // 'received', 'sent', 'unknown'
-            const feeBCH = tx.feeSatoshis ? tx.feeSatoshis / SATOSHIS_PER_BCH : undefined;
-
-            // Determine recipient/sender address (simplistic)
-            let displayAddress = tx.displayAddressValue || tx.address || 'N/A';
-            if (type === 'sent' && displayAddress === user.bchAddress) {
-                 // If type is 'sent' but address is own, try to find recipient (needs more detailed tx data)
-                 displayAddress = 'Multiple/Unknown'; // Placeholder
-            }
-
-            return {
-                _id: tx._id || tx.txid, // Use txid as _id
-                type: type,
-                amountBCH: amountBCH,
-                amountBRL: amountBRL,
-                address: displayAddress, // Address shown in UI (recipient for sent, own for received)
-                txid: tx.txid,
-                timestamp: tx.timestamp, // Expecting ISO string from service
-                status: tx.status, // 'pending' or 'confirmed'
-                confirmations: tx.confirmations || 0,
-                blockHeight: tx.blockHeight > 0 ? tx.blockHeight : undefined,
-                fee: type === 'sent' ? feeBCH : undefined, // Fee only relevant for sent txs
-            };
-        });
-
-        // Sort by timestamp descending (most recent first) - service might already do this
-        formattedTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        res.status(200).json(formattedTransactions);
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${formattedTransactions.length} transactions.`);
-
-    } catch (error) {
-        logger.error(`[${endpoint}] Error fetching transactions for user ${req.user?.id}: ${error.message}`);
-        logger.error(error.stack);
-        res.status(500).json({ message: error.message || 'Server error fetching transactions' });
-    }
-};
-
-
-// --- UPDATED: sendBCH Controller ---
-const sendBCH = async (req, res) => {
-    const endpoint = '/api/wallet/send (POST)';
-    const userId = req.user?.id;
+    const userId = req.userId; // Use req.userId from updated authMiddleware
     if (!userId) {
         logger.error(`[${endpoint}] Error: userId not found in req.user.`);
         return res.status(401).json({ message: 'User not identified' });
     }
 
-    // Get address, amount, AND fee from body
-    const { address: toAddress, amount: amountBCHString, fee } = req.body;
-    logger.info(`[${endpoint}] User ID: ${userId} - Received send request: To=${toAddress}, Amount=${amountBCHString}, FeeLevel=${fee}`);
+    // Pagination Logic
+    const limit = parseInt(req.query.limit) || 20; // Default limit 20
+    const page = parseInt(req.query.page) || 1;    // Default page 1
+    const skip = (page - 1) * limit;
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions. Page: ${page}, Limit: ${limit}`);
 
-    // --- Input Validation ---
-    if (!toAddress || !amountBCHString || !fee) { // Check fee presence
+    try {
+        // --- MODIFICATION: Instantiate WalletService ---
+        const walletServiceInstance = new WalletService(userId);
+
+        // Integrity check and sync are now handled *inside* getWalletTransactions
+        // logger.info(`[${endpoint}] User ${userId}: Checking transaction integrity...`); // Moved to service
+        // logger.info(`[${endpoint}] User ${userId}: Integrity OK / Sync Triggered.`); // Moved to service
+
+        // 3. ALWAYS Fetch transactions using the service function, which handles processing, saving, and pagination
+        logger.info(`[${endpoint}] User ID: ${userId} - Calling walletService.getWalletTransactions for paginated data.`);
+        const { transactions, totalCount } = await walletServiceInstance.getWalletTransactions(page, limit);
+        // The service now returns both the paginated transactions and the total count
+
+        // 4. Return paginated result
+        res.status(200).json({
+            transactions: transactions, // Use the list returned by the service
+            total: totalCount,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(totalCount / limit)
+        });
+        const sentCount = Array.isArray(transactions) ? transactions.length : 0;
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${sentCount} transactions (Page ${page}/${Math.ceil(totalCount/limit)}).`);
+
+    } catch (error) {
+        logger.error(`[${endpoint}] User ID: ${userId}: Error during transaction fetch/check/sync: ${error.message}`, error.stack);
+        // --- FIX: Only send error response if headers haven't been sent yet ---
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Error fetching transaction history.', error: error.message });
+        }
+    }
+};
+// --- END UPDATED getTransactions ---
+
+
+// --- UPDATED: sendBCH Controller (Uses walletService) ---
+const sendBCH = async (req, res) => {
+    const endpoint = '/api/wallet/send (POST)';
+    const userId = req.userId; // Use req.userId from updated authMiddleware
+    if (!userId) {
+        logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+        return res.status(401).json({ message: 'User not identified' });
+    }
+
+    // Input validation (using express-validator or manually)
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      logger.warn(`[${endpoint}] User ID: ${userId} - Validation failed: ${JSON.stringify(errors.array())}`);
+      return res.status(400).json({ message: "Validation failed", errors: errors.array() });
+    }
+
+    // Get address, amount, AND fee from body
+    const { address: recipientAddress, amount: amountBchStr, fee: feeLevel } = req.body;
+    logger.info(`[${endpoint}] User ID: ${userId} - Received send request: To=${recipientAddress}, Amount=${amountBchStr}, FeeLevel=${feeLevel}`);
+
+    // Basic validation (walletService.sendTransaction will do more thorough checks)
+    if (!recipientAddress || !amountBchStr || !feeLevel) {
         logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Missing fields (address, amount, or fee).`);
         return res.status(400).json({ message: 'Missing required fields: address, amount, fee' });
     }
-    if (!bchService.validateAddress(toAddress)) {
-        logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Invalid recipient address format: ${toAddress}`);
-        return res.status(400).json({ message: 'Endereço de destino inválido.' });
-    }
-    const amountBCH = parseFloat(amountBCHString);
-    if (isNaN(amountBCH) || amountBCH <= 0) {
-        logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Invalid amount format: ${amountBCHString}`);
-        return res.status(400).json({ message: 'Quantidade inválida.' });
-    }
-    const amountSatoshis = Math.round(amountBCH * SATOSHIS_PER_BCH);
-    if (amountSatoshis < DUST_THRESHOLD_SATOSHIS) {
-        logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Amount ${amountSatoshis} satoshis below dust threshold.`);
-        return res.status(400).json({ message: `Quantia inválida: O valor mínimo é ${DUST_THRESHOLD_SATOSHIS} satoshis.` });
-    }
-    // Validate fee level
-    if (!['low', 'medium', 'high'].includes(fee)) {
-        logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Invalid fee level: ${fee}`);
+    if (!['low', 'medium', 'high'].includes(feeLevel)) {
+        logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Invalid fee level: ${feeLevel}`);
         return res.status(400).json({ message: 'Invalid fee level. Use low, medium, or high.' });
     }
-    // --- End Input Validation ---
+    // --- End Basic Validation ---
 
     try {
-        const user = await User.findById(userId).select('+encryptedMnemonic +encryptedDerivationPath');
-        if (!user || !user.encryptedMnemonic || !user.encryptedDerivationPath) {
-             logger.error(`[${endpoint}] Error: User ${userId} or wallet data not found.`);
-             return res.status(404).json({ message: 'User or wallet data not found.' });
-        }
+        // --- MODIFICATION: Instantiate and use WalletService ---
+        const walletServiceInstance = new WalletService(userId);
+        // Delegate sending logic entirely to walletService
+        const result = await walletServiceInstance.sendTransaction(recipientAddress, amountBchStr, feeLevel);
 
-        const encryptionKey = process.env.ENCRYPTION_KEY;
-        if (!encryptionKey) {
-             logger.error(`[${endpoint}] FATAL: ENCRYPTION_KEY is not set.`);
-             throw new Error("Server configuration error: Missing encryption key.");
-        }
-
-        logger.info(`[${endpoint}] User ID: ${userId} - Deriving private key...`);
-        const fromWif = await bchService.derivePrivateKey(user.encryptedMnemonic, user.encryptedDerivationPath, encryptionKey);
-
-        logger.info(`[${endpoint}] User ID: ${userId} - Calling bchService.sendTransaction with fee level ${fee}...`);
-
-        // *** IMPORTANT: Assumes bchService.sendTransaction is updated to accept feeLevel ***
-        // *** If not, bchService needs modification ***
-        const txid = await bchService.sendTransaction(fromWif, toAddress, amountBCH, fee); // Pass fee level
-
-        logger.info(`[${endpoint}] User ID: ${userId} - Transaction sent successfully. TXID: ${txid}`);
-        res.status(200).json({ txid, message: 'Transação enviada com sucesso!' });
+        logger.info(`[${endpoint}] User ID: ${userId} - Transaction sent successfully via walletService. TXID: ${result.txid}`);
+        res.status(200).json({ txid: result.txid, message: 'Transação enviada com sucesso!' });
 
     } catch (error) {
-        // --- Error Handling (Keep detailed handling) ---
-        logger.error(`[${endpoint}] Error sending BCH for user ${userId}: ${error.message}`);
-        logger.error(error.stack);
-        let errorMessage = 'Erro interno no servidor ao enviar BCH.';
-        let statusCode = 500; // Default status code
+        // Log the specific error from walletService
+        logger.error(`[${endpoint}] Error sending transaction via walletService for user ${userId}: ${error.message}`);
+        logger.error(error.stack); // Log stack for debugging
 
-        // Map specific errors to user-friendly messages and potentially 4xx status codes
-        if (error.message.includes('Saldo insuficiente') || error.message.includes('Insufficient funds')) {
-            errorMessage = 'Saldo insuficiente para completar a transação (incluindo taxa).';
-            statusCode = 400; // Bad request (insufficient funds)
-        } else if (error.message.includes('dust') || (error.message.includes('rejected') && error.message.includes('rules'))) {
-            errorMessage = `Erro de rede: A quantia enviada (${amountSatoshis} sat) é muito pequena (abaixo do limite de ${DUST_THRESHOLD_SATOSHIS} sat).`;
+        // Provide a user-friendly error message based on the error type if possible
+        let statusCode = 500; // Default to Internal Server Error
+        let clientMessage = 'Erro interno no servidor ao enviar BCH.';
+
+        // Map specific errors from walletService to better client messages/status codes
+        if (error.message.includes('Insufficient funds')) { // Match errors thrown by the service
+            statusCode = 400; // Bad Request
+            clientMessage = 'Saldo insuficiente para cobrir o valor e a taxa da transação.';
+        } else if (error.message.includes('Invalid recipient address')) {
             statusCode = 400;
-        } else if (error.message.includes('Invalid recipient address') || error.message.includes('Endereço de destino inválido')) {
-             errorMessage = 'Endereço de destino inválido.';
+            clientMessage = 'Endereço de destino inválido.';
+        } else if (error.message.includes('below dust threshold')) {
+            statusCode = 400;
+            clientMessage = 'O valor da transação é muito pequeno (abaixo do limite mínimo).';
+        } else if (error.message.includes('Invalid amount')) {
              statusCode = 400;
-        } else if (error.message.includes('Invalid amount') || error.message.includes('Quantidade inválida')) {
-             errorMessage = 'Quantidade inválida.';
-             statusCode = 400;
-        } else if (error.message.includes('decrypt')) {
-            errorMessage = 'Erro ao acessar dados seguros da carteira.';
-            statusCode = 500; // Internal server error
-        } else if (error.message.includes('derivar chave privada')) {
-            errorMessage = 'Erro ao preparar a carteira para envio.';
+             clientMessage = 'Valor inválido especificado.';
+        } else if (error.message.includes('Network error')) { // Match errors thrown by the service
+             statusCode = 503; // Service Unavailable
+             clientMessage = 'Erro de rede durante o envio da transação. Verifique seu histórico de transações mais tarde para confirmar o status.';
+        } else if (error.message.includes('Failed to access or derive wallet keys')) { // Match errors thrown by the service
+            // This indicates a server config issue or problem fetching keys
             statusCode = 500;
-        } else if (error.message.includes('Erro ao enviar transação') || error.message.includes('Error sending transaction')) {
-            // Use the specific error from the service if available and seems safe
-            errorMessage = error.message;
-            statusCode = 500; // Or potentially 400/502 depending on the cause
-        } else if (error.message.includes('Server configuration error')) {
-             errorMessage = 'Erro de configuração no servidor.';
-             statusCode = 500;
+            clientMessage = 'Erro ao acessar a chave da carteira no servidor.';
+        } else if (error.message.includes('Failed to send transaction')) {
+            // Keep the generic message from walletService if it's not one of the above
+            clientMessage = error.message;
         }
 
-        res.status(statusCode).json({ message: errorMessage, error: error.message }); // Include original error for debugging if needed
-        // --- End Error Handling ---
+        res.status(statusCode).json({ message: clientMessage, error: error.message }); // Include original error message for context
     }
 };
+
+// --- Sales Calculation Endpoints (Consider moving to a dedicated report/stats controller) ---
+
+const getTotalSalesToday = async (req, res) => {
+  const endpoint = '/api/wallet/sales/today (GET)';
+  const userId = req.userId; // Use req.userId from updated authMiddleware
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales for today.`);
+
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Aggregate directly from the Transaction model for confirmed received transactions today
+    const totalSales = await Transaction.aggregate([
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true, // Only count confirmed transactions
+          timestamp: { $gte: startOfDay } // Only transactions from today onwards
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBRL: { $sum: '$convertedBRL' } // Sum the BRL value
+        }
+      },
+    ]);
+
+    const total = totalSales[0]?.totalBRL || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales today: ${total} BRL.`);
+    res.status(200).json({ total });
+  } catch (error) {
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating today's sales: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular vendas de hoje', error: error.message });
+  }
+};
+
+const getTotalSales = async (req, res) => {
+  const endpoint = '/api/wallet/sales/total (GET)';
+  const userId = req.userId; // Use req.userId from updated authMiddleware
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales (all time).`);
+
+  try {
+    // Aggregate directly from the Transaction model for all confirmed received transactions
+    const totalSales = await Transaction.aggregate([
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true // Only count confirmed transactions
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBRL: { $sum: '$convertedBRL' } // Sum the BRL value
+        }
+      },
+    ]);
+
+    const total = totalSales[0]?.totalBRL || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales (all time): ${total} BRL.`);
+    res.status(200).json({ total });
+  } catch (error) {
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating total sales: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas', error: error.message });
+  }
+};
+
+const getTotalSalesInBCH = async (req, res) => {
+  const endpoint = '/api/wallet/sales/total-bch (GET)';
+  const userId = req.userId; // Use req.userId from updated authMiddleware
+  if (!userId) {
+      logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+      return res.status(401).json({ message: 'User not identified' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Calculating total sales in BCH (all time).`);
+
+  try {
+    // Aggregate directly from the Transaction model for all confirmed received transactions
+    const totalSales = await Transaction.aggregate([
+      {
+        $match: {
+          userId: userId, // Match the specific user
+          type: 'received', // Only count received transactions
+          confirmed: true // Only count confirmed transactions
+        }
+      },
+      {
+        $group: {
+          _id: null, // Group all matched documents
+          totalBCH: { $sum: '$amount' } // Sum the BCH amount (assuming 'amount' field stores BCH)
+        }
+      },
+    ]);
+
+    const total = totalSales[0]?.totalBCH || 0;
+    logger.info(`[${endpoint}] User ID: ${userId} - Total sales (all time): ${total} BCH.`);
+    res.status(200).json({ total });
+  } catch (error) {
+    logger.error(`[${endpoint}] User ID: ${userId} - Error calculating total sales in BCH: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro ao calcular total de vendas em BCH', error: error.message });
+  }
+};
+
+// --- ADDED: markTransactionAsSeen Controller ---
+async function markTransactionAsSeen(req, res) {
+  const endpoint = '/api/wallet/transactions/:txid/seen (PATCH)';
+  const userId = req.userId; // Use req.userId from updated authMiddleware
+  const txid = req.params.txid;
+
+  if (!userId) {
+    logger.error(`[${endpoint}] Error: userId not found in req.user.`);
+    return res.status(401).json({ message: 'User not identified' });
+  }
+  if (!txid) {
+    logger.warn(`[${endpoint}] User ID: ${userId} - Missing txid parameter.`);
+    return res.status(400).json({ message: 'Transaction ID is required' });
+  }
+  logger.info(`[${endpoint}] User ID: ${userId} - Marking transaction ${txid} as seen.`);
+
+  try {
+    // --- MODIFICATION: Instantiate and use WalletService ---
+    const walletServiceInstance = new WalletService(userId);
+    const tx = await walletServiceInstance.markTransactionAsSeen(txid);
+    // Service method now handles finding and updating
+
+    if (!tx) {
+        // This case should now be handled by the service throwing an error
+        logger.warn(`[${endpoint}] User ID: ${userId} - Transaction ${txid} not found or doesn't belong to user.`);
+        // The service error will be caught below
+        return res.status(404).json({ message: 'Transaction not found or access denied' });
+    }
+    logger.info(`[${endpoint}] User ID: ${userId} - Successfully marked transaction ${txid} as seen.`);
+    res.status(200).json(tx); // Return the updated transaction
+  } catch (err) {
+    logger.error(`[${endpoint}] User ID: ${userId} - Error marking transaction ${txid} as seen: ${err.message}`);
+    logger.error(err.stack);
+    // Handle specific error from service
+    if (err.message.includes('Transaction not found or access denied')) {
+        return res.status(404).json({ message: err.message });
+    }
+    // Generic server error for other issues
+    res.status(500).json({ message: 'Erro ao marcar transação como vista', error: err.message });
+  }
+}
+// --- END ADDED ---
+
+// --- ADDED: Generate Payment QR Controller ---
+async function generatePaymentQR(req, res) {
+    const endpoint = '/api/wallet/payment-request (GET)';
+    const userId = req.userId;
+    if (!userId) {
+        // This should be caught by authMiddleware, but double-check
+        logger.error(`[${endpoint}] User not identified in request`, { userId });
+        return res.status(401).json({ message: 'User not identified' });
+    }
+
+    // Check validation results from the route definition
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        logger.warn(`[${endpoint}] Validation failed`, { userId, errors: errors.array() });
+        return res.status(400).json({ message: "Validation failed", errors: errors.array() });
+    }
+
+    // Get validated query parameters
+    const { amount, label } = req.query; // amount is already float due to validation
+    logger.info(`[${endpoint}] Generating payment QR request`, { userId, amount, label });
+
+    try {
+        const walletServiceInstance = new WalletService(userId);
+        const address = await walletServiceInstance.getWalletAddress();
+
+        // Construct BIP-21 URI: bitcoincash:address?amount=XXX&label=YYY
+        let uri = `bitcoincash:${address}`;
+        const params = new URLSearchParams();
+        if (amount) {
+            // Ensure amount has correct decimal places for BCH (8)
+            params.append('amount', parseFloat(amount).toFixed(8));
+        }
+        if (label) {
+            params.append('label', label); // URLSearchParams handles encoding
+        }
+        const paramString = params.toString();
+        if (paramString) {
+            uri += `?${paramString}`;
+        }
+
+        logger.debug(`[${endpoint}] Generated URI: ${uri}`, { userId });
+
+        // Generate QR code as a Data URL (base64 encoded image)
+        const qrCodeDataURL = await qrcode.toDataURL(uri, { errorCorrectionLevel: 'M', margin: 2 });
+
+        res.status(200).json({ qrCodeDataURL, paymentURI: uri, address, amount, label });
+        logger.info(`[${endpoint}] Successfully generated payment QR`, { userId });
+    } catch (error) {
+        logger.error(`[${endpoint}] Error generating payment QR`, { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Failed to generate payment QR code', error: error.message });
+    }
+}
+// --- END ADDED ---
 
 // --- Module Exports ---
 module.exports = {
     getWalletData, // Keep existing endpoint for now
     getAddress,    // Add new endpoint
     getBalance,    // Add new endpoint
-    getTransactions,// Add new endpoint
-    sendBCH        // Export updated sendBCH
+    getTransactions,// Export updated getTransactions
+    sendBCH,       // Export updated sendBCH
+    getTotalSalesToday,
+    getTotalSales,
+    getTotalSalesInBCH,
+    markTransactionAsSeen, // Export the new function
+    generatePaymentQR // <-- ADDED: Export the new QR generator function
 };
