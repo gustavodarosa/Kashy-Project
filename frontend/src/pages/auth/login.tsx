@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
 import { LockKeyhole, Mail } from "lucide-react";
 const renewToken = async () => {
 const token = localStorage.getItem("token");
@@ -9,8 +9,10 @@ const response = await fetch("http://localhost:3000/api/refresh-token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // Se o seu endpoint de refresh requer autenticação, adicione o header aqui
+        // 'Authorization': `Bearer ${token}` // Exemplo
       },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token }), // Envie o token no corpo, se for o esperado pela API
     });
     if (response.ok) {
 const data = await response.json();
