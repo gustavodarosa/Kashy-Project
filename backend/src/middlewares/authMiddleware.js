@@ -30,10 +30,13 @@ const protect = (req, res, next) => {
         throw new jwt.JsonWebTokenError('Invalid token payload'); // Treat as invalid token
       }
 
-      // Attach userId directly to the request for consistency with controllers
-      req.userId = decoded.id;
-      // --- FIX: Use req.userId in the log message ---
-      logger.info(`Token verified successfully for user ID: ${req.userId}`);
+      req.user = {
+        id: decoded.id,
+        // You could add other decoded properties here if they exist and are needed
+        // email: decoded.email,
+      };
+
+      logger.info(`Token verified successfully for user ID: ${req.user.id}`);
 
       // 5. Proceed to the next middleware or route handler
       next();

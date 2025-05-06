@@ -1,4 +1,7 @@
-export type Product = {
+import { useState, useEffect } from 'react';
+import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+
+type Product = {
   _id: string;
   name: string;
   description: string;
@@ -9,12 +12,7 @@ export type Product = {
   category: string;
   isActive: boolean;
   createdAt: string;
-  store: string; // Adicionando a propriedade store
 };
-
-import { useState, useEffect } from 'react';
-import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { useNotification } from '../../../context/NotificationContext'; // Importe o contexto de notificações
 
 export function ProdutosTab() {
   // Estado para os produtos
@@ -30,7 +28,6 @@ export function ProdutosTab() {
   // Estado para busca/filtro
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStore, setSelectedStore] = useState<string>('all');
   
   // Estado para o formulário
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
@@ -43,13 +40,8 @@ export function ProdutosTab() {
     quantity: 0,
     sku: '',
     category: 'outros',
-    isActive: true,
-    store: '', // Adicionado o campo store
-    minimum: 1, // Add the `minimum` field with a default value
+    isActive: true
   });
-
-  // Contexto de notificações
-  const { addNotification } = useNotification();
 
   // Categorias de produtos
   const categories = [
@@ -58,7 +50,7 @@ export function ProdutosTab() {
     { value: 'eletronicos', label: 'Eletrônicos' },
     { value: 'vestuario', label: 'Vestuário' },
     { value: 'servicos', label: 'Serviços' },
-    
+    { value: 'outros', label: 'Outros' }
   ];
 
   // Simulação de fetch de dados
@@ -66,41 +58,53 @@ export function ProdutosTab() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/products');
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar produtos');
-        }
-
-        const data = await response.json();
-
-        // Aplicar filtros de busca e categoria
-        const filteredProducts = data.filter((product: Product) => {
-          const matchesCategory =
-            selectedCategory === 'all' || product.category === selectedCategory;
-          const matchesSearch =
-            searchTerm === '' ||
+        // Simulando uma chamada API
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Dados mockados
+        const mockProducts: Product[] = Array.from({ length: 25 }, (_, i) => ({
+          _id: `prod-${i}`,
+          name: `Produto ${i + 1}`,
+          description: `Descrição do produto ${i + 1}`,
+          priceBRL: Math.random() * 100 + 10,
+          priceBCH: (Math.random() * 100 + 10) * 0.0001,
+          quantity: Math.floor(Math.random() * 100),
+          sku: `SKU-${1000 + i}`,
+          category: categories[Math.floor(Math.random() * categories.length)].value,
+          isActive: i % 5 !== 0, // 1 em cada 5 inativo
+          createdAt: new Date(Date.now() - i * 86400000).toISOString()
+        }));
+        
+        // Aplicar filtros
+        const filteredProducts = mockProducts.filter(product => {
+          const matchesSearch = 
             product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchesStore =
-            selectedStore === 'all' || product.store === selectedStore;
-
-          return matchesCategory && matchesSearch && matchesStore;
+          
+          const matchesCategory = 
+            selectedCategory === 'all' || product.category === selectedCategory;
+          
+          return matchesSearch && matchesCategory;
         });
-
-        setProducts(filteredProducts);
+        
+        // Paginação
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+        
+        setProducts(paginatedProducts);
         setTotalPages(Math.ceil(filteredProducts.length / itemsPerPage));
         setError(null);
       } catch (err) {
-        console.error('[ERROR] Erro ao carregar produtos:', err);
         setError('Erro ao carregar produtos');
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory, selectedStore, addNotification]);
+  }, [currentPage, searchTerm, selectedCategory]);
 
   // Manipuladores de formulário
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -126,34 +130,25 @@ export function ProdutosTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Payload being sent:', formData); // Log the payload
     try {
-      const method = currentProduct ? 'PUT' : 'POST';
-      const url = currentProduct
-        ? `http://localhost:3000/api/products/${currentProduct._id}`
-        : 'http://localhost:3000/api/products';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json(); // Log server error response
-        console.error('Server error:', errorData);
-        throw new Error('Erro ao salvar produto');
-      }
-
-      const savedProduct = await response.json();
+      // Simulando chamada API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (currentProduct) {
-        setProducts(prev =>
-          prev.map(p => (p._id === savedProduct._id ? savedProduct : p))
-        );
+        // Atualizar produto existente
+        setProducts(prev => prev.map(p => 
+          p._id === currentProduct._id ? { ...p, ...formData } : p
+        ));
       } else {
-        setProducts(prev => [savedProduct, ...prev]);
+        // Adicionar novo produto
+        const newProduct: Product = {
+          _id: `prod-${Date.now()}`,
+          ...formData,
+          createdAt: new Date().toISOString()
+        };
+        setProducts(prev => [newProduct, ...prev]);
       }
-
+      
       resetForm();
     } catch (err) {
       console.error('Erro ao salvar produto:', err);
@@ -169,9 +164,7 @@ export function ProdutosTab() {
       quantity: 0,
       sku: '',
       category: 'outros',
-      isActive: true,
-      store: '', // Adicionado o campo store
-      minimum: 1, // Add the `minimum` field with a default value
+      isActive: true
     });
     setCurrentProduct(null);
     setIsFormOpen(false);
@@ -187,9 +180,7 @@ export function ProdutosTab() {
       quantity: product.quantity,
       sku: product.sku,
       category: product.category,
-      isActive: product.isActive,
-      store: product.store, // Preenche o campo store
-      minimum: 1, // Add the `minimum` field with a default value
+      isActive: product.isActive
     });
     setIsFormOpen(true);
   };
@@ -197,23 +188,11 @@ export function ProdutosTab() {
   const handleDelete = async (productId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       try {
-        // Enviar solicitação DELETE para o backend
-        const response = await fetch(`http://localhost:3000/api/products/${productId}`, {
-          method: 'DELETE',
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Erro ao excluir produto no servidor:', errorData);
-          throw new Error('Erro ao excluir produto no servidor.');
-        }
-
-        // Atualizar o estado local para remover o produto excluído
+        // Simulando chamada API
+        await new Promise(resolve => setTimeout(resolve, 300));
         setProducts(prev => prev.filter(p => p._id !== productId));
-        console.log('Produto excluído com sucesso.');
       } catch (err) {
         console.error('Erro ao excluir produto:', err);
-        alert('Erro ao excluir produto. Tente novamente.');
       }
     }
   };
@@ -268,26 +247,11 @@ export function ProdutosTab() {
               <option key={cat.value} value={cat.value}>{cat.label}</option>
             ))}
           </select>
-
-          {/* Filtro por loja */}
-          <select
-            value={selectedStore}
-            onChange={(e) => {
-              setSelectedStore(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full md:w-48 px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todas as lojas</option>
-            <option value="Loja A">Loja A</option>
-            <option value="Loja B">Loja B</option>
-            <option value="Loja C">Loja C</option>
-          </select>
         </div>
         
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
         >
           <FiPlus /> Novo Produto
         </button>
@@ -295,48 +259,39 @@ export function ProdutosTab() {
       
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0  bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-8 w-full max-w-3xl shadow-lg">
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-6">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-xl font-bold mb-4">
               {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
             </h3>
-
+            
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Nome do Produto */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Nome*
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Nome*</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-
-                {/* Descrição */}
+                
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Descrição
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Descrição</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-
-                {/* Preço em BRL */}
+                
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Preço (BRL)*
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Preço (BRL)*</label>
                   <input
                     type="number"
                     name="priceBRL"
@@ -344,16 +299,13 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.01"
                     step="0.01"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-
-                {/* Preço em BCH */}
+                
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Preço (BCH)
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Preço (BCH)</label>
                   <input
                     type="number"
                     name="priceBCH"
@@ -361,81 +313,50 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.000001"
                     step="0.000001"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)]focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled
                   />
                 </div>
-
-                {/* Quantidade */}
+                
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Quantidade*
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Quantidade*</label>
                   <input
                     type="number"
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-
-                {/* SKU */}
+                
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    SKU*
-                  </label>
+                  <label className="block text-sm font-medium mb-1">SKU*</label>
                   <input
-                    type="number"
+                    type="text"
                     name="sku"
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
-
-                {/* Categoria */}
+                
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Categoria*
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Categoria*</label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded bg-[var(--color-bg-primary)] border border-[var(--color-accent)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
+                    {categories.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
                     ))}
                   </select>
                 </div>
-
-                {/* Loja */}
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Loja*
-                  </label>
-                  <select
-                    name="store"
-                    value={formData.store}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Selecione uma loja</option>
-                    <option value="Loja A">Loja A</option>
-                    <option value="Loja B">Loja B</option>
-                    <option value="Loja C">Loja C</option>
-                  </select>
-                </div>
-
-                {/* Status Ativo/Inativo */}
+                
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -443,26 +364,25 @@ export function ProdutosTab() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-border)] focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-accent)] focus:ring-blue-500"
                   />
-                  <label htmlFor="isActive" className="ml-2 text-sm text-[var(--color-text-secondary)]">
+                  <label htmlFor="isActive" className="ml-2 text-sm">
                     Ativo
                   </label>
                 </div>
               </div>
-
-              {/* Botões de Ação */}
-              <div className="flex justify-end gap-4 mt-8">
+              
+              <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-lg border border-[var(--color-accent)] bg-red-800 hover:bg-red-600 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-lg bg-green-800 hover:bg-green-600 transition-colors"
                 >
                   {currentProduct ? 'Atualizar' : 'Salvar'}
                 </button>
@@ -497,7 +417,6 @@ export function ProdutosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Estoque</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loja</th> {/* Nova coluna */}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
@@ -528,9 +447,6 @@ export function ProdutosTab() {
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                           {categories.find(c => c.value === product.category)?.label || 'Outros'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap"> {/* Nova célula para a loja */}
-                        <span className="text-sm text-gray-400">{product.store}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

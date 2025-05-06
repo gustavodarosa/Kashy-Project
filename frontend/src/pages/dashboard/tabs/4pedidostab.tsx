@@ -205,7 +205,7 @@ export function PedidosTab() {
   };
 
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
+    <div className="p-6 bg-gray-900 text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <FiShoppingCart /> Gestão de Pedidos
       </h2>
@@ -217,7 +217,7 @@ export function PedidosTab() {
           <input
             type="text"
             placeholder="Buscar por ID, loja ou cliente..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -233,7 +233,7 @@ export function PedidosTab() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos status</option>
             <option value="pending">Pendentes</option>
@@ -249,7 +249,7 @@ export function PedidosTab() {
               setPaymentFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos métodos</option>
             <option value="bch">Bitcoin Cash</option>
@@ -260,7 +260,7 @@ export function PedidosTab() {
       </div>
       
       {/* Tabela de pedidos */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
+      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -277,7 +277,7 @@ export function PedidosTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[var(--color-divide)]">
+              <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-750">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
@@ -290,7 +290,7 @@ export function PedidosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
                   {orders.map((order) => (
                     <tr key={order._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -344,19 +344,19 @@ export function PedidosTab() {
             </div>
             
             {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
+            <div className="px-6 py-4 flex items-center justify-between border-t border-gray-700">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
                 >
                   Próxima
                 </button>
@@ -376,7 +376,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
                     >
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
@@ -401,7 +401,7 @@ export function PedidosTab() {
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             currentPage === pageNum
                               ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
+                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
                           }`}
                         >
                           {pageNum}
@@ -412,7 +412,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
                     >
                       <span className="sr-only">Próxima</span>
                       <FiChevronRight size={20} />
@@ -427,8 +427,8 @@ export function PedidosTab() {
       
       {/* Modal de detalhes do pedido */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <FiShoppingCart /> Pedido #{selectedOrder._id.substring(7)}
@@ -475,8 +475,8 @@ export function PedidosTab() {
             
             <div className="mb-6">
               <h4 className="text-lg font-semibold mb-2">Itens do Pedido</h4>
-              <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--color-divide)]">
+              <div className="border border-gray-700 rounded-lg overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-700">
                   <thead className="bg-gray-750">
                     <tr>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Produto</th>
@@ -485,7 +485,7 @@ export function PedidosTab() {
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
+                  <tbody className="bg-gray-800 divide-y divide-gray-700">
                     {selectedOrder.items.map((item, index) => (
                       <tr key={index}>
                         <td className="px-4 py-2">{item.product.name}</td>
@@ -505,7 +505,7 @@ export function PedidosTab() {
               </div>
             </div>
             
-            <div className="flex justify-between items-center border-t border-[var(--color-border)] pt-4">
+            <div className="flex justify-between items-center border-t border-gray-700 pt-4">
               <div>
                 <p className="text-gray-400">Total do Pedido:</p>
                 <p className="text-xl font-bold">{formatCurrency(selectedOrder.totalBRL)}</p>
@@ -523,7 +523,7 @@ export function PedidosTab() {
                     Reembolsar
                   </button>
                 )}
-                <button className="px-4 py-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-primary)] rounded-lg">
+                <button className="px-4 py-2 border border-gray-600 hover:bg-gray-700 rounded-lg">
                   Imprimir
                 </button>
               </div>

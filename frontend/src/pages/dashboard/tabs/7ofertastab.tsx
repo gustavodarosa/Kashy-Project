@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiShoppingBag, FiPercent, FiClock, FiCheckCircle, FiStar, FiCreditCard } from 'react-icons/fi';
-import { Marketplace } from '../../../components/Marketplace';
+
 type Offer = {
   id: string;
   title: string;
@@ -422,9 +422,7 @@ export function OfertasTab() {
           </div>
         </div>
       )}
- {/* <Marketplace /> */}
 
-      {/* Seção de Ofertas em Destaque */}
       {/* Seção de Programa de Recompensas */}
       <div className="mt-12 bg-gray-800 rounded-lg p-6 border border-gray-700">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
