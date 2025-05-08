@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle, FiEdit, FiTrash2 } from 'react-icons/fi';
 
 type OrderItem = {
   product: {
@@ -13,7 +13,7 @@ type OrderItem = {
 
 type Order = {
   _id: string;
-  store: string; 
+  store: string;
   customerEmail?: string;
   items: OrderItem[];
   totalAmount: number;
@@ -39,12 +39,12 @@ export function PedidosTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estado para paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const itemsPerPage = 8;
-  
+
   // Estado para filtros
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -62,6 +62,21 @@ export function PedidosTab() {
   // Estados para armazenar produtos e controlar o carregamento
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState<boolean>(false);
+
+  // Adicione um novo estado para armazenar as alterações no pedido
+  const [editedOrder, setEditedOrder] = useState<Partial<Order> | null>(null);
+
+  // Atualize o estado `editedOrder` quando o modal for aberto
+  useEffect(() => {
+    if (selectedOrder) {
+      console.log("Pedido selecionado:", selectedOrder);
+      setEditedOrder({ ...selectedOrder });
+    }
+  }, [selectedOrder]);
+
+  useEffect(() => {
+    console.log("Estado do pedido editado:", editedOrder);
+  }, [editedOrder]);
 
   // Função para buscar produtos com base na loja
   const fetchProductsByStore = async (store: string) => {
@@ -143,6 +158,22 @@ export function PedidosTab() {
 
     fetchOrders();
   }, [currentPage, searchTerm, statusFilter, paymentFilter]);
+
+  // Função para buscar os detalhes do pedido do backend
+  const fetchOrderDetails = async (orderId: string) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error('Erro ao buscar detalhes do pedido');
+      }
+      const order = await response.json();
+      setSelectedOrder(order);
+      setEditedOrder(order); // Inicializa o estado de edição com os dados do pedido
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do pedido:', error);
+      alert('Erro ao buscar detalhes do pedido.');
+    }
+  };
 
   // Formatação de dados
   const formatCurrency = (value: number) => {
@@ -234,34 +265,34 @@ export function PedidosTab() {
       console.warn("Criação de pedido cancelada: campos obrigatórios não preenchidos.");
       return;
     }
-  
+
     const totalAmount = calculateTotal();
     console.log("Total calculado:", totalAmount);
-  
+
     const orderData = {
       store: selectedStore,
       customerEmail: customerEmail || "Não identificado",
       totalAmount,
       paymentMethod,
     };
-  
+
     console.log("Dados do pedido:", orderData);
-  
+
     try {
       const response = await fetch("http://localhost:3000/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
-  
+
       if (!response.ok) {
         throw new Error("Erro ao criar pedido");
       }
-  
+
       const savedOrder = await response.json();
       console.log("Pedido salvo com sucesso:", savedOrder);
       alert("Pedido criado com sucesso!");
-  
+
       // Limpar o formulário
       setSelectedStore("");
       setCustomerEmail("");
@@ -274,12 +305,60 @@ export function PedidosTab() {
     }
   };
 
+  // Função para atualizar um pedido
+  const handleUpdateOrder = async (updatedOrder: Partial<Order>) => {
+    if (!selectedOrder) return;
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${selectedOrder._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedOrder),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar pedido.');
+      }
+
+      const updatedData = await response.json();
+      setOrders((prev) =>
+        prev.map((order) => (order._id === updatedData._id ? updatedData : order))
+      );
+      alert('Pedido atualizado com sucesso!');
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error('Erro ao atualizar pedido:', error);
+      alert('Erro ao atualizar pedido.');
+    }
+  };
+
+  // Função para deletar um pedido
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este pedido?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao deletar pedido.');
+      }
+
+      setOrders((prev) => prev.filter((order) => order._id !== orderId));
+      alert('Pedido deletado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao deletar pedido:', error);
+      alert('Erro ao deletar pedido.');
+    }
+  };
+
   return (
     <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <FiShoppingCart /> Gestão de Pedidos
       </h2>
-      
+
       {/* Barra de ações */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="relative w-full md:w-96">
@@ -295,7 +374,7 @@ export function PedidosTab() {
             }}
           />
         </div>
-        
+
         <div className="flex gap-3 w-full md:w-auto">
           <select
             value={statusFilter}
@@ -312,7 +391,7 @@ export function PedidosTab() {
             <option value="expired">Expirados</option>
             <option value="refunded">Reembolsados</option>
           </select>
-          
+
           <select
             value={paymentFilter}
             onChange={(e) => {
@@ -336,7 +415,7 @@ export function PedidosTab() {
           </button>
         </div>
       </div>
-      
+
       {/* Tabela de pedidos */}
       <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
         {loading ? (
@@ -347,10 +426,6 @@ export function PedidosTab() {
         ) : error ? (
           <div className="p-8 text-center text-red-400">
             <p>{error}</p>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
-            <p>Nenhum pedido encontrado</p>
           </div>
         ) : (
           <>
@@ -368,46 +443,64 @@ export function PedidosTab() {
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {orders.map((order) => (
-                    <tr key={order._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-mono text-blue-400">
-                          #{order._id.substring(6)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">{order.store}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          {order.customerEmail || 'Não identificado'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium">{formatCurrency(order.totalAmount)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">
-                          {getPaymentMethodLabel(order.paymentMethod)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="text-blue-400 hover:text-blue-300 transition-colors px-3 py-1 border border-blue-400 rounded hover:bg-blue-900"
-                        >
-                          Detalhes
-                        </button>
+                  {orders && orders.length > 0 ? (
+                    orders.map((order) => (
+                      <tr key={order._id} className="hover:bg-gray-750 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-mono text-blue-400">
+                            #{order._id.substring(6)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium">{order.store}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm">
+                            {order.customerEmail || 'Não identificado'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium">{formatCurrency(order.totalAmount)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm">
+                            {getPaymentMethodLabel(order.paymentMethod)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                          {formatDate(order.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              onClick={() => fetchOrderDetails(order._id)}
+                              className="text-blue-400 hover:text-blue-300 transition-colors"
+                              title="Editar"
+                            >
+                              <FiEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOrder(order._id)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Excluir"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="text-center text-gray-400">
+                        Nenhum pedido encontrado.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
-            
+
             {/* Paginação */}
             <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
               <div className="flex-1 flex justify-between sm:hidden">
@@ -426,7 +519,7 @@ export function PedidosTab() {
                   Próxima
                 </button>
               </div>
-              
+
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-400">
@@ -435,7 +528,7 @@ export function PedidosTab() {
                     <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
                   </p>
                 </div>
-                
+
                 <div>
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     <button
@@ -446,7 +539,7 @@ export function PedidosTab() {
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
                     </button>
-                    
+
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
                       if (totalPages <= 5) {
@@ -458,22 +551,21 @@ export function PedidosTab() {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === pageNum
-                              ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
-                          }`}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
+                            ? 'z-10 bg-blue-600 border-blue-600 text-white'
+                            : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
+                            }`}
                         >
                           {pageNum}
                         </button>
                       );
                     })}
-                    
+
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
@@ -489,7 +581,7 @@ export function PedidosTab() {
           </>
         )}
       </div>
-      
+
       {/* Modal de detalhes do pedido */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-opacity-50 flex items-center justisfy-center p-4 z-50">
@@ -505,12 +597,12 @@ export function PedidosTab() {
                 ✕
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <h4 className="text-lg font-semibold mb-2">Informações do Pedido</h4>
                 <div className="space-y-2">
-                  <p><span className="text-gray-400">Status:</span> 
+                  <p><span className="text-gray-400">Status:</span>
                     <span className="ml-2 inline-flex items-center">
                       {getStatusIcon(selectedOrder.status)}
                       <span className="ml-1">{getStatusLabel(selectedOrder.status)}</span>
@@ -520,7 +612,7 @@ export function PedidosTab() {
                   <p><span className="text-gray-400">Método de Pagamento:</span> {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
                   {selectedOrder.transaction && (
                     <p>
-                      <span className="text-gray-400">Transação BCH:</span> 
+                      <span className="text-gray-400">Transação BCH:</span>
                       <span className="ml-2 font-mono text-blue-400">
                         {selectedOrder.transaction.txHash.substring(0, 10)}...
                       </span>
@@ -528,7 +620,7 @@ export function PedidosTab() {
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <h4 className="text-lg font-semibold mb-2">Partes Envolvidas</h4>
                 <div className="space-y-2">
@@ -537,7 +629,7 @@ export function PedidosTab() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mb-6">
               <h4 className="text-lg font-semibold mb-2">Itens do Pedido</h4>
               <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
@@ -551,46 +643,300 @@ export function PedidosTab() {
                     </tr>
                   </thead>
                   <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
-                    {selectedOrder.items.map((item, index) => (
+                    {selectedOrder?.items?.map((item, index) => (
                       <tr key={index}>
-                        <td className="px-4 py-2">{item.product.name}</td>
-                        <td className="px-4 py-2">{item.quantity}</td>
-                        <td className="px-4 py-2">
-                          <div>{formatCurrency(item.priceBRL)}</div>
-                          <div className="text-xs text-gray-400">{formatBCH(item.priceBCH)}</div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div>{formatCurrency(item.priceBRL * item.quantity)}</div>
-                          <div className="text-xs text-gray-400">{formatBCH(item.priceBCH * item.quantity)}</div>
-                        </td>
+                        {/* Renderização do item */}
                       </tr>
-                    ))}
+                    )) || (
+                        <tr>
+                          <td colSpan={4} className="text-center text-gray-400">
+                            Nenhum item encontrado.
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center border-t border-[var(--color-border)] pt-4">
               <div>
                 <p className="text-gray-400">Total do Pedido:</p>
                 <p className="text-xl font-bold">{formatCurrency(selectedOrder.totalAmount)}</p>
               </div>
-              
+
               <div className="flex gap-3">
                 {selectedOrder.status === 'pending' && (
-                  <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">
+                  <button
+                    onClick={() => handleUpdateOrder({ status: 'paid' })}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg"
+                  >
                     Marcar como Pago
                   </button>
                 )}
                 {selectedOrder.status === 'paid' && (
-                  <button className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg">
+                  <button
+                    onClick={() => handleUpdateOrder({ status: 'refunded' })}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
+                  >
                     Reembolsar
                   </button>
                 )}
+                <button
+                  onClick={() => handleDeleteOrder(selectedOrder._id)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
+                >
+                  Deletar
+                </button>
                 <button className="px-4 py-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-primary)] rounded-lg">
                   Imprimir
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Editar Pedido */}
+      {selectedOrder && editedOrder && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--color-bg-primary)] text-white rounded-lg shadow-lg p-4 w-full max-w-4xl border border-[var(--color-border)]">
+            <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Editar Pedido</h3>
+
+            {/* Layout horizontal */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Coluna 1: Informações do cliente e loja */}
+              <div>
+                {/* Input para e-mail do cliente */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">E-mail do Cliente</label>
+                  <input
+                    type="email"
+                    value={editedOrder.customerEmail || ''}
+                    onChange={(e) =>
+                      setEditedOrder((prev) => prev && { ...prev, customerEmail: e.target.value })
+                    }
+                    placeholder="Digite o e-mail do cliente"
+                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Select para loja */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Loja</label>
+                  <select
+                    value={editedOrder.store || ''}
+                    onChange={(e) => {
+                      const selectedStore = e.target.value;
+                      setEditedOrder((prev) => prev && { ...prev, store: selectedStore, items: [] });
+                      fetchProductsByStore(selectedStore); // Atualiza os produtos com base na loja selecionada
+                    }}
+                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Selecione uma loja</option>
+                    <option value="Loja A">Loja A</option>
+                    <option value="Loja B">Loja B</option>
+                    <option value="Loja C">Loja C</option>
+                  </select>
+                </div>
+
+                {/* Select para forma de pagamento */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Forma de Pagamento</label>
+                  <select
+                    value={editedOrder.paymentMethod || ''}
+                    onChange={(e) =>
+                      setEditedOrder((prev) => prev && { ...prev, paymentMethod: e.target.value as Order['paymentMethod'] })
+                    }
+                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Selecione uma forma</option>
+                    <option value="bch">Bitcoin Cash</option>
+                    <option value="pix">PIX</option>
+                    <option value="card">Cartão</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Coluna 2: Produtos e carrinho */}
+              <div>
+                {/* Buscar produtos */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Buscar Produtos</label>
+                  <input
+                    type="text"
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    placeholder="Digite o nome do produto"
+                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!editedOrder.store}
+                  />
+                  <div className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                    {editedOrder.store
+                      ? 'Produtos relacionados à loja selecionada.'
+                      : 'Selecione uma loja para buscar produtos.'}
+                  </div>
+                </div>
+
+                {/* Lista de produtos */}
+                {products.length > 0 && (
+                  <div className="mb-3">
+                    <ul className="space-y-2">
+                      {products
+                        .filter(product =>
+                          product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
+                        )
+                        .slice(0, 3) // Limita a exibição a 3 produtos
+                        .map(product => (
+                          <li
+                            key={product._id}
+                            className="flex justify-between items-center p-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg"
+                          >
+                            <span className="text-sm">{product.name}</span>
+                            <button
+                              onClick={() => {
+                                const existingProduct = editedOrder.items?.find((p) => p.product._id === product._id);
+                                if (existingProduct) {
+                                  setEditedOrder((prev) => ({
+                                    ...prev!,
+                                    items: prev!.items!.map((p) =>
+                                      p.product._id === product._id
+                                        ? { ...p, quantity: p.quantity + 1 }
+                                        : p
+                                    ),
+                                  }));
+                                } else {
+                                  setEditedOrder((prev) => ({
+                                    ...prev!,
+                                    items: [...(prev!.items || []), { product, quantity: 1, priceBRL: product.priceBRL, priceBCH: product.priceBCH }],
+                                  }));
+                                }
+                              }}
+                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs"
+                            >
+                              Adicionar
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Preview dos Produtos no Pedido */}
+            {editedOrder?.items && editedOrder.items.length > 0 ? (
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Produtos no Pedido</h4>
+                <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-[var(--color-divide)]">
+                    <thead className="bg-gray-750">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Produto</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Preço Unit.</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Qtd</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Total</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
+                      {editedOrder.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-2">{item.product.name}</td>
+                          <td className="px-4 py-2">{formatCurrency(item.priceBRL)}</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              {/* Botão para diminuir quantidade */}
+                              <button
+                                onClick={() =>
+                                  setEditedOrder((prev) => ({
+                                    ...prev!,
+                                    items: prev!.items!.map((p, i) =>
+                                      i === index && p.quantity > 1
+                                        ? { ...p, quantity: p.quantity - 1 }
+                                        : p
+                                    ),
+                                  }))
+                                }
+                                disabled={item.quantity <= 1}
+                                className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs disabled:opacity-50"
+                              >
+                                -
+                              </button>
+                              <span>{item.quantity}</span>
+                              {/* Botão para aumentar quantidade */}
+                              <button
+                                onClick={() =>
+                                  setEditedOrder((prev) => ({
+                                    ...prev!,
+                                    items: prev!.items!.map((p, i) =>
+                                      i === index ? { ...p, quantity: p.quantity + 1 } : p
+                                    ),
+                                  }))
+                                }
+                                className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2">{formatCurrency(item.priceBRL * item.quantity)}</td>
+                          <td className="px-4 py-2">
+                            {/* Botão para remover produto */}
+                            <button
+                              onClick={() =>
+                                setEditedOrder((prev) => ({
+                                  ...prev!,
+                                  items: prev!.items!.filter((_, i) => i !== index),
+                                }))
+                              }
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              Remover
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Total do Pedido */}
+                <div className="mt-4 text-right">
+                  <p className="text-gray-400">Total do Pedido:</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(
+                      editedOrder.items.reduce(
+                        (sum, item) => sum + item.priceBRL * item.quantity,
+                        0
+                      )
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-400">Nenhum produto adicionado ao pedido.</p>
+            )}
+
+            {/* Botões de ação */}
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-3 py-2 bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] rounded-lg transition-colors border border-[var(--color-border)] text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (editedOrder) {
+                    handleUpdateOrder(editedOrder);
+                    setSelectedOrder(null);
+                  }
+                }}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+              >
+                Salvar Alterações
+              </button>
             </div>
           </div>
         </div>
