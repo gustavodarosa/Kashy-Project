@@ -177,9 +177,16 @@ export function DashboardTab() {
           throw new Error('Erro ao buscar produtos com estoque baixo');
         }
         const data = await response.json();
-        setLowStockProducts(data);
+        // Ensure that data is an array before setting the state
+        if (Array.isArray(data)) {
+          setLowStockProducts(data);
+        } else {
+          console.error('API /api/products/low-stock did not return an array:', data);
+          setLowStockProducts([]); // Default to an empty array if data is not an array
+        }
       } catch (error) {
         console.error('Erro ao carregar produtos com estoque baixo:', error);
+        setLowStockProducts([]); // Also set to an empty array in case of any other error
       }
     };
 
@@ -356,8 +363,8 @@ export function DashboardTab() {
               <button
                 onClick={() => setTimeRange('day')}
                 className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'day' 
-                    ? 'bg-blue-600 text-white' 
+                  timeRange === 'day'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -366,8 +373,8 @@ export function DashboardTab() {
               <button
                 onClick={() => setTimeRange('week')}
                 className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'week' 
-                    ? 'bg-blue-600 text-white' 
+                  timeRange === 'week'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -376,8 +383,8 @@ export function DashboardTab() {
               <button
                 onClick={() => setTimeRange('month')}
                 className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'month' 
-                    ? 'bg-blue-600 text-white' 
+                  timeRange === 'month'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -385,25 +392,25 @@ export function DashboardTab() {
               </button>
             </div>
           </div>
-          
+
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesData}> {/* Uses the salesData state */}
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis 
+                <XAxis
                   dataKey="date"  /* Changed from name to date */
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280' }}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280' }}
                   width={40}
                   tickFormatter={(value) => `R$${value}`}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'white',
                     borderRadius: '0.5rem',
@@ -412,13 +419,13 @@ export function DashboardTab() {
                   }}
                   formatter={(value: number) => formatBRL(value)}
                 />
-                <Line 
-                  type="monotone" 
+                <Line
+                  type="monotone"
                   dataKey="total" /* Changed from value to total */
-                  stroke="#3b82f6" 
-                  strokeWidth={2} 
-                  dot={{ r: 4 }} 
-                  activeDot={{ r: 6, strokeWidth: 0 }} 
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -431,9 +438,9 @@ export function DashboardTab() {
         {/* Transações Recentes */}
         <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Transações Recentes</h2>
-          
+
           <div className="space-y-4">
-            {recentTransactions.map((tx) => ( 
+            {recentTransactions.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-[var(--color-text-primary)]">{tx.customer}</p>
@@ -475,9 +482,9 @@ export function DashboardTab() {
               Reabastecer
             </button>
           </div>
-          
+
           <div className="space-y-3">
-            {lowStockProducts.map((product) => ( 
+            {lowStockProducts.map((product) => (
               <div key={product._id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
