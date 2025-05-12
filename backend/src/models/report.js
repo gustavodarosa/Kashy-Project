@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const reportSchema = new mongoose.Schema({
-    
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // Adicionado userId
   title: { type: String, required: true },
   type: { type: String, required: true }, // Certifique-se de que 'type' é obrigatório
   dateRange: { type: String, required: true },

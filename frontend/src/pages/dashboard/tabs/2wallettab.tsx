@@ -250,7 +250,8 @@ export function WalletTab() {
           if (!isValidAddress) throw new Error('Endereço de destino parece inválido.');
 
           console.log('[WalletTab] Attempting send via backend API...');
-          const response = await fetch(`${API_BASE_URL}/wallet/send`, {
+          // --- FIX: Update API endpoint path ---
+          const response = await fetch(`${API_BASE_URL}/wallet/transactions`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify({ address: sendForm.address.trim(), amount: sendForm.amountBCH, fee: sendForm.fee })
@@ -408,8 +409,6 @@ export function WalletTab() {
             <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
         </div>
       )}
-
-      {/* --- REMOVED Header Balance Display --- */}
 
       {/* --- Balance Cards --- */}
       {!isInitialized ? (

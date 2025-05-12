@@ -1,8 +1,13 @@
 // z:\Kashy-Project\backend\src\utils\cryptoUtils.js
 const crypto = require('crypto');
+const logger = require('./logger'); // Assuming logger exists
 
-const ALGORITHM = 'aes-256-cbc';
-const IV_LENGTH = 16; // Tamanho do vetor de inicialização (16 bytes)
+// --- Use AES-256-GCM ---
+const ALGORITHM = 'aes-256-gcm';
+// --- Recommended IV length for GCM is 12 bytes ---
+const IV_LENGTH = 12;
+// --- Authentication Tag length (GCM default is 16 bytes) ---
+const AUTH_TAG_LENGTH = 16;
 
 /**
  * Deriva uma chave de 32 bytes a partir de uma chave maior usando SHA-256.
@@ -10,69 +15,93 @@ const IV_LENGTH = 16; // Tamanho do vetor de inicialização (16 bytes)
  * @returns {Buffer} - Uma chave de 32 bytes.
  */
 function deriveKey(key) {
-  return crypto.createHash('sha256').update(key).digest();
+  // Using SHA-256 ensures a 32-byte key, suitable for aes-256
+  return crypto.createHash('sha256').update(String(key)).digest();
 }
 
 /**
- * Criptografa um texto usando uma chave de criptografia.
+ * Criptografa um texto usando AES-256-GCM.
  * @param {string} text - O texto a ser criptografado.
- * @param {string} key - A chave de criptografia (pode ter qualquer comprimento).
- * @returns {string} - O texto criptografado no formato "iv:ciphertext".
+ * @param {string} key - A chave de criptografia (será derivada para 32 bytes).
+ * @returns {string} - O texto criptografado no formato "iv:authTag:ciphertext".
  */
 function encrypt(text, key) {
-  const derivedKey = deriveKey(key); // Deriva uma chave de 32 bytes
-  const iv = crypto.randomBytes(IV_LENGTH); // Gera um vetor de inicialização aleatório
-  const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
+  try {
+    const derivedKey = deriveKey(key);
+    // --- Generate a 12-byte IV ---
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, derivedKey, iv);
 
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
 
-  // Retorna o IV e o texto criptografado no formato "iv:ciphertext"
-  return `${iv.toString('hex')}:${encrypted}`;
+    // --- Get the authentication tag ---
+    const authTag = cipher.getAuthTag();
+
+    // --- Return iv, authTag, and ciphertext ---
+    return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+  } catch (error) {
+    logger.error(`Encryption failed: ${error.message}`);
+    throw new Error('Encryption process failed.'); // Throw a generic error
+  }
 }
 
 /**
- * Descriptografa um texto criptografado usando uma chave de criptografia.
- * @param {string} encryptedText - O texto criptografado no formato "iv:ciphertext".
- * @param {string} key - A chave de descriptografia (pode ter qualquer comprimento).
+ * Descriptografa um texto criptografado com AES-256-GCM.
+ * @param {string} encryptedText - O texto criptografado no formato "iv:authTag:ciphertext".
+ * @param {string} key - A chave de descriptografia (será derivada para 32 bytes).
  * @returns {string} - O texto descriptografado.
+ * @throws {Error} If decryption fails (e.g., invalid format, bad key, integrity check fail).
  */
 function decrypt(encryptedText, key) {
-  // Validação básica do formato de entrada
-  if (typeof encryptedText !== 'string' || !encryptedText.includes(':')) {
-    console.error('Erro de descriptografia: Formato de entrada inválido. Esperado "iv:ciphertext". Recebido:', encryptedText);
-    throw new Error('Formato de texto criptografado inválido.');
+  // Validate the input format "iv:authTag:ciphertext"
+  if (typeof encryptedText !== 'string' || encryptedText.split(':').length !== 3) {
+    logger.error(`Decryption Error: Invalid input format. Expected "iv:authTag:ciphertext". Received: ${encryptedText}`);
+    throw new Error('Invalid encrypted text format.');
   }
 
-  const parts = encryptedText.split(':');
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    console.error('Erro de descriptografia: Formato de entrada inválido após divisão. Partes:', parts);
-    console.error(encryptedText);
-    throw new Error('Formato de texto criptografado inválido após divisão.');
-  }
+  const [ivHex, authTagHex, encryptedData] = encryptedText.split(':');
 
-  const [ivHex, encryptedData] = parts;
-
-  // Valida o comprimento do IV (16 bytes = 32 caracteres hexadecimais)
+  // Validate lengths
   if (ivHex.length !== IV_LENGTH * 2) {
-    console.error(`Erro de descriptografia: Comprimento do IV inválido. Esperado ${IV_LENGTH * 2}, Recebido ${ivHex.length}. IV Hex: ${ivHex}`);
-    throw new Error('Comprimento do IV inválido.');
+    logger.error(`Decryption Error: Invalid IV length. Expected ${IV_LENGTH * 2}, Received ${ivHex.length}.`);
+    throw new Error('Invalid IV length in encrypted text.');
   }
+  if (authTagHex.length !== AUTH_TAG_LENGTH * 2) {
+     logger.error(`Decryption Error: Invalid Auth Tag length. Expected ${AUTH_TAG_LENGTH * 2}, Received ${authTagHex.length}.`);
+     throw new Error('Invalid authentication tag length in encrypted text.');
+  }
+  if (!encryptedData) {
+      logger.error(`Decryption Error: Encrypted data part is missing.`);
+      throw new Error('Missing encrypted data part in encrypted text.');
+  }
+
 
   try {
     const derivedKey = deriveKey(key);
     const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+
     const decipher = crypto.createDecipheriv(ALGORITHM, derivedKey, iv);
 
+    // --- Set the authentication tag BEFORE decryption ---
+    decipher.setAuthTag(authTag);
+
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    // --- final() will throw an error if authentication fails ---
     decrypted += decipher.final('utf8');
+
     return decrypted;
   } catch (error) {
-    console.error('Falha na descriptografia durante a operação criptográfica:', error.message);
-    throw error;
+    // Log the specific crypto error, but throw a more generic one
+    // This prevents leaking details about *why* it failed (e.g., bad key vs tampered data)
+    logger.error(`Decryption failed during cryptographic operation: ${error.message}`);
+    // Check for common GCM auth error
+    if (error.message.toLowerCase().includes('unsupported state') || error.message.toLowerCase().includes('authentication failed')) {
+         throw new Error('Decryption failed: Data integrity check failed or invalid key.');
+    }
+    throw new Error('Decryption process failed.');
   }
 }
-
-// The test block that was here has been removed.
 
 module.exports = { encrypt, decrypt };

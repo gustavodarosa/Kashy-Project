@@ -2,11 +2,24 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const Product = require('../models/product'); // Certifique-se de que o modelo de produto está configurado
+// --- MODIFICATION: Import validation ---
+const { validate } = require('../middlewares/validators');
+const {
+  createProductSchema,
+  updateProductSchema,
+  productIdParamSchema
+} = require('../middlewares/validators/productValidators');
+const { protect: authMiddleware } = require('../middlewares/authMiddleware'); // Import the protect function
+// --- END MODIFICATION ---
 
-router.post('/', productController.createProduct);
+// POST /api/products - Create Product
+router.post('/', authMiddleware, validate(createProductSchema), productController.createProduct); // Added authMiddleware
+// GET /api/products - Get All Products (or filtered by store query param)
 router.get('/', productController.getProducts);
-router.put('/:id', productController.updateProduct);
-router.delete('/:id', productController.deleteProduct);
+// PUT /api/products/:id - Update Product
+router.put('/:id', authMiddleware, validate(productIdParamSchema, 'params'), validate(updateProductSchema), productController.updateProduct); // Added authMiddleware
+// DELETE /api/products/:id - Delete Product
+router.delete('/:id', authMiddleware, validate(productIdParamSchema, 'params'), productController.deleteProduct); // Added authMiddleware
 
 router.get('/low-stock', async (req, res) => {
   try {
@@ -18,13 +31,7 @@ router.get('/low-stock', async (req, res) => {
   }
 });
 
-router.get('/products', async (req, res) => {
-  const { store } = req.query;
-  const filter = store && store !== 'all' ? { store } : {};
-  const products = await Product.find(filter);
-  res.json(products);
-});
-
+// GET /api/products/marketplace - Get active products for marketplace
 router.get('/marketplace', productController.getMarketplaceProducts);
 
 module.exports = router;

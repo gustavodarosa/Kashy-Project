@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
-const routes = require('./routes');
+// --- MODIFICATION: Import specific route files ---
 const userRoutes = require('./routes/userRoutes');
-const cryptoProxy = require('./routes/cryptoProxy');
-const walletRoutes = require('./routes/walletRoutes'); 
-const reportRoutes = require("./routes/reportRoutes");
+const authRoutes = require('./routes/authRoutes'); // For login
+const walletRoutes = require('./routes/walletRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+const cryptoProxyRoutes = require('./routes/cryptoProxy'); // Renamed for clarity
+// --- ADDED: Import stats routes ---
+const statsRoutes = require('./routes/statsRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
@@ -34,6 +37,18 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
 
+// --- MODIFICATION: Mount routes with correct base paths ---
+app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes); // Mount auth routes (e.g., /api/auth/login)
+app.use('/api/wallet', walletRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/crypto-proxy', cryptoProxyRoutes); // Use the renamed variable and path
+// --- ADDED: Mount stats routes ---
+app.use('/api/stats', statsRoutes);
+// --- END MODIFICATION ---
+
+// Error handler should be the LAST middleware
 app.use(errorHandler);
 
 module.exports = app;
