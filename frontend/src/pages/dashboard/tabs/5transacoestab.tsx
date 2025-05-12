@@ -3,16 +3,17 @@ import { FiSearch, FiChevronLeft, FiChevronRight, FiDownload, FiFilter } from 'r
 
 type Transaction = {
   _id: string;
-  txHash: string;
-  fromAddress: string;
-  toAddress: string;
-  amountBCH: number;
-  amountBRL: number;
-  status: 'pending' | 'confirmed' | 'failed' | 'expired';
-  createdAt: string;
+  txid: string; // <-- MUDOU de txHash
+  address: string; // <-- MUDOU de from/toAddress (representa o endereço relevante)
+  amount: number; // <-- MUDOU de amountBCH (valor em BCH)
+  convertedBRL: number; // <-- MUDOU de amountBRL (valor em BRL)
+  // status: 'pending' | 'confirmed' | 'failed' | 'expired'; // Status vem de 'confirmed' boolean
+  confirmed: boolean; // <-- Adicionado para status
+  type: 'sent' | 'received' | 'unknown'; // Tipo da transação vindo do backend
+  timestamp: string; // <-- MUDOU de createdAt
   confirmations: number;
   blockHeight?: number;
-  feeBCH?: number;
+  fee?: number; // <-- MUDOU de feeBCH (valor da taxa em BCH)
   order?: {
     _id: string;
     totalBRL: number;
@@ -45,7 +46,7 @@ export function TransacoesTab() {
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
 
   // Simulação de fetch de dados
-  useEffect(() => {
+  useEffect(() => { // <-- HOOK PRINCIPAL PARA BUSCAR DADOS
     const fetchTransactions = async () => {
       try {
         setLoading(true);
@@ -53,70 +54,57 @@ export function TransacoesTab() {
         await new Promise(resolve => setTimeout(resolve, 800));
         
         // Dados mockados
-        const mockTransactions: Transaction[] = Array.from({ length: 50 }, (_, i) => {
-          const statuses: ('pending' | 'confirmed' | 'failed' | 'expired')[] = 
-            ['pending', 'confirmed', 'confirmed', 'confirmed', 'failed', 'expired'];
-          const status = statuses[Math.floor(Math.random() * statuses.length)];
-          
-          return {
-            _id: `tx-${i}`,
-            txHash: `abc123xyz${Math.random().toString(16).substring(2, 10)}`,
-            fromAddress: `qprueba${Math.random().toString(16).substring(2, 10)}`,
-            toAddress: `qprueba${Math.random().toString(16).substring(2, 12)}`,
-            amountBCH: Math.random() * 10,
-            amountBRL: Math.random() * 5000 + 10,
-            status,
-            createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-            confirmations: status === 'confirmed' ? Math.floor(Math.random() * 100) + 1 : 0,
-            blockHeight: status === 'confirmed' ? 800000 + i : undefined,
-            feeBCH: status === 'confirmed' ? Math.random() * 0.01 : undefined,
-            order: i % 3 === 0 ? {
-              _id: `order-${i}`,
-              totalBRL: Math.random() * 5000 + 10
-            } : undefined,
-            user: {
-              _id: `user-${i}`,
-              email: `user${i}@example.com`
-            },
-            merchant: i % 2 === 0 ? {
-              _id: `merchant-${i}`,
-              businessName: `Loja ${i}`
-            } : undefined
-          };
+        // --- INÍCIO DA LÓGICA REAL ---
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Usuário não autenticado.');
+        }
+
+        // Construir URL com parâmetros de query
+        const params = new URLSearchParams();
+        params.append('page', currentPage.toString());
+        params.append('limit', itemsPerPage.toString());
+        if (searchTerm) params.append('search', searchTerm);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+
+        // Lógica para converter dateFilter em startDate/endDate (Exemplo)
+        // Você precisará ajustar isso conforme a necessidade da sua API
+        const now = new Date();
+        let startDate: string | null = null;
+        let endDate: string | null = null;
+        if (dateFilter === 'today') {
+            startDate = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+            endDate = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+        } else if (dateFilter === 'week') {
+            startDate = new Date(now.getTime() - 7 * 86400000).toISOString();
+            endDate = new Date().toISOString();
+        } else if (dateFilter === 'month') {
+            startDate = new Date(now.getTime() - 30 * 86400000).toISOString();
+            endDate = new Date().toISOString();
+        }
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+
+        const response = await fetch(`http://localhost:3000/api/wallet/transactions?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
-        
-        // Aplicar filtros
-        const filteredTransactions = mockTransactions.filter(tx => {
-          const matchesSearch = 
-            tx.txHash.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.fromAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.toAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.merchant?.businessName.toLowerCase().includes(searchTerm.toLowerCase());
-          
-          const matchesStatus = 
-            statusFilter === 'all' || tx.status === statusFilter;
-          
-          const matchesDate = 
-            dateFilter === 'all' || 
-            (dateFilter === 'today' && new Date(tx.createdAt).toDateString() === new Date().toDateString()) ||
-            (dateFilter === 'week' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 7 * 86400000) ||
-            (dateFilter === 'month' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 30 * 86400000);
-          
-          return matchesSearch && matchesStatus && matchesDate;
-        });
-        
-        // Ordenar por data mais recente
-        filteredTransactions.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        // Paginação
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
-        
-        setTransactions(paginatedTransactions);
-        setTotalPages(Math.ceil(filteredTransactions.length / itemsPerPage));
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido ao buscar transações.' }));
+          throw new Error(errorData.message || `Erro ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Assumindo que a API retorna { transactions: Transaction[], totalPages: number, currentPage: number }
+        setTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+        setTotalPages(data.totalPages || 1);
+        // Opcional: Ajustar currentPage se a API retornar um valor diferente (ex: se a página pedida não existir)
+        // if (data.currentPage !== currentPage) setCurrentPage(data.currentPage);
+        // --- FIM DA LÓGICA REAL ---
+
         setError(null);
       } catch (err) {
         setError('Erro ao carregar transações');
@@ -126,56 +114,71 @@ export function TransacoesTab() {
       }
     };
     
-    fetchTransactions();
+    fetchTransactions(); // Chama a função para buscar os dados
   }, [currentPage, searchTerm, statusFilter, dateFilter]);
 
   // Formatação de dados
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | undefined | null): string => {
+    if (typeof value !== 'number' || isNaN(value)) {
+      return 'R$ --,--'; // Retorna um placeholder se o valor for inválido
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(value);
+    }).format(value); // Formata o valor válido
   };
 
-  const formatBCH = (value: number) => {
-    return value.toFixed(6) + ' BCH';
+  const formatBCH = (value: number | undefined | null): string => {
+    // Verifica se 'value' é um número válido antes de chamar toFixed
+    if (typeof value === 'number' && !isNaN(value)) {
+      return value.toFixed(6) + ' BCH';
+    }
+    return '0.000000 BCH'; // Ou 'N/A', dependendo do que fizer mais sentido
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+  const formatDate = (dateString: string | undefined | null): string => {
+    if (!dateString) return 'Data inválida';
+    try {
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? 'Data inválida' : date.toLocaleString('pt-BR');
+    } catch { return 'Data inválida'; }
   };
 
-  const formatAddress = (address: string) => {
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  const formatAddress = (address: string | undefined | null): string => {
+    // Verifica se 'address' é uma string e tem comprimento suficiente
+    if (typeof address === 'string' && address.length >= 10) {
+      return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    }
+    return address || 'N/A'; // Retorna o próprio endereço se for curto, ou 'N/A' se for nulo/undefined
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
+    // Ajustado para usar o booleano 'confirmed' e o 'type'
+    if (status === 'confirmed') { // Usando string 'confirmed' como exemplo, ajuste se necessário
         return 'bg-green-100 text-green-800';
-      case 'pending':
+    } else if (status === 'pending') {
         return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
+    } else if (status === 'failed') { // Assumindo que 'failed' pode vir de algum lugar
         return 'bg-red-100 text-red-800';
-      case 'expired':
+    } else if (status === 'expired') { // Assumindo que 'expired' pode vir de algum lugar
         return 'bg-gray-100 text-gray-800';
-      default:
+    } else {
         return 'bg-blue-100 text-blue-800';
     }
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirmed':
+    // Ajustado para usar o booleano 'confirmed' e o 'type'
+    if (status === 'confirmed') {
         return 'Confirmada';
-      case 'pending':
+    } else if (status === 'pending') {
         return 'Pendente';
-      case 'failed':
+    } else if (status === 'failed') {
         return 'Falhou';
-      case 'expired':
+    } else if (status === 'expired') {
         return 'Expirada';
-      default:
-        return status;
+    } else { // Use 'else' instead of 'default'
+        return status; // Return the original status if none match
     }
   };
 
@@ -301,8 +304,9 @@ export function TransacoesTab() {
                   {transactions.map((tx) => (
                     <tr key={tx._id} className="hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4">
+                        {/* Usar tx.txid */}
                         <div className="text-sm font-mono text-blue-400">
-                          {formatAddress(tx.txHash)}
+                          {formatAddress(tx.txid)}
                         </div>
                         {tx.order && (
                           <div className="text-xs text-gray-400">
@@ -310,23 +314,25 @@ export function TransacoesTab() {
                           </div>
                         )}
                       </td>
+                      {/* Ajustar De/Para baseado em tx.type e tx.address */}
                       <td className="px-6 py-4">
                         <div className="text-sm">
-                          <span className="text-gray-400">De:</span> {formatAddress(tx.fromAddress)}
+                          <span className="text-gray-400">{tx.type === 'sent' ? 'Para:' : 'De:'}</span>
+                          {' '}{formatAddress(tx.address)} {/* Mostra o endereço relevante */}
                         </div>
-                        <div className="text-sm mt-1">
-                          <span className="text-gray-400">Para:</span> {formatAddress(tx.toAddress)}
-                        </div>
+                        {/* Remover a segunda linha ou ajustar se tiver mais info */}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium">{formatCurrency(tx.amountBRL)}</div>
-                        <div className="text-xs text-gray-400">{formatBCH(tx.amountBCH)}</div>
-                        {tx.feeBCH && (
-                          <div className="text-xs text-gray-400">
-                            Taxa: {tx.feeBCH.toFixed(6)} BCH
+                        {/* Usar tx.convertedBRL e tx.amount */}
+                        <div className="text-sm font-medium">{formatCurrency(tx.convertedBRL)}</div>
+                        <div className="text-xs text-gray-400">{formatBCH(tx.amount)}</div>
+                        {/* Usar tx.fee */}
+                        {tx.fee !== undefined && (
+                          <div className="text-xs text-gray-400"> Taxa: {formatBCH(tx.fee)}
                           </div>
                         )}
                       </td>
+                      {/* Manter Origem/Destino como está por enquanto */}
                       <td className="px-6 py-4">
                         {tx.user && (
                           <div className="text-sm">
@@ -339,11 +345,12 @@ export function TransacoesTab() {
                           </div>
                         )}
                       </td>
+                      {/* Ajustar Status para usar tx.confirmed */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tx.status)}`}>
-                          {getStatusLabel(tx.status)}
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tx.confirmed ? 'confirmed' : 'pending')}`}>
+                          {getStatusLabel(tx.confirmed ? 'confirmed' : 'pending')}
                         </span>
-                        {tx.status === 'confirmed' && tx.confirmations && (
+                        {tx.confirmed && tx.confirmations !== undefined && (
                           <div className="text-xs text-gray-400 mt-1">
                             {tx.confirmations} confirmações
                           </div>
@@ -354,8 +361,9 @@ export function TransacoesTab() {
                           </div>
                         )}
                       </td>
+                      {/* Usar tx.timestamp */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {formatDate(tx.createdAt)}
+                        {formatDate(tx.timestamp)}
                       </td>
                     </tr>
                   ))}
@@ -386,7 +394,7 @@ export function TransacoesTab() {
                 <div>
                   <p className="text-sm text-gray-400">
                     Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
-                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, transactions.length)}</span> de{' '}
+                    <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + transactions.length, totalPages * itemsPerPage)}</span> de{' '} {/* Ajustado para refletir o total real */}
                     <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
                   </p>
                 </div>
@@ -402,7 +410,7 @@ export function TransacoesTab() {
                       <FiChevronLeft size={20} />
                     </button>
                     
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    {totalPages > 1 && Array.from({ length: Math.min(5, totalPages) }, (_, i) => { // Adicionado totalPages > 1
                       let pageNum;
                       if (totalPages <= 5) {
                         pageNum = i + 1;

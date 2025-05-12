@@ -117,18 +117,59 @@ const getTransactions = async (req, res, next) => {
     }
     logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions using walletService.`);
 
-    // TODO: Get pagination params from req.query if implemented in walletService
-    // const page = parseInt(req.query.page) || 1;
-    // const limit = parseInt(req.query.limit) || 50; // Default limit 50
+    // Pagination Logic
+    const limit = parseInt(req.query.limit) || 20; // Default limit 20
+    const page = parseInt(req.query.page) || 1;    // Default page 1
+    // const skip = (page - 1) * limit; // walletService calculates skip internally
+
+    // --- ADDED: Extract Filter Parameters ---
+    const searchTerm = req.query.search || ''; // Default to empty string if not provided
+    const statusFilter = req.query.status || 'all'; // Default to 'all'
+    const startDate = req.query.startDate || null; // Expecting ISO date string or null
+    const endDate = req.query.endDate || null;     // Expecting ISO date string or null
+    // --- END ADDED ---
+
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions. Page: ${page}, Limit: ${limit}, Search: '${searchTerm}', Status: ${statusFilter}, Start: ${startDate}, End: ${endDate}`);
 
     try {
-        // --- MODIFICATION: Call walletService.getWalletTransactions ---
-        // Pass pagination params if implemented: await walletService.getWalletTransactions(userId, page, limit);
-        const transactions = await walletService.getWalletTransactions(userId);
-        // --- END MODIFICATION ---
+        // TODO: Implement walletService.checkTransactionIntegrity(userId) if this feature is desired.
+        // The function is currently not defined in the provided walletService.js.
+        // --- Block for Integrity Check (currently commented out) ---
+        // logger.info(`[${endpoint}] User ${userId}: Checking transaction integrity...`);
+        // const integrity = await walletService.checkTransactionIntegrity(userId);
+        // if (integrity && !integrity.isConsistent) {
+        //     logger.warn(`[${endpoint}] User ${userId}: Balance inconsistency detected! Blockchain Sats: ${integrity.onChainSatoshis}, DB Calc Sats: ${integrity.dbCalculatedSatoshis}. Triggering sync AND waiting...`);
+        //     // Sync might be implicitly handled within getWalletTransactions or needs explicit call
+        //     logger.info(`[${endpoint}] User ${userId}: Sync completed after inconsistency.`);
+        // } else if (integrity && integrity.isConsistent) {
+        //     logger.info(`[${endpoint}] User ${userId}: Integrity OK.`);
+        // } else if (!integrity) {
+        //      logger.warn(`[${endpoint}] User ${userId}: Could not get integrity status.`);
+        // }
+        // --- End Integrity Check Block ---
 
-        res.status(200).json(transactions); // Send the already formatted transactions from walletService
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${transactions.length} transactions.`);
+        // Fetch transactions using the service function, which handles processing, saving, and pagination
+        logger.info(`[${endpoint}] User ID: ${userId} - Calling walletService.getWalletTransactions with filters and pagination.`);
+        const { transactions, totalCount } = await walletService.getWalletTransactions(
+            userId,
+            page,
+            limit,
+            searchTerm,
+            statusFilter,
+            startDate,
+            endDate
+        );
+
+        // Return paginated result
+        res.status(200).json({
+            transactions: transactions, // Use the list returned by the service
+            total: totalCount,
+            page: page,
+            limit: limit,
+            totalPages: Math.ceil(totalCount / limit)
+        });
+        const sentCount = Array.isArray(transactions) ? transactions.length : 0;
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${sentCount} transactions (Page ${page}/${Math.ceil(totalCount/limit)}).`);
 
     } catch (error) {
         // Log the specific error from walletService

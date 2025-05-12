@@ -10,6 +10,8 @@ const logger = require('../utils/logger');
 // --- MODIFICATION: Add walletService dependency ---
 const walletService = require('./walletService'); // Use the main service for processing
 const cache = require('./cacheService');
+// --- ADDED: Need electrumRequestManager for fetching details ---
+const electrumRequestManager = require('./electrumRequestManager');
 const { withTimeout } = require('../utils/asyncUtils');
 
 // --- Configuration (Keep as is) ---
@@ -20,7 +22,7 @@ const CONNECTION_TIMEOUT_MS = 10000;
 const REQUEST_TIMEOUT_MS = 15000;
 const TARGET_CONNECTIONS = 4;
 const STATUS_CACHE_TTL_MS = 5 * 60 * 1000;
-const CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // Keep cache cleanup
 const SATOSHIS_PER_BCH = 1e8; // Keep for potential use, though walletService handles it now
 
 // --- Utilities (Keep as is) ---
@@ -74,6 +76,8 @@ class SpvMonitorService {
         this.removeSubscription = this.removeSubscription.bind(this);
         this.handleSubscriptionUpdate = this.handleSubscriptionUpdate.bind(this);
         this.processAndNotifyWithHistory = this.processAndNotifyWithHistory.bind(this);
+        // --- ADDED: Bind new method ---
+        this.fetchAndSaveTransactionDetails = this.fetchAndSaveTransactionDetails.bind(this);
         this.attachListenersToClient = this.attachListenersToClient.bind(this);
         this.start = this.start.bind(this);
         this.stop = this.stop.bind(this);
@@ -272,9 +276,12 @@ class SpvMonitorService {
         logger.debug(`SPV: Attached listeners to ${serverId}.`);
     }
 
-    // --- MODIFIED: handleSubscriptionUpdate (Keep as is, uses processAndNotifyWithHistory) ---
+    // --- MODIFIED: handleSubscriptionUpdate ---
     async handleSubscriptionUpdate(scriptHash, status, serverId) {
         logger.debug(`SPV: [Update Handling] Received status update for SH: ${scriptHash}, Status: ${status}, From: ${serverId}`);
+
+        // --- ADDED LOG: Before cache check ---
+        logger.info(`SPV: [Update Handling - Step 1] Checking cache for status: ${status}`);
 
         // 1. Check if status was recently processed
         if (this.isStatusRecentlyProcessed(status)) {
@@ -296,9 +303,21 @@ class SpvMonitorService {
         }
         logger.debug(`SPV: [Update Identified] Update is for User: ${subInfo.userId}, Addr: ${subInfo.bchAddress}`);
 
+        // --- ADDED: Log before entering the main processing block ---
+        logger.info(`SPV: [Update Handling] Passed checks for SH: ${scriptHash}, Status: ${status}. Attempting processing...`);
+
         try {
              this.processingLocks.add(scriptHash);
              logger.debug(`SPV: [Lock Acquired] Processing update for SH: ${scriptHash}`);
+
+             // --- REVISED FLOW: Fetch and Save BEFORE invalidating/notifying ---
+             logger.info(`SPV: [Update Handling - Step 2] Fetching and saving transaction details for User: ${subInfo.userId}, SH: ${scriptHash}`);
+             await this.fetchAndSaveTransactionDetails(subInfo.userId, subInfo.bchAddress, scriptHash);
+             // --- END REVISED FLOW ---
+
+             // --- ADDED LOG: Before cache invalidation ---
+             logger.info(`SPV: [Update Handling - Step 3] Invalidating cache for User: ${subInfo.userId}`);
+
 
              // --- >>> INVALIDATE CACHE <<< ---
              logger.info(`SPV: [Cache Invalidate Trigger] Invalidating cache for User ${subInfo.userId} due to SPV update.`);
@@ -307,6 +326,8 @@ class SpvMonitorService {
              // --- >>> END INVALIDATION <<< ---
 
              // Call the notification logic (which now uses walletService)
+             // --- ADDED LOG: Before notification ---
+             logger.info(`SPV: [Update Handling - Step 4] Calling processAndNotify for User: ${subInfo.userId}`);
              await this.processAndNotifyWithHistory(subInfo.userId, subInfo.bchAddress, scriptHash, status);
 
              // Mark this status hash as processed AFTER successful processing & notification
@@ -322,6 +343,136 @@ class SpvMonitorService {
         }
     }
     // --- END MODIFIED handleSubscriptionUpdate ---
+
+    // --- ADDED: Method to fetch history, details, and save ---
+    async fetchAndSaveTransactionDetails(userId, userAddress, scriptHash) {
+        logger.debug(`[SPV Save] Starting fetch/save process for User: ${userId}, Addr: ${userAddress}`);
+        let rate = 0;
+        let currentHeight = 0;
+
+        try {
+            // Fetch necessary context (rate, height) - reuse walletService logic if possible, or fetch here
+            // For simplicity, fetching here. Consider centralizing if needed.
+            try {
+                // Use getBchToBrlRate directly from exchangeRate service if walletService doesn't expose it
+                const exchangeRateService = require('./exchangeRate'); // Assuming path
+                rate = await exchangeRateService.getBchToBrlRate();
+            } catch (rateError) {
+                logger.warn(`[SPV Save] Failed to get BRL rate for user ${userId}: ${rateError.message}. BRL values will be 0.`);
+            }
+            try {
+                 // Use getBlockHeight directly from walletService if exposed, otherwise implement here or import
+                 // Assuming walletService has getBlockHeight exported
+                 currentHeight = await walletService.getBlockHeight();
+            } catch (heightError) {
+                 logger.warn(`[SPV Save] Failed to get block height for user ${userId}: ${heightError.message}.`);
+            }
+
+            // 1. Fetch full history for the script hash
+            const history = await electrumRequestManager.raceRequest(
+                'blockchain.scripthash.get_history',
+                [scriptHash]
+            );
+
+            if (!history || history.length === 0) {
+                logger.debug(`[SPV Save] No history found for SH: ${scriptHash}. Nothing to save.`);
+                return;
+            }
+            logger.debug(`[SPV Save] Found ${history.length} history items for SH: ${scriptHash}. Fetching details...`);
+
+            // 2. Fetch details for all transactions in history
+            //    (Could optimize to only fetch unconfirmed or recent, but fetching all is safer for sync)
+            const detailPromises = history.map(item =>
+                electrumRequestManager.raceRequest('blockchain.transaction.get', [item.tx_hash, true])
+                    .catch(err => {
+                        logger.error(`[SPV Save Detail] Failed fetching details for ${item.tx_hash}: ${err.message}`);
+                        return null; // Allow Promise.all to continue
+                    })
+            );
+            const transactionDetailsList = await Promise.all(detailPromises);
+
+            // 3. Process and Save each transaction
+            const savePromises = [];
+            history.forEach((item, index) => {
+                const txDetails = transactionDetailsList[index];
+                if (!txDetails) return; // Skip if details failed to fetch
+
+                try {
+                    // --- Simplified Processing Logic (Adapt from walletService if needed) ---
+                    // This needs refinement based on how you determine 'sent' vs 'received' and the 'displayAddress'
+                    // For now, a basic structure:
+                    const txid = item.tx_hash;
+                    const blockHeight = item.height > 0 ? item.height : undefined;
+                    const confirmations = blockHeight && currentHeight > 0 ? currentHeight - blockHeight + 1 : 0;
+                    const status = confirmations > 0 ? 'confirmed' : 'pending';
+                    // Use blocktime if available, fallback to server time, fallback to now
+                    const timestamp = txDetails.blocktime ? new Date(txDetails.blocktime * 1000).toISOString() : (txDetails.time ? new Date(txDetails.time * 1000).toISOString() : new Date().toISOString());
+
+                    let type = 'unknown';
+                    let amountSatoshis = 0;
+                    let displayAddress = 'N/A';
+
+                    // Basic Received Check: Does any output go to the user's address?
+                    let receivedSatoshis = 0;
+                    for (const vout of txDetails.vout) {
+                        // Ensure scriptPubKey and addresses exist before checking includes
+                        if (vout.scriptPubKey?.addresses?.includes(userAddress)) {
+                             receivedSatoshis += Math.round((vout.value || 0) * SATOSHIS_PER_BCH);
+                        }
+                    }
+
+                    // Basic Sent Check: Does any input come from the user's address? (Requires prev tx details - complex!)
+                    // SIMPLIFICATION: Assume if not received, it might be sent or self-send.
+                    // A more robust classification needs input analysis.
+                    if (receivedSatoshis > 0) {
+                        type = 'received';
+                        amountSatoshis = receivedSatoshis;
+                        displayAddress = userAddress; // Or sender if known
+                    } else {
+                        // Placeholder for sent/self - needs better logic
+                        type = 'unknown'; // Mark as unknown until classification improves
+                        amountSatoshis = 0; // Cannot determine amount reliably without input analysis
+                        // Try to find first non-user output address
+                        const firstOtherOutput = txDetails.vout.find(vout => !vout.scriptPubKey?.addresses?.includes(userAddress));
+                        displayAddress = firstOtherOutput?.scriptPubKey?.addresses?.[0] || 'Unknown';
+                    }
+
+                    const amountBCH = amountSatoshis / SATOSHIS_PER_BCH;
+                    const amountBRL = rate > 0 ? amountBCH * rate : 0;
+                    const feeSatoshis = txDetails.fees ? Math.round(txDetails.fees * SATOSHIS_PER_BCH) : 0;
+                    const feeBCH = feeSatoshis / SATOSHIS_PER_BCH;
+
+                    const processedTx = {
+                        // Match the structure expected by saveTransactionIfNotExists
+                        txid: txid,
+                        address: displayAddress,    // The relevant address for display
+                        amount: amountBCH,          // <-- CHANGED from amountBCH to amount
+                        type: type,
+                        timestamp: timestamp,
+                        status: status,             // 'confirmed' or 'pending' (used by saveTx to set boolean)
+                        confirmations: confirmations,
+                        convertedBRL: amountBRL,    // <-- CHANGED from amountBRL to convertedBRL
+                        fee: type !== 'received' ? feeBCH : undefined, // Fee usually relevant for sent
+                    };
+                    // --- End Simplified Processing ---
+
+                    savePromises.push(walletService.saveTransactionIfNotExists(processedTx, userId));
+                } catch (procError) {
+                    logger.error(`[SPV Save Process] Error processing tx ${item.tx_hash}: ${procError.message}`);
+                }
+            });
+
+            // 4. Wait for saves to complete (or settle)
+            await Promise.allSettled(savePromises);
+            logger.info(`[SPV Save] Finished save attempts for ${savePromises.length} transactions for User: ${userId}`);
+
+        } catch (error) {
+            logger.error(`[SPV Save] Top-level error during fetch/save for User ${userId}: ${error.message}`, error.stack);
+            // Re-throw to ensure the main handler knows processing failed
+            throw error;
+        }
+    }
+    // --- END ADDED METHOD ---
 
     // --- MODIFIED: processAndNotifyWithHistory (Uses walletService) ---
     async processAndNotifyWithHistory(userId, bchAddress, scriptHash, status) {

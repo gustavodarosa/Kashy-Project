@@ -15,12 +15,21 @@ export function CryptoChart() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log("[CryptoChart] Fetching data via backend proxy..."); // Log
         setIsLoading(true);
+        setError(null); // Clear previous errors
         
-        // 1. Buscar dados históricos (últimas 24h)
+        // --- ADDED: Get token ---
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Usuário não autenticado.');
+        // --- END ADDED ---
+
+        // 1. Buscar dados históricos (últimas 24h) VIA BACKEND
         const historicalResponse = await fetch(
-          'https://api.coingecko.com/api/v3/coins/bitcoin-cash/market_chart?vs_currency=usd&days=1'
+          'http://localhost:3000/api/chart/bitcoin-cash/usd?days=1', // <-- URL already changed
+          { headers: { Authorization: `Bearer ${token}` } } // <-- ADDED HEADERS
         );
+        if (!historicalResponse.ok) throw new Error(`Backend proxy error: ${historicalResponse.statusText}`); // Check backend response
         const historicalData = await historicalResponse.json();
         
         // Formatando os dados para o gráfico
@@ -29,10 +38,15 @@ export function CryptoChart() {
           price: item[1]
         }));
         
+        console.log("[CryptoChart] Historical data fetched and formatted."); // Log
         setCryptoData(formattedData);
         setIsLoading(false);
         
         // 2. Configurar atualização em tempo real (a cada 30 segundos)
+        // NOTE: Real-time update via backend proxy might be complex.
+        // For now, let's comment out the interval fetching simple price directly.
+        // A better approach would be a WebSocket connection or periodic re-fetch of the chart data via proxy.
+        /*
         const intervalId = setInterval(async () => {
           const currentResponse = await fetch(
             'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin-cash&vs_currencies=usd'
@@ -50,12 +64,14 @@ export function CryptoChart() {
             return newData.slice(-100);
           });
         }, 30000);
+        */
         
-        return () => clearInterval(intervalId);
-      } catch (err) {
+        return () => { /* clearInterval(intervalId); */ }; // Cleanup placeholder
+      } catch (err: any) { // Catch any error
+        console.error("[CryptoChart] Error fetching data:", err); // Log the error
         setError('Erro ao carregar dados da criptomoeda');
         setIsLoading(false);
-        console.error(err);
+        // console.error(err); // Already logged above
       }
     };
     
