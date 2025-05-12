@@ -99,8 +99,7 @@ router.post(
 );
 
 // Nova rota para o total acumulado de vendas
-router.get('/sales/total', getTotalSales); 
-router.get('/sales/total-bch', getTotalSalesInBCH);
+
 // --- Optional: Keep the old combined endpoint if needed for backward compatibility ---
 // router.get('/', getWalletData);
 

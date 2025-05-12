@@ -1,13 +1,13 @@
 // z:\Kashy-Project\backend\src\controllers\walletController.js
 const { validationResult } = require('express-validator');
 const Transaction = require('../models/transaction'); // Model for DB operations
-const User = require('../models/user'); // Needed for some sales calculations
-const walletService = require('../services/walletService'); // Use the main service
+
+
 
 const bchService = require('../services/bchService');
 
 const { getBchToBrlRate } = require('../services/exchangeRate'); // Import BRL rate function
-const Transaction = require('../models/transaction'); // Supondo que exista um modelo de transações
+
 
 const User = require('../models/user');
 // --- MODIFICATION: Use walletService for core logic ---

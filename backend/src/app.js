@@ -30,19 +30,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 app.use('/api/users', userRoutes);
 app.use('/api/wallet', walletRoutes);
-app.use('/api/crypto', cryptoProxy);
-app.use('/api', routes); 
+
+
 app.use("/api/reports", reportRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
 
 // --- MODIFICATION: Mount routes with correct base paths ---
-app.use('/api/users', userRoutes);
+
 app.use('/api/auth', authRoutes); // Mount auth routes (e.g., /api/auth/login)
-app.use('/api/wallet', walletRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/reports', reportRoutes);
+
+
+
 app.use('/api/crypto-proxy', cryptoProxyRoutes); // Use the renamed variable and path
 // --- ADDED: Mount stats routes ---
 app.use('/api/stats', statsRoutes);
