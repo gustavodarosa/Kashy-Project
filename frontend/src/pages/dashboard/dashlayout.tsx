@@ -613,68 +613,117 @@ export function Dashboard() {
             {/* Chatbot Modal */}
             {isChatbotOpen && (
                 <div
-                    className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center z-50"
+                    className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
                     onClick={() => setIsChatbotOpen(false)} // Fecha o modal ao clicar fora
                 >
                     <div
-                        className="bg-gray-900 text-white rounded-lg shadow-lg w-full max-w-md p-6 relative"
+                        className="bg-gradient-to-b from-gray-900 to-gray-800 text-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-slideUp overflow-hidden border border-gray-700/50"
                         onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
                     >
                         {/* Header */}
-                        <div className="bg-blue-600 text-white rounded-t-lg p-4 flex justify-between items-center">
-                            <h2 className="text-lg font-bold">Chatbot de Suporte</h2>
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                <h2 className="text-xl font-semibold">Support Chat</h2>
+                            </div>
                             <button
                                 onClick={() => setIsChatbotOpen(false)}
-                                className="text-white hover:text-gray-200"
-                                title="Fechar"
+                                className="text-white/80 hover:text-white transition-colors duration-200 hover:bg-white/10 p-2 rounded-full"
+                                aria-label="Close chat"
                             >
                                 <FiX size={20} />
                             </button>
                         </div>
 
-                        {/* Chat Messages */}
-                        <div className="bg-gray-800 p-4 rounded-b-lg mb-4 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-800">
+                        {/* Messages Area */}
+                        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar min-h-[300px] max-h-[50vh] space-y-4">
                             {chatMessages.length === 0 ? (
-                                <p className="text-gray-400 text-center">Digite sua mensagem abaixo para começar.</p>
+                                <div className="text-center py-12 px-6">
+                                    <div className="bg-blue-500/10 rounded-2xl p-6 backdrop-blur-sm">
+                                        <h3 className="text-xl font-semibold text-blue-400 mb-2">
+                                            Welcome to Support Chat! 👋
+                                        </h3>
+                                        <p className="text-gray-400">
+                                            How can we assist you today? Feel free to ask any questions.
+                                        </p>
+                                    </div>
+                                </div>
                             ) : (
-                                chatMessages.map((msg, index) => (
-                                    <div
-                                        key={index}
-                                        className={`mb-3 flex ${
-                                            msg.sender === "user" ? "justify-end" : "justify-start"
-                                        }`}
-                                    >
+                                <>
+                                    {chatMessages.map((msg, index) => (
                                         <div
-                                            className={`px-4 py-2 rounded-lg max-w-xs ${
-                                                msg.sender === "user"
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300"
+                                            key={index}
+                                            className={`flex animate-fadeIn ${
+                                                msg.sender === "user" ? "justify-end" : "justify-start"
                                             }`}
                                         >
-                                            {msg.message}
+                                            <div
+                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${
+                                                    msg.sender === "user"
+                                                        ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
+                                                        : "bg-gray-700/50 text-gray-200 rounded-tl-none"
+                                                }`}
+                                            >
+                                                {msg.message}
+                                                <div
+                                                    className={`text-xs mt-2 ${
+                                                        msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
+                                                    }`}
+                                                >
+                                                    {new Date().toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                        hour12: true,
+                                                    })}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                    {isChatLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-gray-700/50 backdrop-blur-sm text-gray-200 px-6 py-3 rounded-2xl rounded-tl-none flex items-center space-x-2">
+                                                <div className="typing-indicator">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
-                            {isChatLoading && <p className="text-gray-400 text-center">Carregando...</p>}
                         </div>
 
-                        {/* Chat Input */}
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                placeholder="Digite sua mensagem..."
-                                className="flex-1 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <button
-                                onClick={handleSendMessage}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white flex items-center gap-2"
-                                disabled={isChatLoading || !chatInput.trim()}
-                            >
-                                {isChatLoading ? "Enviando..." : <FiSend size={16} />}
-                            </button>
+                        {/* Input Area */}
+                        <div className="p-6 bg-gray-900/50 backdrop-blur-sm border-t border-gray-700/50">
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage();
+                                        }
+                                    }}
+                                    placeholder="Type your message..."
+                                    className="flex-1 px-6 py-3 rounded-xl bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                                    disabled={isChatLoading}
+                                />
+                                <button
+                                    onClick={handleSendMessage}
+                                    className={`p-3 rounded-xl ${
+                                        isChatLoading || !chatInput.trim()
+                                            ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                                            : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
+                                    } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                                    disabled={isChatLoading || !chatInput.trim()}
+                                    aria-label="Send message"
+                                >
+                                    <FiSend size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

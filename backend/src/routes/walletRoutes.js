@@ -36,7 +36,7 @@ router.patch('/transactions/:txid/seen', markTransactionAsSeen);
 router.get('/sales/today', getTotalSalesToday);
 
 // Nova rota para o total acumulado de vendas
-router.get('/sales/total', getTotalSales);
+router.get('/sales/total', getTotalSales); 
 router.get('/sales/total-bch', getTotalSalesInBCH);
 // --- Optional: Keep the old combined endpoint if needed for backward compatibility ---
 // router.get('/', getWalletData);

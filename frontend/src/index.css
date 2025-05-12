@@ -28,3 +28,26 @@
   --color-auth-link: var(--color-accent); 
   --color-auth-link-hover: var(--color-accent-hover); 
 }
+
+/* Custom scrollbar for the chat area */
+.custom-scrollbar {
+  scrollbar-width: thin; /* Para navegadores compatíveis com CSS Scrollbar */
+  scrollbar-color: #4b5563 #1f2937; /* Cor da barra e do fundo */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Largura da barra de rolagem */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937; /* Cor do fundo da barra */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #3b82f6, #2563eb); /* Gradiente para o thumb */
+  border-radius: 4px; /* Bordas arredondadas */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #2563eb, #1d4ed8); /* Cor ao passar o mouse */
+}
