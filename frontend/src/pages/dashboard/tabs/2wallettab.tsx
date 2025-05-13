@@ -370,7 +370,7 @@ export function WalletTab() {
       if (type === 'BCH') {
           const bchAmountStr = cleanValue; // Keep user input format
           // Calculate BRL only if BCH is a valid number and rate exists
-          const brlAmountStr = !isNaN(numericValue) && currentRate > 0 ? (numericValue * currentRate).toFixed(2) : '';
+          const brlAmountStr = isNaN(numericValue) && currentRate > 0 ? (numericValue * currentRate).toFixed(2) : '';
           setSendForm({ ...sendForm, amountBCH: bchAmountStr, amountBRL: brlAmountStr });
       } else { // type === 'BRL'
           const brlAmountStr = cleanValue; // Keep user input format
@@ -410,113 +410,180 @@ export function WalletTab() {
         </div>
       )}
 
-      {/* --- Balance Cards --- */}
-      {!isInitialized ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-pulse">
-              {/* Show only one placeholder if only one card will be shown */}
-              <div className="bg-[var(--color-bg-secondary)] h-32 rounded-lg p-6 shadow-md"></div>
-          </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8"> {/* Changed grid-cols to 1 */}
-          {/* --- MODIFIED: Renamed and uses totalBCH/totalBRL --- */}
-          {/* Available (Total) Balance Card */}
-          <div className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg p-6 shadow-lg text-white"> {/* Changed color gradient */}
-              <div className="flex justify-between items-start">
-                  <div>
-                      {/* Changed Label */}
-                      <h3 className="text-blue-200 text-sm font-medium">Saldo Disponível</h3>
-                      {loading || !isInitialized ? ( // Added !isInitialized check here too
-                          <div className="mt-2 space-y-2 animate-pulse">
-                              <div className="h-6 bg-blue-700 rounded w-3/4"></div>
-                              <div className="h-4 bg-blue-700 rounded w-1/2"></div>
-                          </div>
-                      ) : (
-                          <React.Fragment>
-                              {/* Changed to use totalBCH */}
-                              <p className="text-2xl font-bold mt-2">{formatBCH(balance.totalBCH)}</p>
-                              {/* Changed to use totalBRL */}
-                              <p className="text-blue-200 mt-1">{formatCurrency(balance.totalBRL)}</p>
-                          </React.Fragment>
-                      )}
-                  </div>
-                  {/* Changed Icon */}
-                  <div className="bg-blue-700 p-3 rounded-full"> <FiDollarSign size={24} /> </div>
-              </div>
-          </div>
-          {/* --- END MODIFICATION --- */}
-
-          {/* --- REMOVED PENDING BALANCE CARD --- */}
-          {/* The conditional rendering logic for the pending card has been removed */}
-          {/* --- END REMOVAL --- */}
+      {/* Balance Section */}
+      <div className="flex flex-col items-center mb-8">
+        <div style={{
+    boxShadow: '0 -5px 10px rgba(112, 255, 189, 0.5)', // Glow com blur
+  }}className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg text-center border-t-4 border-[rgb(112,255,189)]">
+          <h3 className="text-white text-sm font-medium flex items-center gap-2">
+            <FiDollarSign className="text-white" /> Saldo Disponível
+          </h3>
+          {loading || !isInitialized ? (
+            <div className="mt-2 space-y-2 animate-pulse">
+              <div className="h-6 bg-[var(--color-accent-dark)] rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-[var(--color-accent-dark)] rounded w-1/2 mx-auto"></div>
+            </div>
+          ) : (
+            <>
+              <p className="text-4xl font-bold mt-2 text-white">{formatBCH(balance.totalBCH)}</p>
+              <p className="text-white mt-1">{formatCurrency(balance.totalBRL)}</p>
+            </>
+          )}
         </div>
-      )}
-      {/* --- End Balance Cards --- */}
-
+      </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4 mb-8">
-        <button onClick={() => { if (!isInitialized || loading) { toast.warn("Aguarde inicialização."); return; } if (!walletAddress) { toast.error("Endereço indisponível."); return; } setSendModalOpen(true); setError(null); }} disabled={!isInitialized || loading} className="flex items-center gap-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"> <FiArrowUp /> Enviar BCH </button>
-        <button onClick={() => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível."); return; } setReceiveModalOpen(true); setError(null); }} disabled={!isInitialized || !walletAddress} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"> <FiArrowDown /> Receber BCH </button>
+      <div className="flex flex-wrap gap-4 mb-8 justify-center">
+        <button
+          onClick={() => {
+            if (!isInitialized || loading) {
+              toast.warn("Aguarde inicialização.");
+              return;
+            }
+            if (!walletAddress) {
+              toast.error("Endereço indisponível.");
+              return;
+            }
+            setSendModalOpen(true);
+            setError(null);
+          }}
+          disabled={!isInitialized || loading}
+          className="flex items-center gap-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          style={{
+            position: 'relative',
+            background: 'rgba(34, 197, 94, 0.8)', // Semi-transparent blue
+            boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)', // Blue glow
+            backdropFilter: 'blur(5px)', // Blur effect
+            WebkitBackdropFilter: 'blur(5px)', // Safari support
+          }}
+        >
+          <FiArrowUp /> Enviar BCH
+        </button>
+        <button
+          onClick={() => {
+            if (!isInitialized || !walletAddress) {
+              toast.error("Endereço indisponível.");
+              return;
+            }
+            setReceiveModalOpen(true);
+            setError(null);
+          }}
+          disabled={!isInitialized || !walletAddress}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          style={{
+            position: 'relative',
+            background: 'rgba(34, 197, 94, 0.8)', // Semi-transparent green
+            boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)', // Green glow
+            backdropFilter: 'blur(5px)', // Blur effect
+            WebkitBackdropFilter: 'blur(5px)', // Safari support
+          }}
+        >
+          <FiArrowDown /> Receber BCH
+        </button>
         <button disabled title="Em breve" className="flex items-center gap-2 bg-gray-600 text-gray-400 px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"> <FiDollarSign /> Converter </button>
       </div>
 
       {/* Recent Transactions */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 shadow-lg">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)]">Transações Recentes</h3>
-        {/* Conditional rendering structure */}
-        {!isInitialized ? (
-          <div className="space-y-4 animate-pulse">{[...Array(3)].map((_, i) => ( <div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]"><div className="flex items-center gap-4"><div className="p-3 rounded-full bg-gray-700 h-12 w-12"></div><div><div className="h-4 bg-gray-700 rounded w-48 mb-2"></div><div className="h-3 bg-gray-700 rounded w-32"></div></div></div><div className="text-right"><div className="h-4 bg-gray-700 rounded w-24 mb-2"></div><div className="h-3 bg-gray-700 rounded w-20"></div></div></div> ))}</div>
-        ) : loading && transactions.length === 0 ? ( // Show loading skeleton if loading AND no transactions yet
-          <div className="space-y-4 animate-pulse">{[...Array(3)].map((_, i) => ( <div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]"><div className="flex items-center gap-4"><div className="p-3 rounded-full bg-gray-700 h-12 w-12"></div><div><div className="h-4 bg-gray-700 rounded w-48 mb-2"></div><div className="h-3 bg-gray-700 rounded w-32"></div></div></div><div className="text-right"><div className="h-4 bg-gray-700 rounded w-24 mb-2"></div><div className="h-3 bg-gray-700 rounded w-20"></div></div></div> ))}</div>
-        ) : !loading && transactions.length === 0 ? ( // Show "No transactions" only if not loading and array is empty
-          <div className="text-center py-8 text-[var(--color-text-secondary)]"> Nenhuma transação encontrada. </div>
-        ) : ( // Render transactions if available (even if loading is true for subsequent fetches)
+      <div style={{
+    boxShadow: '0 -5px 10px rgba(112, 255, 189, 0.5)', // Glow com blur
+  }}className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg border-t-4 border-[rgb(112,255,189)]">
+        <h3 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+          <FiClock className="text-white" /> Transações Recentes
+        </h3>
+        {transactions.length === 0 ? (
+          <div className="text-center py-8 text-white">
+            Nenhuma transação encontrada.
+          </div>
+        ) : (
           <div className="space-y-4">
             {transactions.map((tx) => (
-              <div key={tx._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg border-b border-[var(--color-border)] last:border-b-0">
+              <div
+                key={tx._id}
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-secondary-dark)] rounded-lg border-b border-[var(--color-border-dark)] last:border-b-0"
+              >
                 <div className="flex items-center gap-4 mb-2 sm:mb-0 w-full sm:w-auto">
-                  <div className={`flex-shrink-0 p-3 rounded-full ${ tx.type === 'received' ? 'bg-green-900 text-green-400' : tx.type === 'sent' ? 'bg-red-900 text-red-400' : tx.type === 'self' ? 'bg-blue-900 text-blue-400' : 'bg-gray-700 text-gray-400' }`}>
-                    {tx.type === 'received' ? <FiArrowDown size={20} /> : tx.type === 'sent' ? <FiArrowUp size={20} /> : tx.type === 'self' ? <FiRefreshCw size={20} /> : <FiClock size={20} />}
+                  <div
+                    className={`flex-shrink-0 p-3 rounded-full ${
+                      tx.type === 'received'
+                        ? 'bg-[var(--color-accent-dark)] text-green-400'
+                        : tx.type === 'sent'
+                        ? 'bg-[var(--color-accent-dark)] text-red-400'
+                        : tx.type === 'self'
+                        ? 'bg-[var(--color-accent-dark)] text-blue-400'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    {tx.type === 'received' ? (
+                      <FiArrowDown size={20} />
+                    ) : tx.type === 'sent' ? (
+                      <FiArrowUp size={20} />
+                    ) : tx.type === 'self' ? (
+                      <FiRefreshCw size={20} />
+                    ) : (
+                      <FiClock size={20} />
+                    )}
                   </div>
                   <div className="flex-grow min-w-0">
-                    <p className="font-medium text-sm sm:text-base truncate text-[var(--color-text-primary)]">
-                      {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : tx.type === 'self' ? 'Para si' : 'Desconhecido'}
+                    <p className="font-medium text-sm sm:text-base truncate text-white">
+                      {tx.type === 'received'
+                        ? 'Recebido'
+                        : tx.type === 'sent'
+                        ? 'Enviado'
+                        : tx.type === 'self'
+                        ? 'Para si'
+                        : 'Desconhecido'}
                     </p>
-                    <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">{formatDate(tx.timestamp)}</p>
-                    <a href={`${BCH_EXPLORER_TX_URL}${tx.txid}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 break-all block mt-1" title={tx.txid}>
+                    <p className="text-xs sm:text-sm text-white">
+                      {formatDate(tx.timestamp)}
+                    </p>
+                    <a
+                      href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-200 hover:text-blue-100 break-all block mt-1"
+                      title={tx.txid}
+                    >
                       Hash: {formatAddress(tx.txid, 8)}
                     </a>
                   </div>
                 </div>
                 <div className="flex flex-col items-end ml-auto sm:ml-0 pl-16 sm:pl-0 flex-shrink-0">
-                  <p className={`font-bold text-sm sm:text-base whitespace-nowrap ${ tx.type === 'received' ? 'text-green-400' : tx.type === 'sent' ? 'text-red-400' : 'text-gray-400' }`}>
-                    {tx.type === 'received' ? '+' : tx.type === 'sent' ? '-' : ''} {formatBCH(tx.amount)} {/* <--- CHANGE: Use amount */}
+                  <p
+                    className={`font-bold text-sm sm:text-base whitespace-nowrap ${
+                      tx.type === 'received'
+                        ? 'text-green-200'
+                        : tx.type === 'sent'
+                        ? 'text-red-200'
+                        : 'text-gray-200'
+                    }`}
+                  >
+                    {tx.type === 'received' ? '+' : tx.type === 'sent' ? '-' : ''} {formatBCH(tx.amount)}
                   </p>
-                  <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] whitespace-nowrap">{formatCurrency(tx.convertedBRL)}</p> {/* <--- CHANGE: Use convertedBRL */}
+                  <p className="text-xs sm:text-sm text-white whitespace-nowrap">
+                    {formatCurrency(tx.convertedBRL)}
+                  </p>
                   <div className="mt-1">
                     {tx.status === 'confirmed' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                         Confirmado ({tx.confirmations > 99 ? '99+' : tx.confirmations} conf.)
                       </span>
                     ) : tx.status === 'pending' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                         Pendente ({tx.confirmations} conf.)
                       </span>
                     ) : tx.status === 'error' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" title={tx.errorMessage}>
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+                        title={tx.errorMessage}
+                      >
                         Erro
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                         Desconhecido
                       </span>
                     )}
                   </div>
-                  {/* --- REMOVED SEPARATE FEE DISPLAY --- */}
-                  {/* {tx.type === 'sent' && tx.fee !== undefined && (
-                    <p className="text-xs text-[var(--color-text-secondary)] whitespace-nowrap mt-1">Taxa: {formatBCH(tx.fee)}</p>
-                  )} */}
-                  {/* --- END REMOVAL --- */}
                 </div>
               </div>
             ))}
@@ -622,7 +689,7 @@ export function WalletTab() {
 
       {/* --- Receive Modal --- */}
       {receiveModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-transparent bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
               <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
                   <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Receber Bitcoin Cash</h3>
@@ -639,7 +706,7 @@ export function WalletTab() {
                       <div className="mb-6">
                           <p className="text-sm text-[var(--color-text-secondary)] mb-2">Seu endereço</p>
                           <div className="flex items-center justify-between bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] p-3 rounded-lg">
-                              <span className="font-mono text-blue-400 overflow-x-auto text-sm break-all mr-2">
+                              <span className="font-mono text-green-400 overflow-x-auto text-sm break-all mr-2">
                                   {walletAddress || 'Carregando...'}
                               </span>
                               <button onClick={copyToClipboard} disabled={!walletAddress || isCopied} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex-shrink-0 disabled:opacity-50" title={isCopied ? "Copiado!" : "Copiar"}>
@@ -661,3 +728,4 @@ export function WalletTab() {
     </div> // Closing main component div
   ); // Closing return statement
 } // Closing WalletTab function
+

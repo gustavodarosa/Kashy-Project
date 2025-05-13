@@ -18,7 +18,7 @@
     "@types/bitcore-lib-cash": "^8.23.8",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
-    "bitcore-lib-cash": "^10.8.10",
+    "bitcore-lib-cash": "^10.9.0",
     "chart.js": "^4.4.8",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
