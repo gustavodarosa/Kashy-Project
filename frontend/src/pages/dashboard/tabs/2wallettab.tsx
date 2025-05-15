@@ -386,8 +386,8 @@ export function WalletTab() {
   return (
     <div className="p-6 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen">
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold">Minha Carteira Bitcoin Cash</h2>
+      <div className="flex flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold ">Minha Carteira Bitcoin Cash</h2>
         <div className="flex items-center gap-4 flex-wrap">
           {/* WS Status */}
           <div className="flex items-center gap-2 text-sm">
@@ -446,13 +446,8 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || loading}
-          className="flex items-center gap-2 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          style={{
-            position: 'relative',
-            background: 'rgba(34, 197, 94, 0.8)', // Semi-transparent blue
+          className="flex items-center gap-2 bg-green-600 bg-opacity-80 hover:border-green-400 hover:border-[4px] hover:brightness-110 transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
-            WebkitBackdropFilter: 'blur(5px)', // Safari support
-          }}
         >
           <FiArrowUp /> Enviar BCH
         </button>
@@ -466,7 +461,7 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || !walletAddress}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="flex items-center gap-2 bg-green-600 transition delay-150 duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
         >
           <FiArrowDown /> Receber BCH
@@ -583,7 +578,7 @@ export function WalletTab() {
 
       {/* --- Send Modal --- */}
       {sendModalOpen && (
-        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 ">
+        <div className="fixed inset-0 bg-opacity-75 transition delay-0 duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Enviar Bitcoin Cash</h3>
@@ -679,7 +674,7 @@ export function WalletTab() {
 
       {/* --- Receive Modal --- */}
       {receiveModalOpen && (
-          <div className="fixed inset-0 bg-transparent bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="fixed inset-0 bg-transparent bg-opacity-75 transition delay-0 duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
               <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
                   <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Receber Bitcoin Cash</h3>
