@@ -96,7 +96,16 @@ export function WalletTab() {
         console.error(`[WalletTab] Transactions fetch failed: ${txRes.status}`, d);
         throw new Error(`Erro ao buscar transações: ${d.message || txRes.statusText}`);
       }
-      const fetchedTxs: Transaction[] = await txRes.json();
+      const txsResponseData = await txRes.json();
+      // Ensure fetchedTxs is an array.
+      // It might be txsResponseData.transactions (if the API returns an object like { transactions: [...] })
+      // or txsResponseData itself (if the API returns an array directly).
+      const fetchedTxs: Transaction[] = Array.isArray(txsResponseData.transactions)
+        ? txsResponseData.transactions
+        : Array.isArray(txsResponseData)
+          ? txsResponseData
+          : [];
+
       // Sort transactions by date descending
       fetchedTxs.sort((a, b) => (new Date(b.timestamp).getTime()) - (new Date(a.timestamp).getTime()));
       setTransactions(fetchedTxs);

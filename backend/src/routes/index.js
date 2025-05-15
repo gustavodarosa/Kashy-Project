@@ -1,6 +1,7 @@
 const express = require('express');
 const authRoutes = require('./authRoutes');
 // --- ADDED: Import other route modules ---
+const userRoutes = require('./userRoutes'); // Import userRoutes
 const walletRoutes = require('./walletRoutes');
 const productRoutes = require('./productRoutes');
 const reportRoutes = require('./reportRoutes');
@@ -25,6 +26,8 @@ router.use(protect);
 router.use('/wallet', walletRoutes);
 router.use('/products', productRoutes); // Note: Product routes might have public parts (like marketplace) handled internally
 router.use('/reports', reportRoutes);
+router.use('/users', userRoutes); // Add this line to use userRoutes
+
 router.get('/chart/:coinId/:vsCurrency', chartController.getMarketChart); // Chart proxy route
 
 module.exports = router;

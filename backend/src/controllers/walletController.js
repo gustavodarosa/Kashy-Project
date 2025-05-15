@@ -1,16 +1,12 @@
-// z:\Kashy-Project\backend\src\controllers\walletController.js
+// c:\Users\gustavo.rosa8\Desktop\Kashy-Project\backend\src\controllers\walletController.js
 
 const User = require('../models/user');
-// --- MODIFICATION: Use walletService for core logic ---
 const walletService = require('../services/walletService');
-// const bchService = require('../services/bchService'); // Commented out - use walletService instead
-// --- END MODIFICATION ---
 const logger = require('../utils/logger');
-const { validationResult } = require('express-validator'); // Keep if using validation
+const { validationResult } = require('express-validator');
 
 // --- Helper Function (Keep existing) ---
 function formatAddress(address) {
-    // ... (keep existing formatAddress function) ...
     if (!address || typeof address !== 'string') return 'Endereço Inválido';
     if (address.includes(':') && address.length > 20) {
         const parts = address.split(':'); const addrPart = parts[1];
@@ -31,16 +27,15 @@ const getWalletData = async (req, res) => {
     logger.warn(`[${endpoint}] User ID: ${userId} - Using DEPRECATED endpoint. Fetching combined wallet data.`);
 
     try {
-        // Fetch data using the new service functions for consistency
         const [address, balance, transactions] = await Promise.all([
             walletService.getWalletAddress(userId),
             walletService.getWalletBalance(userId),
-            walletService.getWalletTransactions(userId) // Use the accurate transaction fetch
+            walletService.getWalletTransactions(userId)
         ]);
 
         const walletData = {
-            balance: balance, // Use the structure from walletService.getWalletBalance
-            transactions: transactions, // Use the structure from walletService.getWalletTransactions
+            balance: balance,
+            transactions: transactions,
             address: address,
         };
         res.status(200).json(walletData);
@@ -65,16 +60,12 @@ const getAddress = async (req, res, next) => {
     logger.info(`[${endpoint}] User ID: ${userId} - Fetching address.`);
 
     try {
-        // Use walletService to get the address
         const address = await walletService.getWalletAddress(userId);
-
         res.status(200).json({ address: address });
         logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent address: ${address}`);
-
     } catch (error) {
         logger.error(`[${endpoint}] Error fetching address for user ${req.user?.id}: ${error.message}`);
         logger.error(error.stack);
-        // Determine appropriate status code based on error if possible
         const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
         res.status(statusCode).json({ message: error.message || 'Server error fetching address' });
     }
@@ -91,23 +82,18 @@ const getBalance = async (req, res, next) => {
     logger.info(`[${endpoint}] User ID: ${userId} - Fetching balance.`);
 
     try {
-        // Fetch live balance using walletService
         const balanceResponse = await walletService.getWalletBalance(userId);
-
         res.status(200).json(balanceResponse);
         logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent balance data: ${JSON.stringify(balanceResponse)}`);
-
     } catch (error) {
         logger.error(`[${endpoint}] Error fetching balance for user ${req.user?.id}: ${error.message}`);
         logger.error(error.stack);
-        // Determine appropriate status code based on error if possible
         const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
         res.status(statusCode).json({ message: error.message || 'Server error fetching balance' });
     }
 };
 
 // --- NEW: getTransactions Controller (Uses walletService) ---
-// --- !!! THIS IS THE CORRECTED FUNCTION !!! ---
 const getTransactions = async (req, res, next) => {
     const endpoint = '/api/wallet/transactions (GET)';
     const userId = req.user?.id;
@@ -117,38 +103,16 @@ const getTransactions = async (req, res, next) => {
     }
     logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions using walletService.`);
 
-    // Pagination Logic
-    const limit = parseInt(req.query.limit) || 20; // Default limit 20
-    const page = parseInt(req.query.page) || 1;    // Default page 1
-    // const skip = (page - 1) * limit; // walletService calculates skip internally
-
-    // --- ADDED: Extract Filter Parameters ---
-    const searchTerm = req.query.search || ''; // Default to empty string if not provided
-    const statusFilter = req.query.status || 'all'; // Default to 'all'
-    const startDate = req.query.startDate || null; // Expecting ISO date string or null
-    const endDate = req.query.endDate || null;     // Expecting ISO date string or null
-    // --- END ADDED ---
+    const limit = parseInt(req.query.limit) || 20;
+    const page = parseInt(req.query.page) || 1;
+    const searchTerm = req.query.search || '';
+    const statusFilter = req.query.status || 'all';
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
 
     logger.info(`[${endpoint}] User ID: ${userId} - Fetching transactions. Page: ${page}, Limit: ${limit}, Search: '${searchTerm}', Status: ${statusFilter}, Start: ${startDate}, End: ${endDate}`);
 
     try {
-        // TODO: Implement walletService.checkTransactionIntegrity(userId) if this feature is desired.
-        // The function is currently not defined in the provided walletService.js.
-        // --- Block for Integrity Check (currently commented out) ---
-        // logger.info(`[${endpoint}] User ${userId}: Checking transaction integrity...`);
-        // const integrity = await walletService.checkTransactionIntegrity(userId);
-        // if (integrity && !integrity.isConsistent) {
-        //     logger.warn(`[${endpoint}] User ${userId}: Balance inconsistency detected! Blockchain Sats: ${integrity.onChainSatoshis}, DB Calc Sats: ${integrity.dbCalculatedSatoshis}. Triggering sync AND waiting...`);
-        //     // Sync might be implicitly handled within getWalletTransactions or needs explicit call
-        //     logger.info(`[${endpoint}] User ${userId}: Sync completed after inconsistency.`);
-        // } else if (integrity && integrity.isConsistent) {
-        //     logger.info(`[${endpoint}] User ${userId}: Integrity OK.`);
-        // } else if (!integrity) {
-        //      logger.warn(`[${endpoint}] User ${userId}: Could not get integrity status.`);
-        // }
-        // --- End Integrity Check Block ---
-
-        // Fetch transactions using the service function, which handles processing, saving, and pagination
         logger.info(`[${endpoint}] User ID: ${userId} - Calling walletService.getWalletTransactions with filters and pagination.`);
         const { transactions, totalCount } = await walletService.getWalletTransactions(
             userId,
@@ -160,9 +124,8 @@ const getTransactions = async (req, res, next) => {
             endDate
         );
 
-        // Return paginated result
         res.status(200).json({
-            transactions: transactions, // Use the list returned by the service
+            transactions: transactions,
             total: totalCount,
             page: page,
             limit: limit,
@@ -172,15 +135,11 @@ const getTransactions = async (req, res, next) => {
         logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent ${sentCount} transactions (Page ${page}/${Math.ceil(totalCount/limit)}).`);
 
     } catch (error) {
-        // Log the specific error from walletService
         logger.error(`[${endpoint}] Error fetching transactions via walletService for user ${userId}: ${error.message}`, error.stack);
-        // Determine appropriate status code based on error if possible
         const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
         res.status(statusCode).json({ message: error.message || 'Server error fetching transactions' });
     }
 };
-// --- !!! END OF CORRECTION !!! ---
-
 
 // --- UPDATED: sendBCH Controller (Uses walletService) ---
 const sendBCH = async (req, res) => {
@@ -191,18 +150,15 @@ const sendBCH = async (req, res) => {
         return res.status(401).json({ message: 'User not identified' });
     }
 
-    // Input validation (using express-validator or manually)
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       logger.warn(`[${endpoint}] User ID: ${userId} - Validation failed: ${JSON.stringify(errors.array())}`);
       return res.status(400).json({ message: "Validation failed", errors: errors.array() });
     }
 
-    // Get address, amount, AND fee from body
     const { address: recipientAddress, amount: amountBchStr, fee: feeLevel } = req.body;
     logger.info(`[${endpoint}] User ID: ${userId} - Received send request: To=${recipientAddress}, Amount=${amountBchStr}, FeeLevel=${feeLevel}`);
 
-    // Basic validation (walletService.sendTransaction will do more thorough checks)
     if (!recipientAddress || !amountBchStr || !feeLevel) {
         logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Missing fields (address, amount, or fee).`);
         return res.status(400).json({ message: 'Missing required fields: address, amount, fee' });
@@ -211,27 +167,20 @@ const sendBCH = async (req, res) => {
         logger.warn(`[${endpoint}] User ID: ${userId} - Bad Request: Invalid fee level: ${feeLevel}`);
         return res.status(400).json({ message: 'Invalid fee level. Use low, medium, or high.' });
     }
-    // --- End Basic Validation ---
 
     try {
-        // Delegate sending logic entirely to walletService
         const result = await walletService.sendTransaction(userId, recipientAddress, amountBchStr, feeLevel);
-
         logger.info(`[${endpoint}] User ID: ${userId} - Transaction sent successfully via walletService. TXID: ${result.txid}`);
         res.status(200).json({ txid: result.txid, message: 'Transação enviada com sucesso!' });
-
     } catch (error) {
-        // Log the specific error from walletService
         logger.error(`[${endpoint}] Error sending transaction via walletService for user ${userId}: ${error.message}`);
-        logger.error(error.stack); // Log stack for debugging
+        logger.error(error.stack);
 
-        // Provide a user-friendly error message based on the error type if possible
-        let statusCode = 500; // Default to Internal Server Error
+        let statusCode = 500;
         let clientMessage = 'Erro interno no servidor ao enviar BCH.';
 
-        // Map specific errors from walletService to better client messages/status codes
         if (error.message.includes('Insufficient funds')) {
-            statusCode = 400; // Bad Request
+            statusCode = 400;
             clientMessage = 'Saldo insuficiente para cobrir o valor e a taxa da transação.';
         } else if (error.message.includes('Invalid recipient address')) {
             statusCode = 400;
@@ -243,26 +192,155 @@ const sendBCH = async (req, res) => {
              statusCode = 400;
              clientMessage = 'Valor inválido especificado.';
         } else if (error.message.includes('Network error') || error.message.includes('timeout') || error.message.includes('No connected Electrum servers')) {
-             statusCode = 503; // Service Unavailable
+             statusCode = 503;
              clientMessage = 'Erro de rede durante o envio da transação. Verifique seu histórico de transações mais tarde para confirmar o status.';
         } else if (error.message.includes('User WIF not configured') || error.message.includes('Failed to initialize wallet keys')) {
-            // This indicates a server config issue or problem fetching keys
             statusCode = 500;
             clientMessage = 'Erro ao acessar a chave da carteira no servidor.';
         } else if (error.message.includes('Failed to send transaction')) {
-            // Keep the generic message from walletService if it's not one of the above
             clientMessage = error.message;
         }
-
-        res.status(statusCode).json({ message: clientMessage, error: error.message }); // Include original error message for context
+        res.status(statusCode).json({ message: clientMessage, error: error.message });
     }
 };
 
+// --- ADDED: Sales Data Controller Functions ---
+
+// GET /api/wallet/sales/today
+const getSalesToday = async (req, res) => {
+    const endpoint = '/api/wallet/sales/today (GET)';
+    const userId = req.user?.id; // Assuming sales are user-specific, otherwise remove/adjust
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching today's sales.`);
+
+    try {
+        // Placeholder: Replace with actual database query
+        // Example:
+        // const todayStart = new Date();
+        // todayStart.setHours(0, 0, 0, 0);
+        // const todayEnd = new Date();
+        // todayEnd.setHours(23, 59, 59, 999);
+        // const sales = await Transaction.aggregate([
+        //   { $match: { userId: mongoose.Types.ObjectId(userId), type: 'received', status: 'confirmed', timestamp: { $gte: todayStart, $lte: todayEnd } } },
+        //   { $group: { _id: null, total: { $sum: "$amountBRL" } } }
+        // ]);
+        // const totalSalesToday = sales.length > 0 ? sales[0].total : 0;
+
+        const totalSalesToday = 123.45; // Placeholder value
+        res.status(200).json({ total: totalSalesToday });
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent today's sales: ${totalSalesToday}`);
+    } catch (error) {
+        logger.error(`[${endpoint}] User ID: ${userId} - Error fetching today's sales: ${error.message}`, error.stack);
+        res.status(500).json({ message: "Erro ao buscar vendas de hoje." });
+    }
+};
+
+// GET /api/wallet/sales/total
+const getTotalSales = async (req, res) => {
+    const endpoint = '/api/wallet/sales/total (GET)';
+    const userId = req.user?.id;
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching total sales.`);
+
+    try {
+        // Placeholder: Replace with actual database query
+        // Example:
+        // const sales = await Transaction.aggregate([
+        //   { $match: { userId: mongoose.Types.ObjectId(userId), type: 'received', status: 'confirmed' } },
+        //   { $group: { _id: null, total: { $sum: "$amountBRL" } } }
+        // ]);
+        // const totalSalesAllTime = sales.length > 0 ? sales[0].total : 0;
+
+        const totalSalesAllTime = 54321.00; // Placeholder value
+        res.status(200).json({ total: totalSalesAllTime });
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent total sales: ${totalSalesAllTime}`);
+    } catch (error) {
+        logger.error(`[${endpoint}] User ID: ${userId} - Error fetching total sales: ${error.message}`, error.stack);
+        res.status(500).json({ message: "Erro ao buscar total de vendas." });
+    }
+};
+
+// GET /api/wallet/sales/total-bch
+const getTotalBCHReceived = async (req, res) => {
+    const endpoint = '/api/wallet/sales/total-bch (GET)';
+    const userId = req.user?.id;
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching total BCH received.`);
+
+    try {
+        // Placeholder: Replace with actual database query
+        // Example:
+        // const bchReceived = await Transaction.aggregate([
+        //   { $match: { userId: mongoose.Types.ObjectId(userId), type: 'received', status: 'confirmed' } },
+        //   { $group: { _id: null, total: { $sum: "$amountBCH" } } }
+        // ]);
+        // const totalBCH = bchReceived.length > 0 ? bchReceived[0].total : 0;
+
+        const totalBCH = 2.71828; // Placeholder value
+        res.status(200).json({ total: totalBCH });
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent total BCH received: ${totalBCH}`);
+    } catch (error) {
+        logger.error(`[${endpoint}] User ID: ${userId} - Error fetching total BCH received: ${error.message}`, error.stack);
+        res.status(500).json({ message: "Erro ao buscar total de BCH recebido." });
+    }
+};
+
+// GET /api/wallet/sales/weekly
+const getWeeklySalesData = async (req, res) => {
+    const endpoint = '/api/wallet/sales/weekly (GET)';
+    const userId = req.user?.id;
+    logger.info(`[${endpoint}] User ID: ${userId} - Fetching weekly sales data.`);
+
+    try {
+        // Placeholder: Replace with actual database query
+        // This would involve grouping sales by day for the last 7 days.
+        // Example:
+        // const weeklyData = [];
+        // for (let i = 6; i >= 0; i--) {
+        //     const dayStart = new Date();
+        //     dayStart.setDate(dayStart.getDate() - i);
+        //     dayStart.setHours(0, 0, 0, 0);
+        //     const dayEnd = new Date(dayStart);
+        //     dayEnd.setHours(23, 59, 59, 999);
+        //
+        //     const dailySale = await Transaction.aggregate([
+        //         { $match: { userId: mongoose.Types.ObjectId(userId), type: 'received', status: 'confirmed', timestamp: { $gte: dayStart, $lte: dayEnd } } },
+        //         { $group: { _id: null, sales: { $sum: "$amountBRL" } } }
+        //     ]);
+        //     weeklyData.push({
+        //         day: dayStart.toISOString().split('T')[0], // Format as YYYY-MM-DD
+        //         sales: dailySale.length > 0 ? dailySale[0].sales : 0
+        //     });
+        // }
+
+        const weeklyData = [ // Placeholder data
+            { day: "2024-07-01", sales: 150.00 },
+            { day: "2024-07-02", sales: 220.50 },
+            { day: "2024-07-03", sales: 180.00 },
+            { day: "2024-07-04", sales: 300.75 },
+            { day: "2024-07-05", sales: 250.00 },
+            { day: "2024-07-06", sales: 120.00 },
+            { day: "2024-07-07", sales: 190.25 },
+        ];
+        res.status(200).json(weeklyData);
+        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent weekly sales data.`);
+    } catch (error) {
+        logger.error(`[${endpoint}] User ID: ${userId} - Error fetching weekly sales data: ${error.message}`, error.stack);
+        res.status(500).json({ message: "Erro ao buscar dados de vendas semanais." });
+    }
+};
+
+// --- END ADDED: Sales Data Controller Functions ---
+
+
 // --- Module Exports ---
 module.exports = {
-    getWalletData, // Keep legacy endpoint for now
-    getAddress,    // Export new endpoint
-    getBalance,    // Export new endpoint
-    getTransactions,// Export corrected endpoint
-    sendBCH        // Export updated sendBCH
+    getWalletData,
+    getAddress,
+    getBalance,
+    getTransactions,
+    sendBCH,
+    // --- ADDED: Export new sales functions ---
+    getSalesToday,
+    getTotalSales,
+    getTotalBCHReceived,
+    getWeeklySalesData
+    // --- END ADDED ---
 };
