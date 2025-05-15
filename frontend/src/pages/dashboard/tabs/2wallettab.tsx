@@ -412,9 +412,7 @@ export function WalletTab() {
 
       {/* Balance Section */}
       <div className="flex flex-col items-center mb-8">
-        <div style={{
-    boxShadow: '0 -5px 10px rgba(112, 255, 189, 0.5)', // Glow com blur
-  }}className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg text-center border-t-4 border-[rgb(112,255,189)]">
+        <div className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg text-center border-t-4 border-[rgb(112,255,189)]">
           <h3 className="text-white text-sm font-medium flex items-center gap-2">
             <FiDollarSign className="text-white" /> Saldo Disponível
           </h3>
@@ -452,8 +450,7 @@ export function WalletTab() {
           style={{
             position: 'relative',
             background: 'rgba(34, 197, 94, 0.8)', // Semi-transparent blue
-            boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)', // Blue glow
-            backdropFilter: 'blur(5px)', // Blur effect
+
             WebkitBackdropFilter: 'blur(5px)', // Safari support
           }}
         >
@@ -470,13 +467,7 @@ export function WalletTab() {
           }}
           disabled={!isInitialized || !walletAddress}
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          style={{
-            position: 'relative',
-            background: 'rgba(34, 197, 94, 0.8)', // Semi-transparent green
-            boxShadow: '0 0 10px rgba(34, 197, 94, 0.5)', // Green glow
-            backdropFilter: 'blur(5px)', // Blur effect
-            WebkitBackdropFilter: 'blur(5px)', // Safari support
-          }}
+
         >
           <FiArrowDown /> Receber BCH
         </button>
@@ -485,7 +476,6 @@ export function WalletTab() {
 
       {/* Recent Transactions */}
       <div style={{
-    boxShadow: '0 -5px 10px rgba(112, 255, 189, 0.5)', // Glow com blur
   }}className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg border-t-4 border-[rgb(112,255,189)]">
         <h3 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
           <FiClock className="text-white" /> Transações Recentes
@@ -593,7 +583,7 @@ export function WalletTab() {
 
       {/* --- Send Modal --- */}
       {sendModalOpen && (
-        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 ">
             <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Enviar Bitcoin Cash</h3>
