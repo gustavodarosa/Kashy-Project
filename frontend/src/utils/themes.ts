@@ -1,3 +1,5 @@
+import { Script } from "vm";
+
 type ThemeColors = {
   '--color-bg-primary': string;
   '--color-bg-secondary': string;
@@ -83,6 +85,98 @@ export const themes = {
       '--color-divide': '#853941', // Adicionado
     },
   },
+  Orangetheme: {
+    name: 'Tema Laranja',
+    colors: {
+      '--color-bg-primary': '#a1440b',
+      '--color-bg-secondary': '#cb5703',
+      '--color-bg-tertiary': '#81390d',
+      '--color-shadow': '#ff900b',
+      '--color-text-primary': 'rgb(255, 255, 255)',
+      '--color-text-secondary': 'rgb(209, 213, 219)',
+      '--color-accent': '#ff900b',
+      '--color-accent-hover': 'rgb(234, 88, 12)',
+      '--color-border': '#81390d',
+      '--color-divide': 'rgb(248, 97, 41)',
+    },
+  },
+  Purpletheme: {
+    name: 'Tema Roxo',
+    colors: {
+      '--color-bg-primary': '#4e3778',
+      '--color-bg-secondary': '#603c97',
+      '--color-bg-tertiary': '#3d2a5b',
+      '--color-shadow': '#e5e3fc',
+      '--color-text-primary': 'rgb(252, 252, 252)',
+      '--color-text-secondary': '#rgb(255, 255, 255)',
+      '--color-accent': '#a855f7',
+      '--color-accent-hover': '#9333ea',
+      '--color-border': '#6b4c8a',
+      '--color-divide': '#6b4c8a', // Adicionado
+    },
+  },
+  Pinktheme: {
+    name: 'Tema Rosa',
+    colors: {
+      '--color-bg-primary': 'rgb(153, 18, 97)',
+      '--color-bg-secondary': 'rgb(202, 67, 130)',
+      '--color-bg-tertiary': 'rgb(243, 84, 150)',
+      '--color-shadow': '#e680b7',
+      '--color-text-primary': 'rgb(255, 255, 255)',
+      '--color-text-secondary': 'rgb(209, 213, 219)',
+      '--color-accent': 'rgb(236, 72, 153)',
+      '--color-accent-hover': 'rgb(219, 39, 119)',
+      '--color-border': '#e680b7',
+      '--color-divide': '#8f2552',
+    },
+  },
+  Yellowtheme: {
+    name: 'Tema Amarelo',
+    colors: {
+      '--color-bg-primary': '#a66a02',
+      '--color-bg-secondary': '#d19500',
+      '--color-bg-tertiary': '#d19500',
+      '--color-shadow': 'rgb(251, 191, 36)',
+      '--color-text-primary': 'rgb(255, 255, 255)',
+      '--color-text-secondary': 'rgb(209, 213, 219)',
+      '--color-accent': 'rgb(251, 191, 36)',
+      '--color-accent-hover': 'rgb(245, 158, 11)',
+      '--color-border': 'rgb(189, 161, 39)',
+      '--color-divide': 'rgb(156, 116, 4)', // Adicionado // Adicionado
+    },
+  },
+  Graytheme: {
+    name: 'Tema Cinza',
+    colors: {
+      '--color-bg-primary': 'rgb(71, 71, 71)',
+      '--color-bg-secondary': 'rgb(96, 96, 97)',
+      '--color-bg-tertiary': '#3C3C3F',
+      '--color-shadow': '#6b7280',
+      '--color-text-primary': '#ffffff',
+      '--color-text-secondary': '#a0aec0',
+      '--color-accent': '#6b7280',
+      '--color-accent-hover': '#4b5563',
+      '--color-border': '#4b5563',
+      '--color-divide': '#4b5563', // Adicionado
+    },
+  },
+  Whitetheme: {
+    name: 'Tema Branco',
+    colors: {
+      '--color-bg-primary': 'rgba(247, 247, 247, 0.53)',
+      '--color-bg-secondary': 'rgba(255, 255, 255, 0.53)',
+      '--color-bg-tertiary': 'rgba(255, 255, 255, 0.53)',
+      '--color-shadow': 'rgb(37, 99, 235)',
+      '--color-text-primary': 'rgb(37, 99, 235)',
+      '--color-text-secondary': 'rgb(37, 99, 235)',
+      '--color-accent': 'rgb(37, 99, 235)',
+      '--color-accent-hover': 'rgb(37, 99, 235)',
+      '--color-border': 'rgb(37, 99, 235)',
+      '--color-divide': 'black', // Adicionado
+    },
+  },
+  
+
 } as const;
  
 export type ThemeKey = keyof typeof themes;

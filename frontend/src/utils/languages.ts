@@ -17,6 +17,12 @@ type TranslationKeys = {
       Bluetheme: string;
       Greentheme: string;
       Redtheme: string;
+      Orangetheme: string;
+      Purpletheme: string;
+      Pinktheme: string;
+      Yellowtheme: string;
+      Graytheme: string;
+      Whitetheme: string;
     };
   };
   notificationsSection: {
@@ -81,7 +87,13 @@ export const translations: Record<LanguageKey, TranslationKeys> = {
         default: 'Tema Escuro',
         Bluetheme: 'Tema Azul',
         Greentheme: 'Tema Verde',
-        Redtheme: 'Tema Vermelho'
+        Redtheme: 'Tema Vermelho',
+        Orangetheme: 'Tema Laranja',
+        Purpletheme: 'Tema Roxo',
+        Pinktheme: 'Tema Rosa',
+        Yellowtheme: 'Tema Amarelo',
+        Graytheme: 'Tema Cinza',
+        Whitetheme: 'Tema Branco'
       }
     },
     notificationsSection: { 
@@ -146,7 +158,13 @@ export const translations: Record<LanguageKey, TranslationKeys> = {
         default: 'Tema Oscuro',
         Bluetheme: 'Tema Azul',
         Greentheme: 'Tema Verde',
-        Redtheme: 'Tema Rojo'
+        Redtheme: 'Tema Rojo',
+        Orangetheme: 'Tema Naranja',
+        Purpletheme: 'Tema Morado',
+        Pinktheme: 'Tema Rosa',
+        Yellowtheme: 'Tema Amarillo',
+        Graytheme: 'Tema Gris',
+        Whitetheme: 'Tema Blanco'
       }
     },
     notificationsSection: {
@@ -202,7 +220,13 @@ export const translations: Record<LanguageKey, TranslationKeys> = {
         default: 'Dark Theme',
         Bluetheme: 'Blue Theme',
         Greentheme: 'Green Theme',
-        Redtheme: 'Red Theme'
+        Redtheme: 'Red Theme',
+        Orangetheme: 'Orange Theme',
+        Purpletheme: 'Purple Theme',
+        Pinktheme: 'Pink Theme',
+        Yellowtheme: 'Yellow Theme',
+        Graytheme: 'Gray Theme',
+        Whitetheme: 'White Theme'
       }
     },
     notificationsSection: {
