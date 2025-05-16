@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle, FiEdit, FiTrash2, FiCopy, FiPrinter } from 'react-icons/fi';
+import QRCode from 'react-qr-code';
 
 type OrderItem = {
   product: {
@@ -65,6 +66,9 @@ export function PedidosTab() {
 
   // Adicione um novo estado para armazenar as alterações no pedido
   const [editedOrder, setEditedOrder] = useState<Partial<Order> | null>(null);
+
+  // Estado para o modal de QR Code
+  const [qrOrder, setQrOrder] = useState<Order | null>(null);
 
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
@@ -353,6 +357,11 @@ export function PedidosTab() {
     }
   };
 
+  const handlePrint = (order: Order) => {
+    console.log("Imprimindo pedido:", order);
+    // Lógica de impressão aqui
+  };
+
   return (
     <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
@@ -439,6 +448,7 @@ export function PedidosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pagamento</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fatura</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
@@ -447,8 +457,17 @@ export function PedidosTab() {
                     orders.map((order) => (
                       <tr key={order._id} className="hover:bg-gray-750 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-mono text-blue-400">
-                            #{order._id.substring(6)}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono text-blue-400">
+                              #{order._id.substring(6)}
+                            </span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(order._id)}
+                              className="text-gray-400 hover:text-blue-400"
+                              title="Copiar ID"
+                            >
+                              <FiCopy size={14} />
+                            </button>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -456,7 +475,7 @@ export function PedidosTab() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm">
-                            {order.customerEmail || 'Não identificado'}
+                            {order.customerEmail || 'Anônimo'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -475,9 +494,16 @@ export function PedidosTab() {
                             <button
                               onClick={() => fetchOrderDetails(order._id)}
                               className="text-blue-400 hover:text-blue-300 transition-colors"
-                              title="Editar"
+                              title="Ver Detalhes"
                             >
                               <FiEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handlePrint(order)}
+                              className="text-green-400 hover:text-green-300 transition-colors"
+                              title="Imprimir"
+                            >
+                              <FiPrinter size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteOrder(order._id)}
@@ -487,6 +513,14 @@ export function PedidosTab() {
                               <FiTrash2 size={18} />
                             </button>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            className="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded-lg text-white text-xs"
+                            onClick={() => setQrOrder(order)}
+                          >
+                            Detalhes
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -582,544 +616,29 @@ export function PedidosTab() {
         )}
       </div>
 
-      {/* Modal de detalhes do pedido */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justisfy-center p-4 z-50">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <FiShoppingCart /> Pedido #{selectedOrder._id.substring(7)}
-              </h3>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
+      {/* Modal QR Code */}
+      {qrOrder && (
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)] flex flex-col items-center">
+            <h3 className="text-lg font-bold mb-4">Pagamento do Pedido #{qrOrder._id.substring(6)}</h3>
+            <QRCode
+              value={`bitcoincash:${qrOrder.transaction?.txHash}?amount=${qrOrder.items.reduce((sum, item) => sum + item.priceBCH * item.quantity, 0)}&label=Kashy&message=Pedido%20#${qrOrder._id}`}
+              size={200}
+            />
+            <p className="mt-4 text-center text-gray-300">
+              Escaneie o QR Code para efetuar o pagamento.<br />
+              Valor: <span className="font-bold">{formatCurrency(qrOrder.totalAmount)}</span>
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => navigator.clipboard.writeText(qrOrder.transaction?.txHash || '')}>Copiar Endereço</button>
+              <button onClick={() => navigator.clipboard.writeText(qrOrder.items.reduce((sum, item) => sum + item.priceBCH * item.quantity, 0).toFixed(6))}>Copiar Valor</button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h4 className="text-lg font-semibold mb-2">Informações do Pedido</h4>
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Status:</span>
-                    <span className="ml-2 inline-flex items-center">
-                      {getStatusIcon(selectedOrder.status)}
-                      <span className="ml-1">{getStatusLabel(selectedOrder.status)}</span>
-                    </span>
-                  </p>
-                  <p><span className="text-gray-400">Data:</span> {formatDate(selectedOrder.createdAt)}</p>
-                  <p><span className="text-gray-400">Método de Pagamento:</span> {getPaymentMethodLabel(selectedOrder.paymentMethod)}</p>
-                  {selectedOrder.transaction && (
-                    <p>
-                      <span className="text-gray-400">Transação BCH:</span>
-                      <span className="ml-2 font-mono text-blue-400">
-                        {selectedOrder.transaction.txHash.substring(0, 10)}...
-                      </span>
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold mb-2">Partes Envolvidas</h4>
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Loja:</span> {selectedOrder.store}</p>
-                  <p><span className="text-gray-400">Cliente:</span> {selectedOrder.customerEmail || 'Não identificado'}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h4 className="text-lg font-semibold mb-2">Itens do Pedido</h4>
-              <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                  <thead className="bg-gray-750">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Produto</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Qtd</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Preço Unit.</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
-                    {selectedOrder?.items?.map((item, index) => (
-                      <tr key={index}>
-                        {/* Renderização do item */}
-                      </tr>
-                    )) || (
-                        <tr>
-                          <td colSpan={4} className="text-center text-gray-400">
-                            Nenhum item encontrado.
-                          </td>
-                        </tr>
-                      )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center border-t border-[var(--color-border)] pt-4">
-              <div>
-                <p className="text-gray-400">Total do Pedido:</p>
-                <p className="text-xl font-bold">{formatCurrency(selectedOrder.totalAmount)}</p>
-              </div>
-
-              <div className="flex gap-3">
-                {selectedOrder.status === 'pending' && (
-                  <button
-                    onClick={() => handleUpdateOrder({ status: 'paid' })}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg"
-                  >
-                    Marcar como Pago
-                  </button>
-                )}
-                {selectedOrder.status === 'paid' && (
-                  <button
-                    onClick={() => handleUpdateOrder({ status: 'refunded' })}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
-                  >
-                    Reembolsar
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDeleteOrder(selectedOrder._id)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
-                >
-                  Deletar
-                </button>
-                <button className="px-4 py-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-primary)] rounded-lg">
-                  Imprimir
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Editar Pedido */}
-      {selectedOrder && editedOrder && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--color-bg-primary)] text-white rounded-lg shadow-lg p-4 w-full max-w-4xl border border-[var(--color-border)]">
-            <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Editar Pedido</h3>
-
-            {/* Layout horizontal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Coluna 1: Informações do cliente e loja */}
-              <div>
-                {/* Input para e-mail do cliente */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">E-mail do Cliente</label>
-                  <input
-                    type="email"
-                    value={editedOrder.customerEmail || ''}
-                    onChange={(e) =>
-                      setEditedOrder((prev) => prev && { ...prev, customerEmail: e.target.value })
-                    }
-                    placeholder="Digite o e-mail do cliente"
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Select para loja */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Loja</label>
-                  <select
-                    value={editedOrder.store || ''}
-                    onChange={(e) => {
-                      const selectedStore = e.target.value;
-                      setEditedOrder((prev) => prev && { ...prev, store: selectedStore, items: [] });
-                      fetchProductsByStore(selectedStore); // Atualiza os produtos com base na loja selecionada
-                    }}
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecione uma loja</option>
-                    <option value="Loja A">Loja A</option>
-                    <option value="Loja B">Loja B</option>
-                    <option value="Loja C">Loja C</option>
-                  </select>
-                </div>
-
-                {/* Select para forma de pagamento */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Forma de Pagamento</label>
-                  <select
-                    value={editedOrder.paymentMethod || ''}
-                    onChange={(e) =>
-                      setEditedOrder((prev) => prev && { ...prev, paymentMethod: e.target.value as Order['paymentMethod'] })
-                    }
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecione uma forma</option>
-                    <option value="bch">Bitcoin Cash</option>
-                    <option value="pix">PIX</option>
-                    <option value="card">Cartão</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Coluna 2: Produtos e carrinho */}
-              <div>
-                {/* Buscar produtos */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Buscar Produtos</label>
-                  <input
-                    type="text"
-                    value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
-                    placeholder="Digite o nome do produto"
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!editedOrder.store}
-                  />
-                  <div className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    {editedOrder.store
-                      ? 'Produtos relacionados à loja selecionada.'
-                      : 'Selecione uma loja para buscar produtos.'}
-                  </div>
-                </div>
-
-                {/* Lista de produtos */}
-                {products.length > 0 && (
-                  <div className="mb-3">
-                    <ul className="space-y-2">
-                      {products
-                        .filter(product =>
-                          product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
-                        )
-                        .slice(0, 3) // Limita a exibição a 3 produtos
-                        .map(product => (
-                          <li
-                            key={product._id}
-                            className="flex justify-between items-center p-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg"
-                          >
-                            <span className="text-sm">{product.name}</span>
-                            <button
-                              onClick={() => {
-                                const existingProduct = editedOrder.items?.find((p) => p.product._id === product._id);
-                                if (existingProduct) {
-                                  setEditedOrder((prev) => ({
-                                    ...prev!,
-                                    items: prev!.items!.map((p) =>
-                                      p.product._id === product._id
-                                        ? { ...p, quantity: p.quantity + 1 }
-                                        : p
-                                    ),
-                                  }));
-                                } else {
-                                  setEditedOrder((prev) => ({
-                                    ...prev!,
-                                    items: [...(prev!.items || []), { product, quantity: 1, priceBRL: product.priceBRL, priceBCH: product.priceBCH }],
-                                  }));
-                                }
-                              }}
-                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs"
-                            >
-                              Adicionar
-                            </button>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Preview dos Produtos no Pedido */}
-            {editedOrder?.items && editedOrder.items.length > 0 ? (
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Produtos no Pedido</h4>
-                <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-                  <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                    <thead className="bg-gray-750">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Produto</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Preço Unit.</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Qtd</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Total</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
-                      {editedOrder.items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2">{item.product.name}</td>
-                          <td className="px-4 py-2">{formatCurrency(item.priceBRL)}</td>
-                          <td className="px-4 py-2">
-                            <div className="flex items-center gap-2">
-                              {/* Botão para diminuir quantidade */}
-                              <button
-                                onClick={() =>
-                                  setEditedOrder((prev) => ({
-                                    ...prev!,
-                                    items: prev!.items!.map((p, i) =>
-                                      i === index && p.quantity > 1
-                                        ? { ...p, quantity: p.quantity - 1 }
-                                        : p
-                                    ),
-                                  }))
-                                }
-                                disabled={item.quantity <= 1}
-                                className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs disabled:opacity-50"
-                              >
-                                -
-                              </button>
-                              <span>{item.quantity}</span>
-                              {/* Botão para aumentar quantidade */}
-                              <button
-                                onClick={() =>
-                                  setEditedOrder((prev) => ({
-                                    ...prev!,
-                                    items: prev!.items!.map((p, i) =>
-                                      i === index ? { ...p, quantity: p.quantity + 1 } : p
-                                    ),
-                                  }))
-                                }
-                                className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-2">{formatCurrency(item.priceBRL * item.quantity)}</td>
-                          <td className="px-4 py-2">
-                            {/* Botão para remover produto */}
-                            <button
-                              onClick={() =>
-                                setEditedOrder((prev) => ({
-                                  ...prev!,
-                                  items: prev!.items!.filter((_, i) => i !== index),
-                                }))
-                              }
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                            >
-                              Remover
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Total do Pedido */}
-                <div className="mt-4 text-right">
-                  <p className="text-gray-400">Total do Pedido:</p>
-                  <p className="text-lg font-bold">
-                    {formatCurrency(
-                      editedOrder.items.reduce(
-                        (sum, item) => sum + item.priceBRL * item.quantity,
-                        0
-                      )
-                    )}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-400">Nenhum produto adicionado ao pedido.</p>
-            )}
-
-            {/* Botões de ação */}
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="px-3 py-2 bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] rounded-lg transition-colors border border-[var(--color-border)] text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  if (editedOrder) {
-                    handleUpdateOrder(editedOrder);
-                    setSelectedOrder(null);
-                  }
-                }}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-              >
-                Salvar Alterações
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Novo Pedido */}
-      {isOrderModalOpen && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--color-bg-primary)] text-white rounded-lg shadow-lg p-4 w-full max-w-4xl border border-[var(--color-border)]">
-            <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">Criar Novo Pedido</h3>
-
-            {/* Layout horizontal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Coluna 1: Informações do cliente e loja */}
-              <div>
-                {/* Input para e-mail do cliente */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">E-mail do Cliente (opcional)</label>
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Digite o e-mail do cliente"
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Select para loja */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Loja</label>
-                  <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecione uma loja</option>
-                    <option value="Loja A">Loja A</option>
-                    <option value="Loja B">Loja B</option>
-                    <option value="Loja C">Loja C</option>
-                  </select>
-                </div>
-
-                {/* Select para forma de pagamento */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Forma de Pagamento</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecione uma Forma</option>
-                    <option value="bch">Bitcoin Cash</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Coluna 2: Produtos e carrinho */}
-              <div>
-                {/* Buscar produtos */}
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Buscar Produtos</label>
-                  <input
-                    type="text"
-                    value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
-                    placeholder="Digite o nome do produto"
-                    className="w-full px-3 py-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={!selectedStore}
-                  />
-                  <div className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                    {selectedStore
-                      ? 'Produtos relacionados à loja selecionada.'
-                      : 'Selecione uma loja para buscar produtos.'}
-                  </div>
-                </div>
-
-                {/* Lista de produtos */}
-                {products.length > 0 && (
-                  <div className="mb-3">
-                    <ul className="space-y-2">
-                      {products
-                        .filter(product =>
-                          product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
-                        )
-                        .slice(0, 3) // Limita a exibição a 3 produtos
-                        .map(product => (
-                          <li
-                            key={product._id}
-                            className="flex justify-between items-center p-2 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg"
-                          >
-                            <span className="text-sm">{product.name}</span>
-                            <button
-                              onClick={() => {
-                                const existingProduct = selectedProducts.find((p) => p._id === product._id);
-                                if (existingProduct) {
-                                  setSelectedProducts((prev) =>
-                                    prev.map((p) =>
-                                      p._id === product._id ? { ...p, quantity: (p.quantity || 1) + 1 } : p
-                                    )
-                                  );
-                                } else {
-                                  setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-                                }
-                              }}
-                              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs"
-                            >
-                              Adicionar
-                            </button>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Carrinho de compras */}
-            {selectedProducts.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">Carrinho</h4>
-                <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-                  <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                    <thead className="bg-gray-750">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Produto</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Preço Unit.</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Qtd</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Total</th>
-                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-300">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-[var(--color-bg-tertiary)] divide-y divide-[var(--color-divide)]">
-                      {selectedProducts.map((product, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2">{product.name}</td>
-                          <td className="px-4 py-2">{formatCurrency(product.priceBRL)}</td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="number"
-                              min="1"
-                              value={product.quantity || 1}
-                              onChange={(e) => updateProductQuantity(index, parseInt(e.target.value, 10))}
-                              className="w-16 px-2 py-1 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)]"
-                            />
-                          </td>
-                          <td className="px-4 py-2">{formatCurrency((product.priceBRL || 0) * (product.quantity || 1))}</td>
-                          <td className="px-4 py-2">
-                            <button
-                              onClick={() => removeProductFromCart(index)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                            >
-                              Remover
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Total do pedido */}
-                <div className="mt-4 text-right">
-                  <p className="text-gray-400">Total do Pedido:</p>
-                  <p className="text-lg font-bold">{formatCurrency(calculateTotal())}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Botões de ação */}
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => setIsOrderModalOpen(false)}
-                className="px-3 py-2 bg-[var(--color-bg-secondary)] hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] rounded-lg transition-colors border border-[var(--color-border)] text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateOrder}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-              >
-                Criar Pedido
-              </button>
-            </div>
+            <button
+              className="mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
+              onClick={() => setQrOrder(null)}
+            >
+              Fechar
+            </button>
           </div>
         </div>
       )}

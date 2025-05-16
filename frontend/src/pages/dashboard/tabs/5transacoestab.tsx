@@ -3,118 +3,65 @@ import { FiSearch, FiChevronLeft, FiChevronRight, FiDownload, FiFilter } from 'r
 
 type Transaction = {
   _id: string;
-  txHash: string;
-  fromAddress: string;
-  toAddress: string;
-  amountBCH: number;
-  amountBRL: number;
+  txid: string;
+  type: 'incoming' | 'outgoing' | 'internal';
+  amountSatoshis: number;
+  address: string;
   status: 'pending' | 'confirmed' | 'failed' | 'expired';
-  createdAt: string;
-  confirmations: number;
   blockHeight?: number;
+  timestamp: string;
+  createdAt: string;
+  confirmations?: number;
   feeBCH?: number;
-  order?: {
-    _id: string;
-    totalBRL: number;
-  };
-  user?: {
-    _id: string;
-    email: string;
-  };
-  merchant?: {
-    _id: string;
-    businessName: string;
-  };
 };
 
 export function TransacoesTab() {
-  // Estado para as transações
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Estado para paginação
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const itemsPerPage = 10;
-  
-  // Estado para filtros
+
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
 
-  // Simulação de fetch de dados
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        // Simulando uma chamada API
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Dados mockados
-        const mockTransactions: Transaction[] = Array.from({ length: 50 }, (_, i) => {
-          const statuses: ('pending' | 'confirmed' | 'failed' | 'expired')[] = 
-            ['pending', 'confirmed', 'confirmed', 'confirmed', 'failed', 'expired'];
-          const status = statuses[Math.floor(Math.random() * statuses.length)];
-          
-          return {
-            _id: `tx-${i}`,
-            txHash: `abc123xyz${Math.random().toString(16).substring(2, 10)}`,
-            fromAddress: `qprueba${Math.random().toString(16).substring(2, 10)}`,
-            toAddress: `qprueba${Math.random().toString(16).substring(2, 12)}`,
-            amountBCH: Math.random() * 10,
-            amountBRL: Math.random() * 5000 + 10,
-            status,
-            createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-            confirmations: status === 'confirmed' ? Math.floor(Math.random() * 100) + 1 : 0,
-            blockHeight: status === 'confirmed' ? 800000 + i : undefined,
-            feeBCH: status === 'confirmed' ? Math.random() * 0.01 : undefined,
-            order: i % 3 === 0 ? {
-              _id: `order-${i}`,
-              totalBRL: Math.random() * 5000 + 10
-            } : undefined,
-            user: {
-              _id: `user-${i}`,
-              email: `user${i}@example.com`
-            },
-            merchant: i % 2 === 0 ? {
-              _id: `merchant-${i}`,
-              businessName: `Loja ${i}`
-            } : undefined
-          };
-        });
-        
-        // Aplicar filtros
-        const filteredTransactions = mockTransactions.filter(tx => {
-          const matchesSearch = 
-            tx.txHash.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.fromAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.toAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tx.merchant?.businessName.toLowerCase().includes(searchTerm.toLowerCase());
-          
-          const matchesStatus = 
+        const response = await fetch('http://localhost:3000/api/transactions');
+        if (!response.ok) throw new Error('Erro ao buscar transações');
+        const data: Transaction[] = await response.json();
+
+        const filteredTransactions = data.filter(tx => {
+          const matchesSearch =
+            (tx.txid && tx.txid.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (tx._id && tx._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (tx.address && tx.address.toLowerCase().includes(searchTerm.toLowerCase()));
+
+          const matchesStatus =
             statusFilter === 'all' || tx.status === statusFilter;
-          
-          const matchesDate = 
-            dateFilter === 'all' || 
+
+          const matchesDate =
+            dateFilter === 'all' ||
             (dateFilter === 'today' && new Date(tx.createdAt).toDateString() === new Date().toDateString()) ||
             (dateFilter === 'week' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 7 * 86400000) ||
             (dateFilter === 'month' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 30 * 86400000);
-          
+
           return matchesSearch && matchesStatus && matchesDate;
         });
-        
-        // Ordenar por data mais recente
-        filteredTransactions.sort((a, b) => 
+
+        filteredTransactions.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        
-        // Paginação
+
         const startIndex = (currentPage - 1) * itemsPerPage;
         const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
-        
+
         setTransactions(paginatedTransactions);
         setTotalPages(Math.ceil(filteredTransactions.length / itemsPerPage));
         setError(null);
@@ -125,27 +72,21 @@ export function TransacoesTab() {
         setLoading(false);
       }
     };
-    
+
     fetchTransactions();
   }, [currentPage, searchTerm, statusFilter, dateFilter]);
 
-  // Formatação de dados
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatBCH = (value: number) => {
-    return value.toFixed(6) + ' BCH';
+  const formatBCH = (value: number | undefined | null) => {
+    if (typeof value !== 'number' || isNaN(value)) return 'N/A';
+    return value.toFixed(8) + ' BCH';
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('pt-BR');
   };
 
-  const formatAddress = (address: string) => {
+  const formatAddress = (address: string | undefined) => {
+    if (!address || typeof address !== 'string' || address.length < 10) return address || 'N/A';
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
@@ -180,17 +121,20 @@ export function TransacoesTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
-      <h2 className="text-2xl font-bold mb-6">Histórico de Transações</h2>
-      
+    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
+      {/* Cabeçalho */}
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <FiDownload /> Histórico de Transações
+      </h2>
+
       {/* Barra de ações */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="relative w-full md:w-96">
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por hash, endereço, email..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Buscar por hash, ID ou endereço..."
+            className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -198,24 +142,22 @@ export function TransacoesTab() {
             }}
           />
         </div>
-        
         <div className="flex gap-3 w-full md:w-auto">
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center gap-2 border border-gray-700 hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors"
           >
             <FiFilter /> Filtrar
           </button>
-          
-          <button className="flex items-center gap-2 border border-gray-700 hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors">
+          <button className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors">
             <FiDownload /> Exportar
           </button>
         </div>
       </div>
-      
+
       {/* Filtros avançados */}
       {isFilterOpen && (
-        <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700">
+        <div className="bg-[var(--color-bg-secondary)] rounded-lg p-4 mb-6 border border-[var(--color-border)]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
@@ -230,11 +172,9 @@ export function TransacoesTab() {
                 <option value="all">Todos os status</option>
                 <option value="confirmed">Confirmadas</option>
                 <option value="pending">Pendentes</option>
-                <option value="failed">Falhas</option>
-                <option value="expired">Expiradas</option>
+                
               </select>
             </div>
-            
             <div>
               <label className="block text-sm font-medium mb-1">Período</label>
               <select
@@ -251,7 +191,6 @@ export function TransacoesTab() {
                 <option value="month">Últimos 30 dias</option>
               </select>
             </div>
-            
             <div className="flex items-end">
               <button
                 onClick={() => {
@@ -267,9 +206,9 @@ export function TransacoesTab() {
           </div>
         </div>
       )}
-      
+
       {/* Tabela de transações */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -286,102 +225,68 @@ export function TransacoesTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
+              <table className="min-w-full divide-y divide-[var(--color-divide)]">
                 <thead className="bg-gray-750">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Hash/ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">De/Para</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tipo</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Origem/Destino</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Endereço</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
                   </tr>
                 </thead>
-                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
                   {transactions.map((tx) => (
                     <tr key={tx._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-mono text-blue-400">
-                          {formatAddress(tx.txHash)}
-                        </div>
-                        {tx.order && (
-                          <div className="text-xs text-gray-400">
-                            Pedido: {formatCurrency(tx.order.totalBRL)}
-                          </div>
-                        )}
+                      <td className="px-6 py-4 font-mono text-blue-400">
+                        {formatAddress(tx.txid)}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <span className="text-gray-400">De:</span> {formatAddress(tx.fromAddress)}
-                        </div>
-                        <div className="text-sm mt-1">
-                          <span className="text-gray-400">Para:</span> {formatAddress(tx.toAddress)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium">{formatCurrency(tx.amountBRL)}</div>
-                        <div className="text-xs text-gray-400">{formatBCH(tx.amountBCH)}</div>
-                        {tx.feeBCH && (
-                          <div className="text-xs text-gray-400">
-                            Taxa: {tx.feeBCH.toFixed(6)} BCH
-                          </div>
-                        )}
+                        <span className="capitalize">
+                          {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Outro'}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        {tx.user && (
-                          <div className="text-sm">
-                            <span className="text-gray-400">Cliente:</span> {tx.user.email}
-                          </div>
-                        )}
-                        {tx.merchant && (
-                          <div className="text-sm mt-1">
-                            <span className="text-gray-400">Comerciante:</span> {tx.merchant.businessName}
-                          </div>
-                        )}
+                        <div className="text-sm font-medium">
+                          {formatBCH(tx.amountSatoshis ? tx.amountSatoshis / 1e8 : 0)}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
+                        <span className="font-mono">{formatAddress(tx.address)}</span>
+                      </td>
+                      <td className="px-6 py-4">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tx.status)}`}>
                           {getStatusLabel(tx.status)}
                         </span>
-                        {tx.status === 'confirmed' && tx.confirmations && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            {tx.confirmations} confirmações
-                          </div>
-                        )}
-                        {tx.blockHeight && (
-                          <div className="text-xs text-gray-400">
-                            Bloco #{tx.blockHeight}
-                          </div>
-                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {formatDate(tx.createdAt)}
+                        {formatDate(tx.timestamp || tx.createdAt)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            
+
             {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-gray-700">
+            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-700 text-sm font-medium rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
                 >
                   Próxima
                 </button>
               </div>
-              
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-400">
@@ -390,18 +295,16 @@ export function TransacoesTab() {
                     <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
                   </p>
                 </div>
-                
                 <div>
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
                     </button>
-                    
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
                       if (totalPages <= 5) {
@@ -413,7 +316,6 @@ export function TransacoesTab() {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
                       return (
                         <button
                           key={pageNum}
@@ -421,18 +323,17 @@ export function TransacoesTab() {
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                             currentPage === pageNum
                               ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                              : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
                           }`}
                         >
                           {pageNum}
                         </button>
                       );
                     })}
-                    
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-700 bg-gray-800 text-sm font-medium text-gray-400 hover:bg-gray-700 disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Próxima</span>
                       <FiChevronRight size={20} />

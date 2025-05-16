@@ -285,12 +285,12 @@ export function Dashboard() {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'carteira', label: 'Wallet', icon: <Wallet /> },
         { id: 'produtos', label: 'Produtos', icon: <Package /> },
-        { id: 'pedidos', label: 'pedidos', icon: <ShoppingBasket /> },
+        { id: 'pedidos', label: 'Pedidos', icon: <ShoppingBasket /> },
         { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
         { id: 'clientes', label: 'Clientes', icon: <Users /> },
         { id: 'relatorios', label: 'Relatórios', icon: <NotepadText /> },
         { id: 'ofertas', label: 'Ofertas', icon: <Megaphone /> },
-        { id: 'settings', label: 'Settings', icon: <Settings /> }
+        { id: 'settings', label: 'Configurações', icon: <Settings /> }
     ];
 
     const renderTab = () => {

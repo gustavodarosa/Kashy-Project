@@ -20,6 +20,7 @@ const { protect: authMiddleware } = require('./middlewares/authMiddleware'); // 
 const reportRoutes = require('./routes/reportRoutes'); // Routes for AI reports
 const productRoutes = require('./routes/productRoutes'); // Routes for Products
 const orderRoutes = require('./routes/orderRoutes'); // Routes for Orders
+const transactionRoutes = require('./routes/transactionRoutes'); // Routes for Transactions
 
 // --- Environment Variables ---
 const PORT = process.env.PORT || 3000;
@@ -151,6 +152,9 @@ app.use('/api/products', productRoutes);
 
 // Mount Order Routes
 app.use('/api/orders', orderRoutes);
+
+// Mount Transaction Routes
+app.use('/api/transactions', transactionRoutes);
 
 // --- Direct API Route Definitions (Keep existing - ideally move to route files later) ---
 // Keep all your existing app.get/app.post/app.put routes here exactly as they were:

@@ -662,6 +662,15 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
 // --- End Send Transaction ---
 
 
+// --- Generate New Address for Order ---
+async function generateNewAddressForOrder(store, userId) {
+  // Derive um novo endereço HD (ex: m/44'/145'/0'/0/{orderIndex})
+  // Use o índice do pedido ou um contador seguro
+  // Retorne o endereço BCH (CashAddr)
+}
+// --- End Generate New Address for Order ---
+
+
 // --- WebSocket Subscription Logic is Handled by spvMonitorService ---
 // (No changes needed here)
 
@@ -672,4 +681,5 @@ module.exports = {
     getWalletTransactions, // Export the accurate version
     sendTransaction,
     // getUserWalletKeys // Keep internal unless needed elsewhere
+    generateNewAddressForOrder, // Export the new function
 };
