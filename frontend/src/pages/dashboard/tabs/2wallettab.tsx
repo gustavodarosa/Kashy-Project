@@ -446,7 +446,7 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || loading}
-          className="flex items-center gap-2 bg-green-600 bg-opacity-80 hover:border-green-400 hover:border-[4px] hover:brightness-110 transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="flex items-center gap-2 bg-green-600 bg-opacity-80 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_15px_4px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
         >
           <FiArrowUp /> Enviar BCH
@@ -461,7 +461,7 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || !walletAddress}
-          className="flex items-center gap-2 bg-green-600 transition delay-150 duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="flex items-center gap-2 bg-green-600 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_10px_2px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
         >
           <FiArrowDown /> Receber BCH
