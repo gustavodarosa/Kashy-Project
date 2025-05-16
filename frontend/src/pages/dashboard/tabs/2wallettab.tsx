@@ -412,8 +412,8 @@ export function WalletTab() {
 
       {/* Balance Section */}
       <div className="flex flex-col items-center mb-8">
-        <div className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg text-center border-t-4 border-[rgb(112,255,189)]">
-          <h3 className="text-white text-sm font-medium flex items-center gap-2">
+        <div className="bg-[rgba(23,22,27,0.95)] rounded-lg p-6 shadow-lg text-center border-t-4 border-[rgb(112,255,189)] hover:shadow-[0_0_10px_2px_rgba(110,249,185,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-102">
+          <h3 className="text-white text-sm font-medium flex items-center justify-center gap-2">
             <FiDollarSign className="text-white" /> Saldo Disponível
           </h3>
           {loading || !isInitialized ? (
@@ -446,7 +446,7 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || loading}
-          className="flex items-center gap-2 bg-green-600 bg-opacity-80 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_15px_4px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="flex items-center gap-2 bg-green-600 bg-opacity-80 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_10px_2px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-500 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
         >
           <FiArrowUp /> Enviar BCH
@@ -461,7 +461,7 @@ export function WalletTab() {
             setError(null);
           }}
           disabled={!isInitialized || !walletAddress}
-          className="flex items-center gap-2 bg-green-600 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_10px_2px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-700 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+          className="flex items-center gap-2 bg-green-600 hover:filter-none hover:border-green-400 hover:border border-transparent hover:brightness-110 hover:shadow-[0_0_10px_2px_rgba(74,222,128,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-110 hover:bg-green-500 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
 
         >
           <FiArrowDown /> Receber BCH
@@ -470,8 +470,7 @@ export function WalletTab() {
       </div>
 
       {/* Recent Transactions */}
-      <div style={{
-  }}className="bg-[var(--color-bg-primary-dark)] rounded-lg p-6 shadow-lg border-t-4 border-[rgb(112,255,189)]">
+      <div className="bg-[rgba(23,22,27,0.95)] rounded-lg p-6 shadow-lg border-t-4 border-[rgb(112,255,189)] hover:shadow-[0_0_10px_2px_rgba(110,249,185,0.5)] transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:scale-102">
         <h3 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
           <FiClock className="text-white" /> Transações Recentes
         </h3>
