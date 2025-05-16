@@ -60,6 +60,11 @@ function addressToP2PKHScriptPubKeyBuffer(address) {
 }
 // --- End Helper Function ---
 
+function addressToScriptHash(address) {
+    const scriptPubKey = addressToP2PKHScriptPubKeyBuffer(address);
+    const scriptHashBuffer = crypto.createHash('sha256').update(scriptPubKey).digest();
+    return Buffer.from(scriptHashBuffer.reverse()).toString('hex');
+}
 
 // --- Wallet Functions ---
 
@@ -500,6 +505,16 @@ async function getTransactionHistoryFromElectrum(bchAddress, limit = 20) {
 }
 // --- END getTransactionHistoryFromElectrum ---
 
+async function verifyPayment(address, expectedAmount) {
+    const client = await connectToElectrum();
+    const scriptHash = addressToScriptHash(address);
+
+    const utxos = await client.request('blockchain.scripthash.listunspent', [scriptHash]);
+    const totalReceived = utxos.reduce((sum, utxo) => sum + utxo.value, 0) / SATOSHIS_PER_BCH;
+
+    return totalReceived >= expectedAmount;
+}
+
 // --- End Electrum Implementation Functions ---
 
 
@@ -512,5 +527,6 @@ module.exports = {
     sendTransaction: sendTransactionWithElectrum, // Export the updated send function
     getTransactionHistoryFromElectrum, // Export the updated history function
     connectToElectrum, // Export if needed elsewhere (though maybe not needed externally now)
-  };
+    verifyPayment, // Export the new verifyPayment function
+};
 // --- End Module Exports ---

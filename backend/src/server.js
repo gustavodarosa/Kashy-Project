@@ -262,26 +262,24 @@ app.use((err, req, res, next) => {
 });
 
 
-// --- Server Start Logic (Keep existing) ---
+// --- Server Start Logic (Updated) ---
 const startServer = async () => {
   try {
-    logger.info('Connecting to MongoDB...');
-    await connectDB(); // Connects DB
-    // Success log likely inside connectDB
+    logger.info('[startServer] Conectando ao MongoDB...');
+    await connectDB();
+    logger.info('[startServer] Conexão com o MongoDB estabelecida.');
 
-    logger.info('Starting SPV Monitor Service...');
+    logger.info('[startServer] Iniciando o serviço SPV Monitor...');
     spvService.start().catch(err => {
-        logger.error(`SPV Service failed to start initially: ${err.message}`);
+      logger.error(`[startServer] Erro ao iniciar o serviço SPV Monitor: ${err.message}`);
     });
 
     server.listen(PORT, () => {
-      logger.info(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
-      logger.info(`Frontend URL configured: ${FRONTEND_URL}`);
-      // Optional: Add checks for API_KEY again if desired
+      logger.info(`[startServer] 🚀 Servidor rodando no modo ${NODE_ENV} na porta ${PORT}`);
+      logger.info(`[startServer] URL do frontend configurada: ${FRONTEND_URL}`);
     });
   } catch (error) {
-    logger.error(`FATAL: Failed to start server: ${error.message}`);
-    logger.error(error.stack);
+    logger.error(`[startServer] FATAL: Falha ao iniciar o servidor: ${error.message}`);
     process.exit(1);
   }
 };

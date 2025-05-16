@@ -60,29 +60,25 @@ const getWalletData = async (req, res) => {
 
 
 // --- NEW: getAddress Controller (Uses walletService) ---
-const getAddress = async (req, res, next) => {
-    const endpoint = '/api/wallet/address (GET)';
-    const userId = req.user?.id;
-    if (!userId) {
-        logger.error(`[${endpoint}] Error: userId not found in req.user.`);
-        return res.status(401).json({ message: 'User not identified' });
-    }
-    logger.info(`[${endpoint}] User ID: ${userId} - Fetching address.`);
+const getAddress = async (req, res) => {
+  const endpoint = '/api/wallet/address (GET)';
+  const userId = req.user?.id;
 
-    try {
-        // Use walletService to get the address
-        const address = await walletService.getWalletAddress(userId);
+  if (!userId) {
+    logger.error(`[${endpoint}] Erro: userId não encontrado em req.user.`);
+    return res.status(401).json({ message: 'Usuário não identificado.' });
+  }
 
-        res.status(200).json({ address: address });
-        logger.info(`[${endpoint}] User ID: ${userId} - Successfully sent address: ${address}`);
+  logger.info(`[${endpoint}] Buscando endereço BCH para o usuário: ${userId}`);
 
-    } catch (error) {
-        logger.error(`[${endpoint}] Error fetching address for user ${req.user?.id}: ${error.message}`);
-        logger.error(error.stack);
-        // Determine appropriate status code based on error if possible
-        const statusCode = error.message.includes('not configured') || error.message.includes('not found') ? 404 : 500;
-        res.status(statusCode).json({ message: error.message || 'Server error fetching address' });
-    }
+  try {
+    const address = await walletService.getWalletAddress(userId);
+    logger.info(`[${endpoint}] Endereço BCH retornado para o usuário ${userId}: ${address}`);
+    res.status(200).json({ address });
+  } catch (error) {
+    logger.error(`[${endpoint}] Erro ao buscar endereço BCH para o usuário ${userId}: ${error.message}`);
+    res.status(500).json({ message: 'Erro ao buscar endereço BCH.' });
+  }
 };
 
 // --- NEW: getBalance Controller (Uses walletService) ---

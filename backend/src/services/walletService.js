@@ -16,6 +16,8 @@ const cache = require('./cacheService'); // Cache service
 // --- MODIFICATION: Add User model and cryptoUtils ---
 const User = require('../models/user');
 const cryptoUtils = require('../utils/cryptoUtils');
+// const { getOrderIndexForStore } = require('./orderIndexService'); // No longer used directly here for new orders
+const UserOrderIndex = require('../models/UserOrderIndex'); // Ensure this line is present and correct
 // --- END MODIFICATION ---
 
 const SATOSHIS_PER_BCH = 100_000_000;
@@ -661,13 +663,69 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
 }
 // --- End Send Transaction ---
 
+// --- NEW: Get Order Index for User ---
+async function getOrderIndexForUser(userId) {
+  try {
+    // This uses a static method on the UserOrderIndex model (to be created)
+    // which handles finding/creating the user's index document and incrementing the index.
+    const nextIndex = await UserOrderIndex.getNextIndex(userId);
+    logger.info(`[getOrderIndexForUser] Próximo índice de pedido para usuário ${userId}: ${nextIndex}`);
+    return nextIndex;
+  } catch (error) {
+    logger.error(`[getOrderIndexForUser] Erro ao obter próximo índice para usuário ${userId}: ${error.message}`, error.stack);
+    throw new Error('Erro ao obter índice de pedido para o usuário.');
+  }
+}
+// --- END: Get Order Index for User ---
+
 
 // --- Generate New Address for Order ---
 async function generateNewAddressForOrder(store, userId) {
-  // Derive um novo endereço HD (ex: m/44'/145'/0'/0/{orderIndex})
-  // Use o índice do pedido ou um contador seguro
-  // Retorne o endereço BCH (CashAddr)
+  try {
+    logger.info(`[generateNewAddressForOrder] Gerando endereço BCH derivado da carteira do usuário: ${userId}, para a loja: ${store}`);
+
+    // Correção: Obter mnemonic e derivationPath base do usuário para derivar corretamente
+    const encryptionKey = process.env.ENCRYPTION_KEY;
+    if (!encryptionKey) {
+        logger.error(`[generateNewAddressForOrder] FATAL - ENCRYPTION_KEY is not set.`);
+        throw new Error("Server configuration error: Missing encryption key.");
+    }
+    const user = await User.findById(userId).select('+encryptedMnemonic +encryptedDerivationPath');
+    if (!user || !user.encryptedMnemonic || !user.encryptedDerivationPath) {
+      logger.error(`[generateNewAddressForOrder] Dados da carteira (mnemonic/path) não encontrados para usuário ${userId}.`);
+      throw new Error('Dados da carteira não encontrados para o usuário.');
+    }
+
+    const mnemonic = cryptoUtils.decrypt(user.encryptedMnemonic, encryptionKey);
+    const baseDerivationPath = cryptoUtils.decrypt(user.encryptedDerivationPath, encryptionKey); // Este é o caminho base do usuário, ex: m/44'/145'/0'/0/0
+
+    const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+    const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
+
+    const orderIndex = await getOrderIndexForUser(userId); // Changed to use user-specific index
+    // Constrói o caminho completo para o endereço do pedido
+    const fullDerivationPath = `${baseDerivationPath}/${orderIndex}`; // Ex: m/44'/145'/0'/0/0/1
+    const childNode = masterHDNode.derivePath(fullDerivationPath);
+
+    const newAddress = bchjs.HDNode.toCashAddress(childNode);
+    logger.info(`[generateNewAddressForOrder] Endereço derivado do usuário: ${newAddress}`);
+    return newAddress;
+  } catch (error) {
+    logger.error(`[generateNewAddressForOrder] Erro: ${error.message}`, error.stack);
+    throw new Error('Erro ao gerar endereço BCH derivado da carteira do usuário.');
+  }
 }
+
+const generateAddressForOrder = (userWallet) => {
+  try {
+    // Gere um endereço único para o pedido (userWallet is expected to be an HDNode)
+    const address = bchjs.HDNode.toCashAddress(userWallet);
+    return address;
+  } catch (error) {
+    logger.error(`[generateAddressForOrder] Erro ao gerar endereço BCH: ${error.message}`, error.stack);
+    throw new Error('Erro ao gerar endereço BCH.');
+  }
+};
 // --- End Generate New Address for Order ---
 
 
@@ -682,4 +740,5 @@ module.exports = {
     sendTransaction,
     // getUserWalletKeys // Keep internal unless needed elsewhere
     generateNewAddressForOrder, // Export the new function
+    generateAddressForOrder, // Export the new function
 };
