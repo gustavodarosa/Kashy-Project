@@ -281,6 +281,33 @@ export function Dashboard() {
         }
     };
 
+    function renderChatMessage(message: string) {
+        // Suporte a negrito, itálico, sublinhado, riscado, código, links, alinhamento, parágrafos e quebras de linha
+        let html = message
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')           // **negrito**
+            .replace(/__(.*?)__/g, '<u>$1</u>')                         // __sublinhado__
+            .replace(/~~(.*?)~~/g, '<del>$1</del>')                     // ~~riscado~~
+            .replace(/`([^`]+)`/g, '<code>$1</code>')                   // `código`
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">$1</a>') // [link](url)
+            .replace(/_(.*?)_/g, '<em>$1</em>')                         // _itálico_
+            .replace(/\*(.*?)\*/g, '<em>$1</em>');                      // *itálico*
+
+        // Alinhamento: :::center ... :::, :::right ... :::, :::left ... :::
+        html = html.replace(/:::center([\s\S]*?):::/g, '<div style="text-align:center;">$1</div>');
+        html = html.replace(/:::right([\s\S]*?):::/g, '<div style="text-align:right;">$1</div>');
+        html = html.replace(/:::left([\s\S]*?):::/g, '<div style="text-align:left;">$1</div>');
+
+        // Parágrafos e quebras de linha
+        html = html
+            .replace(/\r\n|\r|\n/g, '<br>') // Quebra de linha simples
+            .replace(/(<br>\s*){2,}/g, '</p><p>'); // 2 ou mais quebras de linha viram novo parágrafo
+
+        // Garante que tudo fique dentro de um <p>...</p>
+        html = `<p>${html}</p>`;
+
+        return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'carteira', label: 'Wallet', icon: <Wallet /> },
@@ -617,7 +644,7 @@ export function Dashboard() {
                     onClick={() => setIsChatbotOpen(false)} // Fecha o modal ao clicar fora
                 >
                     <div
-                        className="bg-gradient-to-b from-gray-900 to-gray-800 text-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-slideUp overflow-hidden border border-gray-700/50"
+                        className="bg-gradient-to-b from-gray-900 to-gray-800 text-white rounded-2xl shadow-2xl w-full max-w-3xl min-h-[60vh] max-h-[90vh] flex flex-col animate-slideUp overflow-hidden border border-gray-700/50"
                         onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
                     >
                         {/* Header */}
@@ -664,7 +691,7 @@ export function Dashboard() {
                                                         : "bg-gray-700/50 text-gray-200 rounded-tl-none"
                                                 }`}
                                             >
-                                                {msg.message}
+                                                {renderChatMessage(msg.message)}
                                                 <div
                                                     className={`text-xs mt-2 ${
                                                         msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"

@@ -137,10 +137,32 @@ export function RelatoriosTab() {
   const [reportTitle, setReportTitle] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
 
+  const aiPromptOptions = [
+    {
+      value: 'users_count',
+      label: 'Quantos usuários foram cadastrados?',
+      prompt: 'Liste o número de usuários cadastrados.'
+    },
+    {
+      value: 'low_stock',
+      label: 'Quantos produtos estão com estoque baixo?',
+      prompt: 'Liste quantos produtos estão com estoque baixo.'
+    },
+    {
+      value: 'total_products',
+      label: 'Quantos produtos existem no estoque?',
+      prompt: 'Quantos produtos existem atualmente no estoque?'
+    },
+    // Adicione mais opções conforme necessário
+  ];
+  
+  const [selectedPromptOption, setSelectedPromptOption] = useState(aiPromptOptions[0].value);
+
   // Action States
   const [isGenerating, setIsGenerating] = useState(false); // For AI generation specifically
   const [isSaving, setIsSaving] = useState(false); // For standard report generation/update
   const [error, setError] = useState<string | null>(null); // Error messages for modal/user feedback
+  const [aiPreview, setAiPreview] = useState<string>('');
 
   // --- Form Reset ---
   const resetForm = () => {
@@ -154,6 +176,7 @@ export function RelatoriosTab() {
     setError(null); // Clear any previous errors
     setIsGenerating(false); // Ensure loading states are reset
     setIsSaving(false);
+    setAiPreview('');
   };
 
   // --- Modal Open/Close Handlers ---
@@ -168,7 +191,7 @@ export function RelatoriosTab() {
     setCurrentReport(report);
     setReportTitle(report.title);
 
-    const dates = report.dateRange.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})/);
+    const dates = report.dateRange.match(/(\d{2}\/\d{2}\/\d{2024})\s*-\s*(\d{2}\/\d{2}\/\d{2024})/);
     if (dates && dates.length === 3) {
       const formatDateToInput = (d: string) => {
         const parts = d.split('/');
@@ -196,8 +219,8 @@ export function RelatoriosTab() {
         throw new Error('Erro ao salvar relatório no backend.');
       }
 
-      const savedReport = await response.json();
-      setReports((prev) => [savedReport, ...prev]); // Atualiza o histórico local
+      await response.json();
+      await fetchReports(); // Atualiza a lista após salvar
     } catch (error) {
       console.error('Erro ao salvar relatório:', error);
       setError('Erro ao salvar relatório no backend.');
@@ -215,9 +238,7 @@ export function RelatoriosTab() {
       id: `std-report-${Date.now()}`,
       title: reportTitle || `Relatório Padrão ${dateRange.start ? dateRange.start + ' a ' + dateRange.end : 'Geral'}`,
       type: 'custom',
-      dateRange: dateRange.start && dateRange.end
-        ? `${dateRange.start.split('-').reverse().join('/')} - ${dateRange.end.split('-').reverse().join('/')}`
-        : 'Período completo',
+      dateRange: 'Período completo',
       generatedAt: new Date().toLocaleString('pt-BR'),
       previewData: { summary: 'Relatório padrão gerado (simulação).' },
       isAIGenerated: false,
@@ -246,9 +267,7 @@ export function RelatoriosTab() {
     const updatedReport = {
       ...currentReport,
       title: reportTitle || currentReport.title,
-      dateRange: dateRange.start && dateRange.end
-        ? `${dateRange.start.split('-').reverse().join('/')} - ${dateRange.end.split('-').reverse().join('/')}`
-        : currentReport.dateRange,
+      dateRange: 'Período completo',
     };
 
     try {
@@ -262,8 +281,8 @@ export function RelatoriosTab() {
         throw new Error('Erro ao atualizar relatório.');
       }
 
-      const data = await response.json();
-      setReports((prev) => prev.map((r) => (r._id === data._id ? data : r))); // Atualize usando `_id`
+      await response.json();
+      await fetchReports(); // Atualiza a lista após editar
       resetForm();
     } catch (error) {
       console.error('Erro ao atualizar relatório:', error);
@@ -287,7 +306,7 @@ export function RelatoriosTab() {
         throw new Error('Erro ao deletar relatório.');
       }
 
-      setReports((prev) => prev.filter((r) => r._id !== id)); // Use `_id` para identificar o relatório
+      await fetchReports(); // Atualiza a lista após deletar
     } catch (error) {
       console.error('Erro ao deletar relatório:', error);
       setError('Erro ao deletar relatório.');
@@ -322,9 +341,7 @@ export function RelatoriosTab() {
         id: `ai-report-${Date.now()}`,
         title: reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`,
         type: 'custom',
-        dateRange: start && end
-          ? `${start.split('-').reverse().join('/')} - ${end.split('-').reverse().join('/')}`
-          : 'Período completo',
+        dateRange: 'Período completo',
         generatedAt: new Date().toLocaleString('pt-BR'),
         previewData: {
           insights: data.insights,
@@ -344,25 +361,61 @@ export function RelatoriosTab() {
     }
   };
 
-  // --- Fetch Reports ---
-  useEffect(() => {
-    const fetchReports = async () => {
-      setIsLoadingReports(true);
-      try {
-        const response = await fetch('http://localhost:3000/api/reports');
-        if (!response.ok) {
-          throw new Error('Erro ao carregar relatórios.');
-        }
-        const data = await response.json();
-        setReports(data);
-      } catch (error) {
-        console.error('Erro ao carregar relatórios:', error);
-        setError('Falha ao carregar relatórios.');
-      } finally {
-        setIsLoadingReports(false);
-      }
+  const handleGenerateAIPreview = async () => {
+    setIsGenerating(true);
+    setError(null);
+    setAiPreview('');
+    const { start, end } = dateRange;
+    const payload = {
+      prompt: aiPrompt,
+      startDate: start || null,
+      endDate: end || null,
     };
+  
+    try {
+      const response = await fetch('http://localhost:3000/api/reports/generate-ai-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Erro ao gerar relatório com IA.');
+      }
+  
+      const data = await response.json();
+      setAiPreview(data.insights);
+    } catch (error: any) {
+      setError(error.message || 'Falha ao gerar relatório com IA.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
+  // --- Fetch Reports (mova para fora do useEffect) ---
+  const fetchReports = async () => {
+    setIsLoadingReports(true);
+    try {
+      const response = await fetch('http://localhost:3000/api/reports');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar relatórios.');
+      }
+      let data = await response.json();
+      data = data.map((r: any) => ({
+        ...r,
+        previewData: r.data || r.previewData,
+      }));
+      setReports(data);
+    } catch (error) {
+      console.error('Erro ao carregar relatórios:', error);
+      setError('Falha ao carregar relatórios.');
+    } finally {
+      setIsLoadingReports(false);
+    }
+  };
+
+  // --- useEffect apenas para carregar na montagem ---
+  useEffect(() => {
     fetchReports();
   }, []);
 
@@ -442,31 +495,17 @@ export function RelatoriosTab() {
 
                    {/* Preview Data Area */}
                    <div className="mb-4 text-xs max-h-32 overflow-y-auto pr-1 text-gray-300 border-t border-b border-gray-700 py-2">
-                     {report.type === 'custom' && report.isAIGenerated && typeof report.previewData?.insights === 'string' ? (
-                       <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
-                         {report.previewData.insights}
-                       </pre>
-                     ) : report.type === 'sales' && report.previewData ? (
-                       <div className="space-y-1">
-                         <p><span className="text-gray-500">Vendas:</span> R$ {report.previewData.totalSales?.toLocaleString('pt-BR')}</p>
-                         <p><span className="text-gray-500">Trans.:</span> {report.previewData.totalTransactions}</p>
-                         {/* Add more sales data if needed */}
-                       </div>
-                     ) : report.type === 'transactions' && report.previewData ? (
-                       <div className="space-y-1">
-                          <p><span className="text-gray-500">Total:</span> {report.previewData.totalBCH} BCH</p>
-                          <p><span className="text-gray-500">Média:</span> {report.previewData.avgTransaction} BCH</p>
-                          {/* Add more transaction data if needed */}
-                       </div>
-                     ) : report.type === 'inventory' && report.previewData ? (
-                        <div className="space-y-1">
-                          <p><span className="text-gray-500">Prods.:</span> {report.previewData.totalProducts}</p>
-                          <p><span className="text-gray-500">Baixo Est.:</span> {report.previewData.lowStockItems}</p>
-                          {/* Add more inventory data if needed */}
-                        </div>
-                     ) : (
-                        <p className="italic text-gray-500">Preview não disponível para este tipo.</p>
-                     )}
+                    
+                     {report.previewData?.insights
+                       ? (
+                         <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
+                           {report.previewData.insights}
+                         </pre>
+                       )
+                       : (
+                         <p className="italic text-gray-500">Preview não disponível para este tipo.</p>
+                       )
+                     }
                    </div>
                  </div>
 
@@ -541,55 +580,30 @@ export function RelatoriosTab() {
                 />
               </div>
 
-              {/* Date Range */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
-                   <label htmlFor="startDate" className="block text-xs font-medium mb-1 text-gray-300">Data inicial (Opcional)</label>
-                   <input
-                     id="startDate"
-                     type="date"
-                     value={dateRange.start}
-                     onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                     className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-300 appearance-none"
-                     style={{ colorScheme: 'dark' }} // Hint for browser styling
-                     max={dateRange.end || undefined} // Prevent start date after end date
-                   />
-                 </div>
-                 <div>
-                   <label htmlFor="endDate" className="block text-xs font-medium mb-1 text-gray-300">Data final (Opcional)</label>
-                   <input
-                     id="endDate"
-                     type="date"
-                     value={dateRange.end}
-                     onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                     className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-gray-300 appearance-none"
-                     style={{ colorScheme: 'dark' }}
-                     min={dateRange.start || undefined} // Prevent end date before start date
-                   />
-                 </div>
-               </div>
-               <p className="text-xs text-gray-400 -mt-2">
-                 Use datas para filtrar dados para a IA ou para relatórios padrão. Deixe em branco se não aplicável.
-               </p>
-
               {/* AI Prompt (Only for New AI Report) */}
                {newReportType === 'ai' && !isEditModalOpen && (
                  <div>
-                   <label htmlFor="aiPrompt" className="block text-xs font-medium mb-1 text-gray-300">
-                     Seu Pedido para a IA: <span className="text-red-500">*</span>
+                   <label htmlFor="aiPromptSelect" className="block text-xs font-medium mb-1 text-gray-300">
+                     Escolha o tipo de relatório: <span className="text-red-500">*</span>
                    </label>
-                   <textarea
-                     id="aiPrompt"
-                     value={aiPrompt}
-                     onChange={(e) => setAiPrompt(e.target.value)}
-                     placeholder="Ex: Qual foi o produto mais vendido no período e por quê?"
+                   <select
+                     id="aiPromptSelect"
+                     value={selectedPromptOption}
+                     onChange={e => {
+                       setSelectedPromptOption(e.target.value);
+                       const found = aiPromptOptions.find(opt => opt.value === e.target.value);
+                       setAiPrompt(found?.prompt || '');
+                     }}
                      className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm text-white"
-                     rows={3}
-                     required={newReportType === 'ai'} // HTML5 validation hint
-                   />
-                    <p className="text-xs text-gray-400 mt-1">
-                      A IA usará os dados do período selecionado (se houver) como contexto. Seja específico!
-                    </p>
+                     required
+                   >
+                     {aiPromptOptions.map(opt => (
+                       <option key={opt.value} value={opt.value}>{opt.label}</option>
+                     ))}
+                   </select>
+                   <p className="text-xs text-gray-400 mt-1">
+                     A IA usará o prompt pré-definido para gerar o relatório.
+                   </p>
                  </div>
                )}
 
@@ -600,6 +614,35 @@ export function RelatoriosTab() {
                      {error}
                   </div>
                )}
+               {aiPreview && (
+                <div className="mt-4 p-3 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                  <strong>Preview do Relatório:</strong>
+                  <div>{aiPreview}</div>
+                  <button
+                    className="mt-3 px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                    onClick={async () => {
+                      // Salvar o relatório usando o preview já gerado
+                      const newReport: Report = {
+                        id: `ai-report-${Date.now()}`,
+                        title: reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`,
+                        type: 'custom',
+                        dateRange: 'Período completo',
+                        generatedAt: new Date().toLocaleString('pt-BR'),
+                        previewData: {
+                          insights: aiPreview,
+                          conclusion: 'Análise gerada por IA com base nos dados e prompt fornecidos.',
+                        },
+                        isAIGenerated: true,
+                        promptUsed: aiPrompt,
+                      };
+                      await saveReportToBackend(newReport);
+                      resetForm();
+                    }}
+                  >
+                    Salvar Relatório
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Modal Actions */}
@@ -617,7 +660,7 @@ export function RelatoriosTab() {
                  type="button" // Or "submit" if inside a form
                  onClick={() => {
                    if (isEditModalOpen) { updateReport(); }
-                   else if (newReportType === 'ai') { generateAIReport(); }
+                   else if (newReportType === 'ai') { handleGenerateAIPreview(); }
                    else { generateStandardReport(); }
                  }}
                   className={`px-4 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium min-w-[120px]
@@ -638,7 +681,7 @@ export function RelatoriosTab() {
                     isEditModalOpen
                     ? 'Salvar Alterações'
                     : newReportType === 'ai'
-                    ? <><FiCpu size={14}/> Gerar com IA</>
+                    ? <><FiCpu size={14}/> Gerar Preview IA</>
                     : <><FiBarChart2 size={14}/> Gerar Padrão</>
                  )}
                </button>
@@ -651,3 +694,4 @@ export function RelatoriosTab() {
     </div> // End Main Container
   );
 }
+

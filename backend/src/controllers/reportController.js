@@ -12,7 +12,41 @@ async function generateAIReport(req, res) {
   }
 
   try {
-    const insights = await generateInsights(prompt);
+    let contexto = '';
+    // Exemplo: adapte os nomes dos models conforme seu projeto
+    if (prompt.toLowerCase().includes('usuário')) {
+      const User = require('../models/user');
+      const totalUsuarios = await User.countDocuments();
+      contexto = `Atualmente existem ${totalUsuarios} usuários cadastrados no sistema.`;
+    } else if (prompt.toLowerCase().includes('estoque baixo')) {
+      const Product = require('../models/product');
+      const lowStock = await Product.find({ quantity: { $lt: 5 } });
+      contexto = `Produtos com estoque baixo (${lowStock.length}):\n` +
+        lowStock.map(p => `- ${p.name}: ${p.quantity} unidades`).join('\n');
+    } else if (prompt.toLowerCase().includes('produtos existem')) {
+      const Product = require('../models/product');
+      const totalProdutos = await Product.countDocuments();
+      contexto = `Existem atualmente ${totalProdutos} produtos cadastrados no estoque.`;
+    } else if (prompt.toLowerCase().includes('alerta de estoque')) {
+      const Product = require('../models/product');
+      // Considera alerta de estoque como produtos com quantidade <= mínimo (ou < 5 se não houver campo mínimo)
+      const produtosAlerta = await Product.find({ $or: [{ quantity: { $lte: 5 } }, { minimum: { $exists: true, $gt: 0 }, $expr: { $lte: ["$quantity", "$minimum"] } }] });
+      contexto = `Produtos em alerta de estoque (${produtosAlerta.length}):\n` +
+        produtosAlerta.map(p => `- ${p.name}: ${p.quantity} unidades (mínimo: ${p.minimum ?? 5})`).join('\n');
+    } else if (prompt.toLowerCase().includes('número de pedidos') || prompt.toLowerCase().includes('numero de pedidos')) {
+      const Order = require('../models/order');
+      const totalPedidos = await Order.countDocuments();
+      contexto = `O sistema possui atualmente ${totalPedidos} pedidos registrados.`;
+    } else if (prompt.toLowerCase().includes('número de transações') || prompt.toLowerCase().includes('numero de transações')) {
+      const Transaction = require('../models/transaction');
+      const totalTransacoes = await Transaction.countDocuments();
+      contexto = `O sistema possui atualmente ${totalTransacoes} transações registradas.`;
+    } else {
+      contexto = 'Dados não encontrados para este tipo de relatório.';
+    }
+
+    const fullPrompt = `${contexto}\n\n${prompt}`;
+    const insights = await generateInsights(fullPrompt);
     res.status(200).json({ insights });
   } catch (error) {
     console.error("[Controller] Erro ao processar a geração do relatório:", error.message);
