@@ -1,52 +1,183 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiActivity, FiShoppingCart, FiClock, FiTrendingUp, FiRefreshCw, FiAlertTriangle } from 'react-icons/fi';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CryptoChart } from '../../../components/CryptoChart';
 
-const salesData = [
-  { name: 'Seg', value: 400 },
-  { name: 'Ter', value: 600 },
-  { name: 'Qua', value: 800 },
-  { name: 'Qui', value: 1200 },
-  { name: 'Sex', value: 1800 },
-  { name: 'Sáb', value: 1000 },
-  { name: 'Dom', value: 500 },
-];
-
-
 const recentTransactions = [
-  { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '10/06/2024 14:30', customer: 'Cliente A' },
-  { id: 'tx2', amountBRL: 420.50, amountBCH: 0.014, status: 'pending', date: '10/06/2024 12:15', customer: 'Cliente B' },
-  { id: 'tx3', amountBRL: 189.90, amountBCH: 0.006, status: 'confirmed', date: '10/06/2024 09:45', customer: 'Cliente C' },
-  { id: 'tx4', amountBRL: 750.00, amountBCH: 0.025, status: 'confirmed', date: '09/06/2024 18:20', customer: 'Cliente D' },
-  { id: 'tx5', amountBRL: 230.40, amountBCH: 0.008, status: 'failed', date: '09/06/2024 16:10', customer: 'Cliente E' },
-];
-
-const lowStockProducts = [
-  { id: 101, name: 'Carregador Rápido', current: 2, minimum: 5 },
-  { id: 102, name: 'Película de Vidro', current: 3, minimum: 10 },
-  { id: 103, name: 'Cabo USB-C', current: 1, minimum: 5 },
-  { id: 104, name: 'Suporte para Notebook', current: 0, minimum: 3 },
+  { id: 'tx1', amountBRL: 350.00, amountBCH: 0.012, status: 'confirmed', date: '2024-06-10T14:30:00', customer: 'Cliente A' },
+  { id: 'tx2', amountBRL: 420.50, amountBCH: 0.014, status: 'pending', date: '2024-06-10T12:15:00', customer: 'Cliente B' },
+  { id: 'tx3', amountBRL: 189.90, amountBCH: 0.006, status: 'confirmed', date: '2024-06-09T09:45:00', customer: 'Cliente C' },
+  { id: 'tx4', amountBRL: 750.00, amountBCH: 0.025, status: 'confirmed', date: '2024-06-09T18:20:00', customer: 'Cliente D' },
+  { id: 'tx5', amountBRL: 230.40, amountBCH: 0.008, status: 'failed', date: '2024-06-08T16:10:00', customer: 'Cliente E' },
 ];
 
 export function DashboardTab() {
   const [timeRange, setTimeRange] = useState('week');
   const [blockchainStatus, setBlockchainStatus] = useState('online');
-  
+  const [userCount, setUserCount] = useState<number>(0);
+  const [salesToday, setSalesToday] = useState<number>(0);
+  const [totalSales, setTotalSales] = useState<number>(0);
+  const [totalBCH, setTotalBCH] = useState<number>(0);
+  const [salesData, setSalesData] = useState<{ date: string; total: number }[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<{ id: string; name: string; current: number; minimum: number }[]>([]);
+
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://localhost:3000/api/users/count', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar contagem de usuários');
+        }
+
+        const data = await response.json();
+        setUserCount(data.count);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar contagem de usuários:', error);
+      }
+    };
+
+    fetchUserCount();
+  }, []);
+
+  useEffect(() => {
+    const fetchSalesToday = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/today', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar vendas de hoje');
+        }
+
+        const data = await response.json();
+        setSalesToday(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar vendas de hoje:', error);
+      }
+    };
+
+    fetchSalesToday();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotalSales = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/total', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar total de vendas');
+        }
+
+        const data = await response.json();
+        setTotalSales(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar total de vendas:', error);
+      }
+    };
+
+    fetchTotalSales();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotalBCH = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://localhost:3000/api/wallet/sales/total-bch', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar total de BCH recebido');
+        }
+
+        const data = await response.json();
+        setTotalBCH(data.total);
+      } catch (error) {
+        console.error('[ERROR] Erro ao carregar total de BCH recebido:', error);
+      }
+    };
+
+    fetchTotalBCH();
+  }, []);
+
+  useEffect(() => {
+    const fetchLowStockProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products/low-stock');
+        if (!response.ok) {
+          throw new Error('Erro ao buscar produtos com estoque baixo');
+        }
+        const data = await response.json();
+        setLowStockProducts(data);
+      } catch (error) {
+        console.error('Erro ao carregar produtos com estoque baixo:', error);
+      }
+    };
+
+    fetchLowStockProducts();
+  }, []);
+
   const checkBlockchainStatus = () => {
     setBlockchainStatus('checking');
     setTimeout(() => {
-      setBlockchainStatus(Math.random() > 0.1 ? 'online' : 'offline');
+      const newStatus = Math.random() > 0.1 ? 'online' : 'offline';
+      setBlockchainStatus(newStatus);
     }, 1000);
   };
+
+  useEffect(() => {
+    // Processar transações para agrupar por data
+    const groupedData = recentTransactions.reduce((acc, transaction) => {
+      if (transaction.status === 'confirmed') {
+        const date = new Date(transaction.date).toLocaleDateString('pt-BR');
+        acc[date] = (acc[date] || 0) + transaction.amountBRL;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Converter para o formato necessário para o gráfico
+    const formattedData = Object.entries(groupedData).map(([date, total]) => ({
+      date,
+      total,
+    }));
+
+    // Ordenar por data
+    formattedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    setSalesData(formattedData);
+  }, []);
 
   return (
     <div className="p-6 bg-gray-100 dark:bg-[var(--color-bg-primary)]">
       {/* Cabeçalho */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Minha Loja Digital</h1>
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Minha Loja Digital</h1>
-          <p className="text-gray-600 dark:text-[var(--color-text-secondary)]">
+         
+          <p className="text-white">
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -89,43 +220,54 @@ export function DashboardTab() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+      <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Vendas Hoje</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">R$ 0,00</p>
+              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Total de Vendas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
+                R$ {totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
             </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-              <FiActivity size={24} />
-            </div>
+           <div 
+  className="p-3 rounded-full dark:bg-blue-700 text-blue-400"
+  style={{ filter: 'drop-shadow(0 0 8px #5298f2)' }}
+>
+  <FiActivity size={24} />
+</div>
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
-            <FiTrendingUp className="mr-1" /> +0% em relação a ontem
+            <FiTrendingUp className="mr-1" /> Total acumulado de vendas
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Recebido em BCH</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">₿ 0</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">
+                ₿ {totalBCH.toFixed(8)}
+              </p>
             </div>
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
+            <div className="p-3 rounded-full dark:bg-green-900 text-green-600 dark:text-green-400"
+              style={{ filter: 'drop-shadow(0 0 8px #3dd445)' }}
+>
               <FiShoppingCart size={24} />
             </div>
           </div>
           <div className="mt-4 text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
-            ≈ R$ 0,00
+            Total acumulado em Bitcoin Cash
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Produtos com Estoque Baixo</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 produtos</p>
             </div>
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400">
+            <div className="p-3 rounded-full dark:bg-yellow-700 dark:text-yellow-500"
+            style={{ filter: 'drop-shadow(0 0 8px #c4791d)' }}
+>
               <FiAlertTriangle size={24} />
             </div>
           </div>
@@ -134,13 +276,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Pedidos Pendentes</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 pendentes</p>
             </div>
-            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
+            <div className="p-3 rounded-full dark:bg-purple-900 text-purple-600 dark:text-purple-500"
+            style={{ filter: 'drop-shadow(0 0 8px #8c20c7)' }}
+>
               <FiClock size={24} />
             </div>
           </div>
@@ -149,13 +293,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Transações Recentes</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 hoje</p>
             </div>
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400">
+            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400"
+            style={{ filter: 'drop-shadow(0 0 8px #ab1111)' }}
+>
               <FiRefreshCw size={24} />
             </div>
           </div>
@@ -164,13 +310,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Crescimento da Semana</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0%</p>
+              <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Usuários Cadastrados</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{userCount}</p>
             </div>
-            <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400">
+            <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400"
+            style={{ filter: 'drop-shadow(0 0 8px #4018c4)' }}
+>
               <FiTrendingUp size={24} />
             </div>
           </div>
@@ -178,94 +326,67 @@ export function DashboardTab() {
             Em relação à semana passada
           </div>
         </div>
+
+        
       </div>
 
       {/* Seções de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Gráfico de Criptomoedas */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow-lg  ">
           <CryptoChart />
         </div>
         {/* Gráfico de Faturamento */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Faturamento</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setTimeRange('day')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'day' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Hoje
-              </button>
-              <button
-                onClick={() => setTimeRange('week')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'week' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Semana
-              </button>
-              <button
-                onClick={() => setTimeRange('month')}
-                className={`px-3 py-1 text-sm rounded-full ${
-                  timeRange === 'month' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Mês
-              </button>
-            </div>
           </div>
           
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
-                  width={40}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    border: 'none'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2} 
-                  dot={{ r: 4 }} 
-                  activeDot={{ r: 6, strokeWidth: 0 }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart data={salesData}>
+      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+      <XAxis 
+        dataKey="date" 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{ fill: '#6b7280' }} 
+      />
+      <YAxis 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{ fill: '#6b7280' }} 
+        width={40}
+      />
+      <Tooltip 
+        contentStyle={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+      />
+      <Line 
+        type="monotone" 
+        dataKey="total" 
+        stroke="#3b82f6" 
+        strokeWidth={2} 
+        dot={{ r: 4 }} 
+        activeDot={{ r: 6, strokeWidth: 0 }} 
+        style={{
+          filter: "drop-shadow(0 0 6px rgba(59, 130, 246, 0.8))",
+        }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
         </div>
       </div>
 
       {/* Segunda Linha de Seções Detalhadas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Transações Recentes */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Transações Recentes</h2>
           
           <div className="space-y-4">
@@ -273,7 +394,9 @@ export function DashboardTab() {
               <div key={tx.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <div>
                   <p className="font-medium text-gray-900 dark:text-[var(--color-text-primary)]">{tx.customer}</p>
-                  <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">{tx.date}</p>
+                  <p className="text-sm text-gray-500 dark:text-[var(--color-text-secondary)]">
+                    {new Date(tx.date).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-green-500">
@@ -304,11 +427,11 @@ export function DashboardTab() {
         </div>
 
         {/* Alerta de Estoque */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Alerta de Estoque</h2>
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">
-              Reabastecer
+              Conferir
             </button>
           </div>
           
