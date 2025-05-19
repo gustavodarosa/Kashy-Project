@@ -28,6 +28,7 @@ export function Dashboard() {
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
+    const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
 
     const navigate = useNavigate();
 
@@ -254,17 +255,20 @@ export function Dashboard() {
     const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
 
-        // Add user message to chat
+        const newHistory = [
+            ...chatHistory,
+            { role: "user" as "user" | "bot", message: chatInput }
+        ];
+        setChatHistory(newHistory);
         setChatMessages((prev) => [...prev, { sender: "user", message: chatInput }]);
         setChatInput("");
-
-        // Simulate AI response
         setIsChatLoading(true);
+
         try {
             const response = await fetch("http://localhost:3000/api/reports/generate-ai-report", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: chatInput }),
+                body: JSON.stringify({ prompt: chatInput, history: newHistory }),
             });
 
             if (!response.ok) {

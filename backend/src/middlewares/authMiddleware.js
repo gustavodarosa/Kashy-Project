@@ -57,6 +57,7 @@ const protect = (req, res, next) => {
       }
       // Send 401 Unauthorized response
       res.status(401).json({ message: errorMessage });
+      return; // <-- Adicione este return
     }
   }
 
@@ -64,6 +65,7 @@ const protect = (req, res, next) => {
   if (!token) {
     logger.warn('Authorization token missing from request.');
     res.status(401).json({ message: 'Not authorized, no token provided.' });
+    return; // <-- Adicione este return
   }
 };
 

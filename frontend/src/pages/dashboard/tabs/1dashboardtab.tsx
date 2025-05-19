@@ -171,10 +171,17 @@ export function DashboardTab() {
   return (
     <div className="p-6 bg-gray-100 dark:bg-[var(--color-bg-primary)]">
       {/* Cabeçalho */}
+      <div className=" p-24 rounded-lg shadow mb-6"
+        style={{ 
+    background: "linear-gradient(to right, #05a826, #37ed73)"
+  }}
+>
+         <h1 className="text-3xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Minha Loja Digital</h1>
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Minha Loja Digital</h1>
-          <p className="text-gray-600 dark:text-[var(--color-text-secondary)]">
+         
+          <p className="text-white">
             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
@@ -217,7 +224,7 @@ export function DashboardTab() {
 
       {/* Cards de Resumo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+      <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Total de Vendas</p>
@@ -225,16 +232,19 @@ export function DashboardTab() {
                 R$ {totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-              <FiActivity size={24} />
-            </div>
+           <div 
+  className="p-3 rounded-full dark:bg-blue-700 text-blue-400"
+  style={{ filter: 'drop-shadow(0 0 8px #5298f2)' }}
+>
+  <FiActivity size={24} />
+</div>
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 dark:text-green-400">
             <FiTrendingUp className="mr-1" /> Total acumulado de vendas
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Recebido em BCH</p>
@@ -242,7 +252,9 @@ export function DashboardTab() {
                 ₿ {totalBCH.toFixed(8)}
               </p>
             </div>
-            <div className="p-3 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
+            <div className="p-3 rounded-full dark:bg-green-900 text-green-600 dark:text-green-400"
+              style={{ filter: 'drop-shadow(0 0 8px #3dd445)' }}
+>
               <FiShoppingCart size={24} />
             </div>
           </div>
@@ -251,13 +263,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Produtos com Estoque Baixo</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 produtos</p>
             </div>
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400">
+            <div className="p-3 rounded-full dark:bg-yellow-700 dark:text-yellow-500"
+            style={{ filter: 'drop-shadow(0 0 8px #c4791d)' }}
+>
               <FiAlertTriangle size={24} />
             </div>
           </div>
@@ -266,13 +280,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Pedidos Pendentes</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 pendentes</p>
             </div>
-            <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
+            <div className="p-3 rounded-full dark:bg-purple-900 text-purple-600 dark:text-purple-500"
+            style={{ filter: 'drop-shadow(0 0 8px #8c20c7)' }}
+>
               <FiClock size={24} />
             </div>
           </div>
@@ -281,13 +297,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Transações Recentes</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">0 hoje</p>
             </div>
-            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400">
+            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400"
+            style={{ filter: 'drop-shadow(0 0 8px #ab1111)' }}
+>
               <FiRefreshCw size={24} />
             </div>
           </div>
@@ -296,13 +314,15 @@ export function DashboardTab() {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 dark:text-[var(--color-text-secondary)]">Usuários Cadastrados</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">{userCount}</p>
             </div>
-            <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400">
+            <div className="p-3 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400"
+            style={{ filter: 'drop-shadow(0 0 8px #4018c4)' }}
+>
               <FiTrendingUp size={24} />
             </div>
           </div>
@@ -317,57 +337,60 @@ export function DashboardTab() {
       {/* Seções de Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         {/* Gráfico de Criptomoedas */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow-lg  ">
           <CryptoChart />
         </div>
         {/* Gráfico de Faturamento */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Faturamento</h2>
           </div>
           
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#6b7280' }} 
-                  width={40}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    border: 'none'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2} 
-                  dot={{ r: 4 }} 
-                  activeDot={{ r: 6, strokeWidth: 0 }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart data={salesData}>
+      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+      <XAxis 
+        dataKey="date" 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{ fill: '#6b7280' }} 
+      />
+      <YAxis 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{ fill: '#6b7280' }} 
+        width={40}
+      />
+      <Tooltip 
+        contentStyle={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: 'none'
+        }}
+      />
+      <Line 
+        type="monotone" 
+        dataKey="total" 
+        stroke="#3b82f6" 
+        strokeWidth={2} 
+        dot={{ r: 4 }} 
+        activeDot={{ r: 6, strokeWidth: 0 }} 
+        style={{
+          filter: "drop-shadow(0 0 6px rgba(59, 130, 246, 0.8))",
+        }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
         </div>
       </div>
 
       {/* Segunda Linha de Seções Detalhadas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Transações Recentes */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)] mb-6">Transações Recentes</h2>
           
           <div className="space-y-4">
@@ -408,7 +431,7 @@ export function DashboardTab() {
         </div>
 
         {/* Alerta de Estoque */}
-        <div className="bg-white dark:bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow">
+        <div className="bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)] p-6 rounded-lg shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Alerta de Estoque</h2>
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm">

@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema({
   processedTxIds: { type: [String], default: [] },
   role: { type: String, enum: ['user', 'merchant'], required: true, default: 'user' }, // Novo campo
   transactionCount: { type: Number, required: true, default: 0 }, // Novo campo
+  phone: { type: String, default: '' }, // Novo campo para telefone
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorMethod: { type: String, default: 'sms' },
+  twoFactorTempCode: { type: String, default: '' },
+  twoFactorTempExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

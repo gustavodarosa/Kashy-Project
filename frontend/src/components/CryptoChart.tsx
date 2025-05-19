@@ -70,7 +70,7 @@ export function CryptoChart() {
         </h2>
         {cryptoData.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-lg text-green-500 font-semibold">
+            <span className="text-lg text-green-600 drop-shadow-[0_0_8px_#10b981] font-semibold">
               ${cryptoData[cryptoData.length - 1].price.toFixed(2)}
             </span>
           
@@ -88,43 +88,62 @@ export function CryptoChart() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={cryptoData}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-            <XAxis 
-              dataKey="time" 
-              tick={{ fontSize: 12 }}
-              tickFormatter={(value) => {
-                const date = new Date();
-                const [hours, minutes] = value.split(':');
-                date.setHours(parseInt(hours), parseInt(minutes));
-                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              }}
-            />
-            <YAxis 
-              domain={['auto', 'auto']}
-              tickFormatter={(value) => `$${value}`}
-              width={80}
-            />
-            <Tooltip 
-              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Preço']}
-              labelFormatter={(label) => `Hora: ${label}`}
-              contentStyle={{
-                backgroundColor: 'white',
-                borderRadius: '0.5rem',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                border: 'none'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="price" 
-              stroke="#3b82f6" 
-              strokeWidth={2} 
-              dot={false}
-              activeDot={{ r: 6, strokeWidth: 0 }} 
-            />
-          </LineChart>
-        </ResponsiveContainer>
+  <LineChart data={cryptoData}>
+    <defs>
+      <linearGradient id="lineGradient" x1="0" y1="0" x2="100%" y2="0">
+        <stop offset="0%" stopColor="#3b82f6" />
+        <stop offset="100%" stopColor="#00f2fe" />
+      </linearGradient>
+    </defs>
+    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d3748" />
+    <XAxis 
+      dataKey="time" 
+      tick={{ fontSize: 12, fill: "#94a3b8" }}
+      tickFormatter={(value) => {
+        const date = new Date();
+        const [hours, minutes] = value.split(':');
+        date.setHours(parseInt(hours), parseInt(minutes));
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }}
+      axisLine={{ stroke: "#2d3748" }}
+    />
+    <YAxis 
+      domain={['auto', 'auto']}
+      tickFormatter={(value) => `$${value.toLocaleString()}`}
+      width={80}
+      tick={{ fontSize: 12, fill: "#94a3b8" }}
+      axisLine={{ stroke: "#2d3748" }}
+    />
+    <Tooltip 
+      formatter={(value: number) => [`$${value.toFixed(2)}`, "Preço"]}
+      labelFormatter={(label) => `Hora: ${label}`}
+      contentStyle={{
+        backgroundColor: "#1e293b",
+        color: "#fff",
+        borderRadius: "0.5rem",
+        border: "none",
+        boxShadow: "0 0 20px rgba(59, 130, 246, 0.3)",
+      }}
+      itemStyle={{ color: "#3b82f6" }}
+    />
+    <Line 
+      type="monotone" 
+      dataKey="price" 
+      stroke="url(#lineGradient)" 
+      strokeWidth={2} 
+      dot={false}
+      activeDot={{ 
+        r: 6, 
+        strokeWidth: 0,
+        fill: "#3b82f6",
+        style: { filter: "drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))" }
+      }} 
+      style={{
+        filter: "drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))",
+      }}
+    />
+  </LineChart>
+</ResponsiveContainer>
       )}
     </div>
   );

@@ -234,6 +234,21 @@ app.put('/api/user/update-password', authMiddleware, async (req, res) => {
   } catch (error) { logger.error(`User ID: ${userId} - Error updating password: ${error.message}`); res.status(500).json({ message: 'Erro interno no servidor ao atualizar senha.' }); }
 });
 
+app.put('/api/user/update-phone', authMiddleware, async (req, res) => {
+  const { phone } = req.body;
+  const userId = req.user.id;
+  if (!phone) return res.status(400).json({ message: 'Telefone é obrigatório.' });
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
+    user.phone = phone;
+    await user.save();
+    res.status(200).json({ message: 'Telefone atualizado com sucesso.', phone: user.phone });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao atualizar telefone.' });
+  }
+});
+
 app.get('/api/users/count', authMiddleware, async (req, res) => {
   try {
     const userCount = await User.countDocuments();
@@ -241,6 +256,85 @@ app.get('/api/users/count', authMiddleware, async (req, res) => {
   } catch (error) {
     logger.error('Erro ao contar usuários:', error.message);
     res.status(500).json({ message: 'Erro interno no servidor ao contar usuários.' });
+  }
+});
+
+app.put('/api/user/two-factor', authMiddleware, async (req, res) => {
+  const { enabled, method } = req.body;
+  const userId = req.user.id;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
+    user.twoFactorEnabled = enabled;
+    user.twoFactorMethod = method || 'sms';
+    await user.save();
+    res.status(200).json({ message: 'Configuração de 2FA atualizada.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao atualizar 2FA.' });
+  }
+});
+
+// Iniciar login 2FA (enviar código SMS)
+app.post('/api/auth/login-2fa', async (req, res) => {
+  const { email, password } = req.body;
+  // ...verifique usuário e senha...
+  const user = await User.findOne({ email });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: 'Credenciais inválidas.' });
+  }
+  if (!user.twoFactorEnabled) {
+    // Login normal
+    // ...retorne token JWT...
+    return res.status(200).json({ token: '...' });
+  }
+  // Gerar código e salvar temporariamente
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  user.twoFactorTempCode = code;
+  user.twoFactorTempExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
+  await user.save();
+  // Envie o código por SMS (mock ou integração real)
+  // await sendSms(user.phone, `Seu código: ${code}`);
+  console.log(`Código 2FA para ${user.phone}: ${code}`); // Para testes
+  res.status(200).json({ require2FA: true, method: user.twoFactorMethod });
+});
+
+// Verificar código 2FA
+app.post('/api/auth/verify-2fa', async (req, res) => {
+  const { email, code } = req.body;
+  const user = await User.findOne({ email });
+  if (!user || !user.twoFactorEnabled) return res.status(400).json({ message: '2FA não está ativo.' });
+  if (
+    user.twoFactorTempCode === code &&
+    user.twoFactorTempExpires &&
+    user.twoFactorTempExpires > new Date()
+  ) {
+    // Código correto, gere token JWT
+    user.twoFactorTempCode = '';
+    user.twoFactorTempExpires = null;
+    await user.save();
+    // ...gere token JWT normalmente...
+    return res.status(200).json({ token: '...' });
+  }
+  res.status(401).json({ message: 'Código inválido ou expirado.' });
+});
+
+app.get('/api/user/me', authMiddleware, async (req, res) => {
+  try {
+    console.log('[2FA] req.user:', req.user);
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      console.log('[2FA] Usuário não encontrado para ID:', req.user.id);
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+    res.status(200).json({
+      email: user.email,
+      username: user.username,
+      twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorMethod: user.twoFactorMethod,
+    });
+  } catch (error) {
+    console.error('[2FA] Erro ao buscar dados do usuário:', error);
+    res.status(500).json({ message: 'Erro ao buscar dados do usuário.' });
   }
 });
 

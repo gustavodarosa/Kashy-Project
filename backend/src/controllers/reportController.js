@@ -6,7 +6,7 @@ const Report = require('../models/report'); // Importa o modelo de relatório
  * Lida com a requisição para gerar um relatório de IA.
  */
 async function generateAIReport(req, res) {
-  const { prompt } = req.body;
+  const { prompt, history } = req.body;
   if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
     return res.status(400).json({ message: "O campo 'prompt' é obrigatório e não pode ser vazio." });
   }
@@ -45,7 +45,13 @@ async function generateAIReport(req, res) {
       contexto = 'Dados não encontrados para este tipo de relatório.';
     }
 
-    const fullPrompt = `${contexto}\n\n${prompt}`;
+    // Monte o histórico em formato de texto
+    let historyText = '';
+    if (Array.isArray(history)) {
+      historyText = history.map(msg => `${msg.role === "user" ? "Usuário" : "IA"}: ${msg.message}`).join('\n');
+    }
+
+    const fullPrompt = `${historyText}\n${contexto}\nUsuário: ${prompt}`;
     const insights = await generateInsights(fullPrompt);
     res.status(200).json({ insights });
   } catch (error) {
