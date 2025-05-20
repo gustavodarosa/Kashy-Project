@@ -529,20 +529,87 @@ async function sendTransaction(userId, recipientAddress, amountBchStr, feeLevel)
 }
 
 async function sendTransactionInternal(userId, recipientAddress, amountBchStr, feeLevel) {
-    // This function now spends ONLY from the user's main address.
-    // To spend from multiple addresses (main + invoices), UTXO collection needs to be expanded.
-    const keys = await getUserWalletKeys(userId); // Gets WIF and address for the MAIN user address
-    const fromAddress = keys.address;
-    const wif = keys.wif;
+    const keys = await getUserWalletKeys(userId);
+    const mainFromAddress = keys.address;
+    const mainWif = keys.wif;
+    const mnemonic = keys.mnemonic; // Needed for deriving invoice keys
+
     const amountBCH = parseFloat(amountBchStr);
 
-    logger.info(`[Send TX Internal] User: ${userId}, From (Main Addr): ${fromAddress}, To: ${recipientAddress}, Amount: ${amountBchStr} BCH, FeeLevel: ${feeLevel}`);
+    logger.info(`[Send TX Internal] User: ${userId}, To: ${recipientAddress}, Amount: ${amountBchStr} BCH, FeeLevel: ${feeLevel}`);
 
     if (isNaN(amountBCH) || amountBCH <= 0) { throw new Error('Invalid amount specified.'); }
     if (!bitcore.Address.isValid(recipientAddress, network)) { throw new Error('Invalid recipient address.'); }
     const amountSatoshis = Math.round(amountBCH * SATOSHIS_PER_BCH);
     if (amountSatoshis < DUST_THRESHOLD) { throw new Error(`Amount ${amountSatoshis} is below dust threshold ${DUST_THRESHOLD}`); }
 
+    // --- Collect all spendable UTXOs and their WIFs ---
+    const allSpendableUtxos = []; // Array of { txid, vout, satoshis, address, wif }
+
+    // UTXOs from main address
+    logger.debug(`[Send TX Internal] Fetching UTXOs for main address ${mainFromAddress}`);
+    const mainScriptHash = addressToScriptHash(mainFromAddress);
+    const mainUtxosRaw = await electrumRequestManager.raceRequest('blockchain.scripthash.listunspent', [mainScriptHash]);
+    if (mainUtxosRaw && mainUtxosRaw.length > 0) {
+        mainUtxosRaw.forEach(utxo => {
+            allSpendableUtxos.push({
+                txid: utxo.tx_hash, vout: utxo.tx_pos, satoshis: utxo.value, address: mainFromAddress, wif: mainWif
+            });
+        });
+    }
+    logger.debug(`[Send TX Internal] Found ${mainUtxosRaw?.length || 0} UTXOs on main address.`);
+
+    // UTXOs from invoice addresses
+    logger.debug(`[Send TX Internal] Fetching UTXOs from user's invoice addresses.`);
+    const relevantOrders = await Order.find({
+        user: userId,
+        paymentMethod: 'bch',
+        merchantAddress: { $exists: true, $ne: null },
+        invoicePath: { $exists: true, $ne: null },
+        // Consider statuses that might hold spendable funds, e.g., 'paid', 'confirmed_paid'
+        // For simplicity, we might fetch for all orders with an address and path,
+        // as listunspent will return empty if no funds.
+    }).select('merchantAddress invoicePath _id').lean();
+
+    if (relevantOrders.length > 0 && mnemonic) {
+        const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+        const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
+
+        for (const order of relevantOrders) {
+            if (order.merchantAddress && order.invoicePath) {
+                try {
+                    const childNode = masterHDNode.derivePath(order.invoicePath);
+                    const invoiceWif = bchjs.HDNode.toWIF(childNode);
+                    const derivedInvoiceAddress = bchjs.HDNode.toCashAddress(childNode);
+
+                    if (derivedInvoiceAddress !== order.merchantAddress) {
+                        logger.warn(`[Send TX Internal] Address mismatch for order ${order._id}. Stored: ${order.merchantAddress}, Derived: ${derivedInvoiceAddress}. Skipping UTXOs from this path.`);
+                        continue;
+                    }
+
+                    const invoiceScriptHash = addressToScriptHash(order.merchantAddress);
+                    const invoiceUtxosRaw = await electrumRequestManager.raceRequest('blockchain.scripthash.listunspent', [invoiceScriptHash]);
+                    if (invoiceUtxosRaw && invoiceUtxosRaw.length > 0) {
+                        logger.debug(`[Send TX Internal] Found ${invoiceUtxosRaw.length} UTXOs on invoice address ${order.merchantAddress} (Order ${order._id})`);
+                        invoiceUtxosRaw.forEach(utxo => {
+                            allSpendableUtxos.push({
+                                txid: utxo.tx_hash, vout: utxo.tx_pos, satoshis: utxo.value, address: order.merchantAddress, wif: invoiceWif
+                            });
+                        });
+                    }
+                } catch (deriveError) {
+                    logger.error(`[Send TX Internal] Error deriving WIF or fetching UTXOs for invoice ${order.merchantAddress} (Order ${order._id}): ${deriveError.message}`);
+                }
+            }
+        }
+    }
+    logger.info(`[Send TX Internal] Total spendable UTXOs collected from all addresses: ${allSpendableUtxos.length}`);
+
+    if (allSpendableUtxos.length === 0) {
+        throw new Error('Insufficient funds (no UTXOs found across all user addresses).');
+    }
+
+    // --- Fee Rate ---
     let feeRateSatsPerByte;
     switch (feeLevel) {
       case 'low': feeRateSatsPerByte = 1.0; break;
@@ -551,46 +618,87 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
     }
     logger.info(`[Send TX Internal] Using fee rate: ${feeRateSatsPerByte} sats/byte for level '${feeLevel}'`);
 
+    // --- Iterative Coin Selection and Fee Calculation ---
+    let transactionBuilder;
+    let utxosToUse = [];
+    let totalInputSatoshis = 0;
+    let feeSatoshis = 0;
+    const MAX_FEE_ITERATIONS = 3; // Max attempts to stabilize fee
+
+    // Sort UTXOs: smallest first can help consolidate dust, largest first can minimize inputs.
+    // For simplicity, using smallest first here.
+    allSpendableUtxos.sort((a, b) => a.satoshis - b.satoshis);
+
     try {
-        const scriptHash = addressToScriptHash(fromAddress); // Script hash of the main address
-        logger.debug(`[Send TX Internal] Fetching UTXOs for main address ${fromAddress} (SH: ${scriptHash})`);
-        const utxosRaw = await electrumRequestManager.raceRequest('blockchain.scripthash.listunspent', [scriptHash]);
+        for (let i = 0; i < MAX_FEE_ITERATIONS; i++) {
+            transactionBuilder = new bchjs.TransactionBuilder(network);
+            utxosToUse = [];
+            totalInputSatoshis = 0;
 
-        if (!utxosRaw || utxosRaw.length === 0) {
-            logger.warn(`[Send TX Internal] No UTXOs found for main address ${fromAddress}.`);
-            throw new Error('Insufficient funds (no UTXOs found on main address).');
+            // Select UTXOs
+            for (const spendableUtxo of allSpendableUtxos) {
+                utxosToUse.push(spendableUtxo);
+                totalInputSatoshis += spendableUtxo.satoshis;
+                // Add to builder for size estimation
+                transactionBuilder.addInput(spendableUtxo.txid, spendableUtxo.vout);
+                // Estimate fee with current inputs to see if we have enough
+                const currentByteCount = bchjs.BitcoinCash.getByteCount({ P2PKH: utxosToUse.length }, { P2PKH: 2 }); // Assume 2 outputs for now
+                const currentEstimatedFee = Math.ceil(currentByteCount * feeRateSatsPerByte);
+                if (totalInputSatoshis >= amountSatoshis + currentEstimatedFee) {
+                    break; // Found enough inputs
+                }
+            }
+
+            if (totalInputSatoshis < amountSatoshis) {
+                throw new Error(`Insufficient total funds across all addresses. Required for amount: ${amountSatoshis}, Available: ${totalInputSatoshis}`);
+            }
+
+            const changeAmountEstimate = totalInputSatoshis - amountSatoshis - Math.ceil(bchjs.BitcoinCash.getByteCount({ P2PKH: utxosToUse.length }, { P2PKH: 2 }) * feeRateSatsPerByte);
+            const needsChangeOutput = changeAmountEstimate >= DUST_THRESHOLD;
+            const finalOutputCount = needsChangeOutput ? 2 : 1;
+            const finalByteCount = bchjs.BitcoinCash.getByteCount({ P2PKH: utxosToUse.length }, { P2PKH: finalOutputCount });
+            const newFeeSatoshis = Math.ceil(finalByteCount * feeRateSatsPerByte);
+
+            if (feeSatoshis === newFeeSatoshis && totalInputSatoshis >= amountSatoshis + newFeeSatoshis) {
+                feeSatoshis = newFeeSatoshis; // Ensure feeSatoshis is set
+                break; // Fee stabilized and funds are sufficient
+            }
+            feeSatoshis = newFeeSatoshis;
+
+            if (i === MAX_FEE_ITERATIONS - 1) {
+                logger.warn(`[Send TX Internal] Fee calculation reached max iterations. Using last calculated fee: ${feeSatoshis}`);
+                if (totalInputSatoshis < amountSatoshis + feeSatoshis) {
+                     throw new Error(`Insufficient funds after fee iterations. Required: ${amountSatoshis + feeSatoshis}, Available: ${totalInputSatoshis}`);
+                }
+            }
         }
-        const utxos = utxosRaw.map(utxo => ({ txid: utxo.tx_hash, vout: utxo.tx_pos, satoshis: utxo.value }));
+        // --- End Iterative Fee Calculation ---
 
-        const transactionBuilder = new bchjs.TransactionBuilder(network);
-        let totalInputSatoshis = 0;
-        utxos.forEach(utxo => {
-            transactionBuilder.addInput(utxo.txid, utxo.vout);
-            totalInputSatoshis += utxo.satoshis;
-        });
-
-        const preliminaryOutputCount = 2;
-        const byteCountEstimate = bchjs.BitcoinCash.getByteCount({ P2PKH: utxos.length }, { P2PKH: preliminaryOutputCount });
-        const feeEstimate = Math.ceil(byteCountEstimate * feeRateSatsPerByte);
-        const changeAmountEstimate = totalInputSatoshis - amountSatoshis - feeEstimate;
-        const needsChangeOutput = changeAmountEstimate >= DUST_THRESHOLD;
-        const finalOutputCount = needsChangeOutput ? 2 : 1;
-        const finalByteCount = bchjs.BitcoinCash.getByteCount({ P2PKH: utxos.length }, { P2PKH: finalOutputCount });
-        const feeSatoshis = Math.ceil(finalByteCount * feeRateSatsPerByte);
+        // Final check with selected UTXOs and calculated fee
+        logger.info(`[Send TX Internal] Selected ${utxosToUse.length} UTXOs. Total input: ${totalInputSatoshis} sats. Calculated fee: ${feeSatoshis} sats.`);
 
         if (totalInputSatoshis < amountSatoshis + feeSatoshis) {
             throw new Error(`Insufficient funds. Required: ${amountSatoshis + feeSatoshis} satoshis, Available: ${totalInputSatoshis} satoshis.`);
         }
 
+        // Re-initialize builder with only the final selected UTXOs for the actual build
+        transactionBuilder = new bchjs.TransactionBuilder(network);
+        utxosToUse.forEach(utxo => transactionBuilder.addInput(utxo.txid, utxo.vout));
+
         transactionBuilder.addOutput(recipientAddress, amountSatoshis);
         const changeAmountSatoshis = totalInputSatoshis - amountSatoshis - feeSatoshis;
+        const needsChangeOutput = changeAmountSatoshis >= DUST_THRESHOLD; // Recalculate based on final fee
+
         if (needsChangeOutput) {
-            transactionBuilder.addOutput(fromAddress, changeAmountSatoshis);
+            // Send change back to the main user address for simplicity
+            logger.debug(`[Send TX Internal] Adding change output: ${changeAmountSatoshis} satoshis to main address ${mainFromAddress}`);
+            transactionBuilder.addOutput(mainFromAddress, changeAmountSatoshis);
         }
 
-        const keyPair = bchjs.ECPair.fromWIF(wif);
-        utxos.forEach((utxo, index) => {
-            transactionBuilder.sign(index, keyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, utxo.satoshis);
+        // Sign inputs using their respective WIFs
+        utxosToUse.forEach((utxoData, index) => {
+            const signingKeyPair = bchjs.ECPair.fromWIF(utxoData.wif);
+            transactionBuilder.sign(index, signingKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, utxoData.satoshis);
         });
 
         const tx = transactionBuilder.build();
@@ -600,7 +708,7 @@ async function sendTransactionInternal(userId, recipientAddress, amountBchStr, f
         if (!txid || typeof txid !== 'string' || txid.length < 64) {
              throw new Error('Transaction broadcast may have failed or succeeded without confirmation.');
         }
-        logger.info(`[Send TX Internal] Transaction sent successfully from main address. Txid: ${txid}`);
+        logger.info(`[Send TX Internal] Transaction sent successfully from user's addresses. Txid: ${txid}`);
         return { txid };
 
     } catch (error) {
