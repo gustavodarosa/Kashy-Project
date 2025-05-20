@@ -33,22 +33,34 @@ const orderSchema = new mongoose.Schema({
     enum: ['bch', 'pix', 'card'], // Example payment methods
     required: true,
   },
-  paymentAddress: { // Renamed from merchantAddress
+  // Fields specific to BCH payments
+  merchantAddress: { // Specific address for BCH payment (derived)
     type: String,
     required: function() { return this.paymentMethod === 'bch'; }
   },
-  exchangeRate: { // BCH/BRL rate at the time of order creation
+  invoicePath: { // Derivation path for the merchantAddress
+    type: String,
+    required: function() { return this.paymentMethod === 'bch'; }
+  },
+  amountBCH: { // Total amount expected in BCH
+    type: Number,
+    required: function() { return this.paymentMethod === 'bch'; }
+  },
+  exchangeRateUsed: { // BCH/BRL rate at the time of order creation
     type: Number,
     required: function() { return this.paymentMethod === 'bch'; }
   },
   status: {
     type: String,
-    enum: ['pending', 'paid', 'cancelled', 'refunded', 'expired'],
+    enum: ['pending', 'payment_detected', 'paid', 'confirmed_paid', 'cancelled', 'refunded', 'expired'],
     default: 'pending',
   },
   transaction: { // Optional: details of the payment transaction (if applicable)
     txHash: { type: String },
     status: { type: String, enum: ['pending', 'confirmed', 'failed'] },
+    paidAmountBCH: { type: Number }, // Actual amount paid in BCH
+    paymentReceivedAt: { type: Date }, // Timestamp when payment was detected/confirmed
+    confirmations: { type: Number, default: 0 }
   },
   user: { // Optional: link to the user who created/owns the order
     type: mongoose.Schema.Types.ObjectId,
@@ -57,4 +69,5 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true }); // Adds createdAt and updatedAt automatically
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
+

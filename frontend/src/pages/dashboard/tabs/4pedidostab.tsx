@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle, FiEdit, FiTrash2, FiCopy, FiPrinter } from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiEdit, FiTrash2, FiCopy, FiPrinter } from 'react-icons/fi';
 import QRCode from 'react-qr-code';
 
 type OrderItem = {
@@ -26,7 +26,7 @@ type Order = {
     status: 'pending' | 'confirmed' | 'failed';
   };
   merchantAddress?: string;
-  exchangeRate?: number;
+  exchangeRateUsed?: number; // Changed from exchangeRate to exchangeRateUsed
 };
 
 type Product = {
@@ -205,14 +205,14 @@ export function PedidosTab() {
     setQrOrder(null);
     setError(null);
     try {
-      console.log(`[PedidosTab] Buscando detalhes para QR Code do pedido ID: ${orderId}`);
+      console.log(`[PedidosTab] openQrModal: Buscando detalhes para QR Code do pedido ID: ${orderId}`);
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (!response.ok) throw new Error('Erro ao buscar detalhes para QR Code.');
       const order = await response.json();
-      console.log('[PedidosTab] Detalhes para QR Code recebidos:', order);
+      console.log('[PedidosTab] openQrModal: Detalhes para QR Code recebidos:', order);
       setQrOrder(order);
     } catch (err: any) {
       console.error('[PedidosTab] Erro em openQrModal:', err);
@@ -326,12 +326,19 @@ export function PedidosTab() {
       setSelectedProducts([]);
       setPaymentMethod("");
       setIsOrderModalOpen(false);
-      // Refetch orders to show the new one
-      setCurrentPage(1); // Go to first page to see the new order
-      // Manually trigger a re-fetch if dependencies don't cover it
-      setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
-      setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
+      setCurrentPage(1);
 
+      // Se o pagamento for BCH, abra o modal de QR Code imediatamente
+      if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
+        console.log("[PedidosTab] Pedido BCH criado. Abrindo modal de QR Code para ID:", savedOrder._id);
+        openQrModal(savedOrder._id);
+      } else {
+        // Se não for BCH, apenas atualize a lista de pedidos
+        // Refetch para garantir que a lista e paginação estejam corretas
+        // fetchOrders não está disponível aqui, então forçamos atualização manual
+        setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
+        setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
+      }
 
     } catch (error: any) {
       console.error("[PedidosTab] Erro ao criar pedido:", error);
@@ -428,6 +435,29 @@ export function PedidosTab() {
     }
   };
 
+  // Função para obter a cor e o rótulo do status do pedido
+  const getOrderStatusVisuals = (status: Order['status']) => {
+    switch (status) {
+      case 'pending':
+        return { label: 'Pendente', color: 'bg-yellow-500 text-yellow-900', icon: '🕒' };
+      case 'paid':
+        return { label: 'Pago', color: 'bg-green-500 text-green-900', icon: '✅' };
+      case 'cancelled':
+        return { label: 'Cancelado', color: 'bg-red-500 text-red-900', icon: '❌' };
+      case 'refunded':
+        return { label: 'Reembolsado', color: 'bg-purple-500 text-purple-900', icon: '↩️' };
+      case 'expired':
+        return { label: 'Expirado', color: 'bg-gray-500 text-gray-900', icon: '⌛' };
+      default:
+        return { label: status.charAt(0).toUpperCase() + status.slice(1), color: 'bg-gray-400 text-gray-800', icon: '❔' };
+    }
+  };
+
+  // Função para obter a cor e o rótulo do status da transação (se houver)
+  const getTransactionStatusVisuals = (status?: Order['transaction']['status']) => {
+    // Similar a getOrderStatusVisuals, mas para status de transação
+    return status ? { label: status, color: 'bg-blue-200 text-blue-800' } : null;
+  };
   return (
     <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
@@ -518,6 +548,7 @@ export function PedidosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pagamento</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fatura</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
@@ -558,6 +589,13 @@ export function PedidosTab() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                           {formatDate(order.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getOrderStatusVisuals(order.status).color}`}
+                          >
+                            {getOrderStatusVisuals(order.status).icon} {getOrderStatusVisuals(order.status).label}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
@@ -611,14 +649,14 @@ export function PedidosTab() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-terciary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
                 >
                   Próxima
                 </button>
@@ -638,7 +676,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-terciary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
@@ -662,7 +700,7 @@ export function PedidosTab() {
                           onClick={() => setCurrentPage(pageNum)}
                           className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
                             ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                            : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
+                            : 'bg-[var(--color-bg-terciary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
                             }`}
                         >
                           {pageNum}
@@ -673,7 +711,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-terciary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
                     >
                       <span className="sr-only">Próxima</span>
                       <FiChevronRight size={20} />
@@ -708,15 +746,20 @@ export function PedidosTab() {
                     return <p className="text-red-500 p-4">Erro: Endereço BCH não encontrado no pedido.</p>;
                   }
 
-                  if (!qrOrder.exchangeRate) {
-                    console.error("[PedidosTab] Taxa de câmbio ausente ou inválida no qrOrder:", qrOrder);
+                  if (!qrOrder.exchangeRateUsed) { // Changed to exchangeRateUsed
+                    console.error("[PedidosTab] Taxa de câmbio (exchangeRateUsed) ausente ou inválida no qrOrder:", qrOrder);
                     return <p className="text-red-500 p-4">Erro: Taxa de câmbio não encontrada.</p>;
                   }
 
-                  const amountBCH = parseFloat((qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8));
-                  console.log(`[PedidosTab] Calculando amountBCH para QR Code: totalAmount=${qrOrder.totalAmount}, exchangeRate=${qrOrder.exchangeRate}, amountBCH=${amountBCH}`);
-                  
-                  const qrValue = `${merchantAddress}?amount=${amountBCH}&label=Kashy&message=Pedido%20#${qrOrder._id}`; // Removed the extra "bitcoincash:" prefix
+                  const amountBCH = parseFloat((qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)); // Changed to exchangeRateUsed
+                  console.log(`[PedidosTab] QR Render: Calculando amountBCH: totalAmount=${qrOrder.totalAmount}, exchangeRateUsed=${qrOrder.exchangeRateUsed}, amountBCH=${amountBCH}`);
+
+                  // Garante o prefixo bitcoincash: se necessário
+                  const addressWithPrefix = merchantAddress.startsWith('bitcoincash:') 
+                    ? merchantAddress 
+                    : `bitcoincash:${merchantAddress}`;
+
+                  const qrValue = `${addressWithPrefix}?amount=${amountBCH}&label=Kashy&message=Pedido%20#${qrOrder._id}`;
                   console.log("QR Code Value:", qrValue);
 
                   return (
@@ -727,13 +770,22 @@ export function PedidosTab() {
                 })()
             )}
 
+            {/* Status do Pedido no Modal QR */}
+            {qrOrder && !isLoadingQr && qrOrder.merchantAddress && (
+              <div className="mt-4 text-center">
+                <span className={`px-3 py-1.5 text-sm font-semibold rounded-full ${getOrderStatusVisuals(qrOrder.status).color}`}>
+                  Status: {getOrderStatusVisuals(qrOrder.status).label}
+                </span>
+              </div>
+            )}
+
             <p className="mt-4 text-center text-gray-300">
               Escaneie o QR Code para efetuar o pagamento.<br />
               Valor: <span className="font-bold">{formatCurrency(qrOrder.totalAmount)}</span>
-              {qrOrder.exchangeRate && qrOrder.merchantAddress && (
+              {qrOrder.exchangeRateUsed && qrOrder.merchantAddress && ( // Changed to exchangeRateUsed
                 <>
                   <br />
-                  <span className="text-xs">({(qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8)} BCH)</span>
+                  <span className="text-xs">({(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)} BCH)</span> 
                 </>
               )}
             </p>
@@ -799,7 +851,7 @@ export function PedidosTab() {
                     .map((product) => (
                       <div
                         key={product._id}
-                        className="flex justify-between items-center px-3 py-2 hover:bg-[var(--color-bg-tertiary)] cursor-pointer border-b border-[var(--color-border)] last:border-b-0"
+                        className="flex justify-between items-center px-3 py-2 hover:bg-[var(--color-bg-terciary)] cursor-pointer border-b border-[var(--color-border)] last:border-b-0"
                         onClick={() => {
                           setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
                           console.log('[PedidosTab] Produto adicionado ao carrinho:', product);
@@ -820,7 +872,7 @@ export function PedidosTab() {
                     {selectedProducts.map((product, index) => (
                       <div
                         key={`${product._id}-${index}`} // Ensure unique key if same product added multiple times
-                        className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-terciary)] rounded-lg"
                       >
                         <span className="truncate max-w-[60%]">{product.name}</span>
                         <div className="flex items-center gap-2">
