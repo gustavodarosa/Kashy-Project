@@ -31,6 +31,10 @@ export function SettingsTab() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [twoFactorMethod, setTwoFactorMethod] = useState<'sms' | 'email' | 'device'>('sms');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
 
   useEffect(() => { applyTheme(activeTheme); }, [activeTheme]);
 
@@ -313,6 +317,76 @@ export function SettingsTab() {
                 {t('security.updateUsername', language)}
               </button>
             </form>
+
+            {/* Email */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setEmailMessage(null);
+                setEmailError(null);
+                if (!currentPasswordForEmail) {
+                  setEmailError('Digite sua senha atual para atualizar o email.');
+                  return;
+                }
+                try {
+                  const response = await fetch('http://localhost:3000/api/user/update-email', {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify({ email: newEmail, currentPassword: currentPasswordForEmail }),
+                  });
+                  const data = await response.json();
+                  if (response.ok) {
+                    setEmailMessage(data.message || 'Email atualizado com sucesso.');
+                  } else if (response.status === 409) {
+                    setEmailError('Este email já está em uso por outro usuário.');
+                  } else if (response.status === 400 && data.message?.toLowerCase().includes('senha')) {
+                    setEmailError('Senha atual incorreta.');
+                  } else {
+                    setEmailError(data.message || 'Erro ao atualizar email.');
+                  }
+                } catch (error) {
+                  setEmailError('Erro ao conectar ao servidor.');
+                }
+              }}
+              className="space-y-4 mt-6"
+            >
+              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+                Novo Email
+              </label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
+                placeholder="Digite seu novo email..."
+              />
+              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+                Senha Atual
+              </label>
+              <input
+                type="password"
+                value={currentPasswordForEmail}
+                onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
+                placeholder="Digite sua senha atual..."
+              />
+              {emailMessage && (
+                <div className="text-green-500 text-sm">{emailMessage}</div>
+              )}
+              {emailError && (
+                <div className="text-red-500 text-sm">{emailError}</div>
+              )}
+              <button
+                type="submit"
+                className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)]"
+              >
+                Atualizar Email
+              </button>
+            </form>
+
             {/* Password */}
             <form
               onSubmit={async (e) => {

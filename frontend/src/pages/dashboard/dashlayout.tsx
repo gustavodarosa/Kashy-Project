@@ -22,6 +22,10 @@ export function Dashboard() {
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
     const { notifications, clearNotifications, addNotification } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+    const [emailEditError, setEmailEditError] = useState<string | null>(null);
+    const [emailEditSuccess, setEmailEditSuccess] = useState<string | null>(null);
+    const [phone, setPhone] = useState<string | null>(null);
 
     // Chatbot state
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -242,6 +246,64 @@ export function Dashboard() {
     }, []);
 
     useEffect(() => {
+        const fetchUserPhone = async () => {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+            if (!token || !userId) return;
+            try {
+                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setPhone(data.phone || null);
+                }
+            } catch {}
+        };
+        fetchUserPhone();
+    }, []);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
+
+            if (!token || !userId) {
+                console.error('Usuário não autenticado ou ID do usuário não encontrado.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setSavedImage(data.profileImage);
+                    setUsername(data.username);
+                    setEmail(data.email);
+                    setPhone(data.phone || null); // <-- Adicione esta linha
+                } else {
+                    console.error('Erro ao buscar dados do usuário:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar os dados do usuário:', error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    useEffect(() => {
         if (notifications.length > 0) {
             setHasUnreadNotifications(true);
         }
@@ -294,6 +356,9 @@ export function Dashboard() {
             .replace(/`([^`]+)`/g, '<code>$1</code>')                   // `código`
             .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline text-blue-400 hover:text-blue-300">$1</a>') // [link](url)
             .replace(/_(.*?)_/g, '<em>$1</em>')                         // _itálico_
+            .replace(/\*(.*?)\*\*/g, '<strong>$1</strong>')             // **negrito**
+            .replace(/\*(.*?)\*\*/g, '<strong>$1</strong>')             // **negrito**
+            .replace(/\*(.*?)\*\*/g, '<strong>$1</strong>')             // **negrito**
             .replace(/\*(.*?)\*/g, '<em>$1</em>');                      // *itálico*
 
         // Alinhamento: :::center ... :::, :::right ... :::, :::left ... :::
@@ -495,13 +560,7 @@ export function Dashboard() {
                                             <Bell className="mr-2 h-4 w-4" />
                                             Notificações
                                         </button>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                        >
-                                            <UserPlus className="mr-2 h-4 w-4" />
-                                            Trocar de conta
-                                        </button>
+                                      
                                         <button
                                             onClick={handleLogout}
                                             className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
@@ -525,62 +584,142 @@ export function Dashboard() {
             {/* Profile Edit Modal */}
             {showProfileModal && (
                 <div
-                    className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 p-4"
-                    onClick={() => setShowProfileModal(false)} // Fecha o modal ao clicar fora
+                    className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+                    onClick={() => setShowProfileModal(false)}
                 >
                     <div
-                        className="bg-[var(--color-bg-primary)] text-white border border-[var(--color-border)] p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100"
-                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
+                        className="relative w-full max-w-md rounded-2xl shadow-2xl bg-[#313338] border border-[#232428] overflow-hidden animate-fadeIn"
+                        onClick={e => e.stopPropagation()}
                     >
-                        <h2 className="text-2xl font-bold mb-6 text-center text-amber-400">Editar Perfil</h2>
-                        <div className="mb-6">
-                            <label htmlFor="profileImageInput" className="block text-sm font-medium mb-3 text-gray-300">
-                                Selecionar Nova Imagem
-                            </label>
-                            <input
-                                id="profileImageInput"
-                                type="file"
-                                accept="image/jpeg, image/png, image/webp, image/gif"
-                                onChange={handleFileChange}
-                                className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
-                            />
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-5 bg-[#232428] border-b border-[#232428]">
+                            <h2 className="text-xl font-bold text-white tracking-tight">Perfil</h2>
+                            <button
+                                onClick={() => setShowProfileModal(false)}
+                                className="text-gray-400 hover:text-red-500 transition-colors rounded-full p-2"
+                                aria-label="Fechar"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
                         </div>
-                        {selectedImage && (
-                            <div className="mb-6 border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-bg-tertiary)]">
-                                <p className="text-sm mb-3 text-gray-300">Preview:</p>
-                                <div className="flex justify-center items-center flex-col gap-3">
+                        {/* Body */}
+                        <div className="px-8 py-8 flex flex-col gap-8">
+                            {/* Imagem de Perfil */}
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="relative group">
                                     <img
-                                        src={selectedImage}
+                                        src={selectedImage || savedImage || "/default-avatar.png"}
                                         alt="Preview"
-                                        className="w-32 h-32 sm:w-36 sm:h-36 object-cover rounded-full border-4 border-amber-500 shadow-lg"
+                                        className="w-44 h-44 object-cover rounded-full border-4 border-[#232428] shadow-lg transition-all duration-300 group-hover:opacity-80"
                                     />
+                                    <label
+                                        htmlFor="profileImageInput"
+                                        className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 cursor-pointer shadow-lg transition"
+                                        title="Alterar Imagem"
+                                    >
+                                        <Pencil className="h-5 w-5" />
+                                        <input
+                                            id="profileImageInput"
+                                            type="file"
+                                            accept="image/jpeg, image/png, image/webp, image/gif"
+                                            onChange={handleFileChange}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                                <span className="text-xs text-gray-400">Clique no lápis para alterar a imagem</span>
+                                {selectedImage && (
                                     <button
                                         onClick={() => setSelectedImage(null)}
-                                        className="text-xs text-red-400 hover:text-red-300 hover:underline"
+                                        className="text-xs text-red-400 hover:text-red-300 underline mt-2"
                                     >
                                         Remover Seleção
                                     </button>
+                                )}
+                            </div>
+                            {/* Preview de dados */}
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Nome de Usuário</label>
+                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{username || "Usuário"}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(false);
+                                            setActiveTab('settings');
+                                            setTimeout(() => {
+                                                const el = document.getElementById('settings-security-tab');
+                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                            }, 100);
+                                        }}
+                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
+                                        title="Editar nome de usuário"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Email</label>
+                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{email || "Conta padrão"}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(false);
+                                            setActiveTab('settings');
+                                            setTimeout(() => {
+                                                const el = document.getElementById('settings-security-tab');
+                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                            }, 100);
+                                        }}
+                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
+                                        title="Editar email"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Telefone</label>
+                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{phone || "Não cadastrado"}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(false);
+                                            setActiveTab('settings');
+                                            setTimeout(() => {
+                                                const el = document.getElementById('settings-security-tab');
+                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                            }, 100);
+                                        }}
+                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
+                                        title="Editar telefone"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
-                        )}
-                        <div className="flex flex-col sm:flex-row justify-end gap-4 mt-8">
+                        </div>
+                        {/* Footer */}
+                        <div className="flex justify-end gap-4 px-8 py-5 bg-[#232428] border-t border-[#232428]">
                             <button
                                 onClick={() => {
                                     setShowProfileModal(false);
                                     setSelectedImage(null);
                                 }}
-                                className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-red-500 w-full sm:w-auto"
+                                className="bg-[#232428] hover:bg-[#232428]/80 text-white px-6 py-2 rounded-lg text-sm font-medium border border-[#393c41] transition-colors"
                             >
-                                Cancelar
+                                Fechar
                             </button>
                             <button
                                 onClick={handleSaveImage}
                                 disabled={!selectedImage}
-                                className={`bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#1f2141] focus:ring-green-500 ${
+                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${
                                     !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
-                                } w-full sm:w-auto`}
+                                }`}
                             >
-                                Salvar Imagem
+                                Salvar
                             </button>
                         </div>
                     </div>
