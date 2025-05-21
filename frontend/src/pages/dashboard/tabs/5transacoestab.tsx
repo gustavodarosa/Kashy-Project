@@ -149,9 +149,52 @@ export function TransacoesTab() {
           >
             <FiFilter /> Filtrar
           </button>
-          <button className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors">
-            <FiDownload /> Exportar
+          <button
+            className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors"
+            onClick={() => {
+              // Exporta CSV simples
+              const csv = [
+                ['Hash/ID', 'Tipo', 'Valor', 'Endereço', 'Status', 'Data'],
+                ...transactions.map(tx => [
+                  tx.txid,
+                  tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Outro',
+                  formatBCH(tx.amountSatoshis ? tx.amountSatoshis / 1e8 : 0),
+                  tx.address,
+                  getStatusLabel(tx.status),
+                  formatDate(tx.timestamp || tx.createdAt)
+                ])
+              ].map(row => row.join(';')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `transacoes_${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <FiDownload /> Exportar CSV
           </button>
+        </div>
+      </div>
+
+      {/* Resumo rápido */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-green-300">Confirmadas</span>
+          <span className="text-xl font-bold text-green-200">{transactions.filter(t => t.status === 'confirmed').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-yellow-300">Pendentes</span>
+          <span className="text-xl font-bold text-yellow-200">{transactions.filter(t => t.status === 'pending').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-red-300">Falhas</span>
+          <span className="text-xl font-bold text-red-200">{transactions.filter(t => t.status === 'failed').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-gray-300">Total</span>
+          <span className="text-xl font-bold text-gray-200">{transactions.length}</span>
         </div>
       </div>
 
@@ -167,12 +210,13 @@ export function TransacoesTab() {
                   setStatusFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Todos os status</option>
                 <option value="confirmed">Confirmadas</option>
                 <option value="pending">Pendentes</option>
-
+                <option value="failed">Falhas</option>
+                <option value="expired">Expiradas</option>
               </select>
             </div>
             <div>
@@ -183,7 +227,7 @@ export function TransacoesTab() {
                   setDateFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Todo período</option>
                 <option value="today">Hoje</option>
@@ -198,7 +242,7 @@ export function TransacoesTab() {
                   setDateFilter('all');
                   setCurrentPage(1);
                 }}
-                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors w-full"
+                className="px-4 py-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors w-full"
               >
                 Limpar filtros
               </button>
@@ -228,12 +272,14 @@ export function TransacoesTab() {
               <table className="min-w-full divide-y divide-[var(--color-divide)]">
                 <thead className="bg-gray-750">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Hash/ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tipo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Endereço</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hash/ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Endereço</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Confirmações</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Taxa</th>
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
@@ -262,6 +308,12 @@ export function TransacoesTab() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                         {formatDate(tx.timestamp || tx.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                        {typeof tx.confirmations === 'number' ? tx.confirmations : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                        {typeof tx.feeBCH === 'number' ? `${tx.feeBCH.toFixed(8)} BCH` : '-'}
                       </td>
                     </tr>
                   ))}

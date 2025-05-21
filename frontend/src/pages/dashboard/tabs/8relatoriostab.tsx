@@ -421,81 +421,87 @@ export function RelatoriosTab() {
 
   // --- JSX Rendering ---
   return (
-    <div className="p-4 md:p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-4 md:p-8 bg-[var(--color-bg-primary)] text-white min-h-screen font-sans">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <FiBarChart2 /> Relatórios e Análises
+          <h2 className="text-3xl font-bold flex items-center gap-3">
+            <FiBarChart2 /> Relatórios & Análises
           </h2>
-          <p className="text-gray-400 text-sm mt-1">Gerencie e gere relatórios padrão ou análises personalizadas com IA.</p>
+          <p className="text-gray-400 text-base mt-1">
+            Gere relatórios detalhados, exporte em PDF e obtenha insights automáticos com IA.
+          </p>
         </div>
         <button
           onClick={openNewModal}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-6 py-3 rounded-lg transition-colors text-base font-semibold shadow"
         >
-          <FiPlus size={18} /> Novo Relatório
+          <FiPlus size={20} /> Novo Relatório
         </button>
       </div>
 
       {/* Loading State / Report Grid */}
       {isLoadingReports ? (
-        <div className="text-center py-10 text-gray-400">Carregando relatórios...</div>
+        <div className="text-center py-16 text-gray-400 text-lg">Carregando relatórios...</div>
       ) : reports.length === 0 ? (
-        <div className="text-center py-10 px-6 bg-gray-800 rounded-lg border border-gray-700">
-          <FiBarChart2 size={40} className="mx-auto text-gray-500 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-300">Nenhum relatório encontrado</h3>
-          <p className="text-gray-400 mt-1">Clique em "Novo Relatório" para gerar seu primeiro.</p>
+        <div className="text-center py-16 px-6 bg-[var(--color-bg-secondary)] rounded-2xl border border-gray-700 shadow-lg">
+          <FiBarChart2 size={48} className="mx-auto text-gray-500 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-300">Nenhum relatório encontrado</h3>
+          <p className="text-gray-400 mt-2">Clique em <b>Novo Relatório</b> para gerar seu primeiro relatório.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-7">
           {reports.map((report) => (
-            <div key={report.id} className="bg-gray-800 rounded-lg p-4 flex flex-col justify-between border border-gray-700 hover:border-blue-500 transition-colors group relative shadow-md">
+            <div key={report.id} className="bg-[var(--color-bg-secondary)] rounded-2xl p-7 flex flex-col justify-between border border-gray-700 hover:border-blue-500 transition-colors group relative shadow-lg min-h-[320px]">
               {/* Action Buttons */}
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5 z-10">
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                 <button
-                  onClick={() => openEditModal(report)} // Certifique-se de que `report` contém um ID válido
-                  className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                  onClick={() => openEditModal(report)}
+                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-300 hover:text-white"
                   title="Editar Título/Datas"
                 >
-                  <FiEdit size={14} />
+                  <FiEdit size={16} />
                 </button>
                 <button
-                  onClick={() => report._id && deleteReport(report._id)} // Verifica se `_id` existe
-                  className="p-1.5 bg-gray-700 hover:bg-red-600 rounded text-gray-300 hover:text-white"
+                  onClick={() => report._id && deleteReport(report._id)}
+                  className="p-2 bg-gray-700 hover:bg-red-600 rounded-full text-gray-300 hover:text-white"
                   title="Excluir"
                 >
-                  <FiTrash2 size={14} />
+                  <FiTrash2 size={16} />
+                </button>
+                <button
+                  onClick={() => generatePDF(report)}
+                  className="p-2 bg-gray-700 hover:bg-blue-600 rounded-full text-gray-300 hover:text-white"
+                  title="Baixar PDF"
+                >
+                  <FiDownload size={16} />
                 </button>
               </div>
 
               {/* Card Content */}
               <div>
                 {/* Card Header */}
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-sm font-semibold pr-16"> {/* Smaller title, padding right */}
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-bold pr-20 break-words leading-snug">
                     {report.title}
                     {report.isAIGenerated && (
-                      <span className="ml-1.5 text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded-full align-middle">IA</span>
+                      <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full align-middle">IA</span>
                     )}
                   </h3>
-                  <button
-                    onClick={() => generatePDF(report)} // Trigger PDF generation
-                    className="text-gray-400 hover:text-blue-400 flex-shrink-0"
-                    title="Baixar PDF"
-                  >
-                    <FiDownload size={16} />
-                  </button>
                 </div>
 
-                {/* Date Range */}
-                <div className="mb-3 text-xs text-gray-400 flex items-center gap-1.5">
-                  <FiCalendar size={12} /> {report.dateRange}
+                {/* Date Range & Type */}
+                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <FiCalendar size={12} /> {report.dateRange}
+                  </span>
+                  <span className="px-2 py-0.5 bg-gray-700 rounded-full font-semibold uppercase tracking-wide">
+                    {report.type === 'custom' ? (report.isAIGenerated ? 'IA' : 'Personalizado') : report.type}
+                  </span>
                 </div>
 
                 {/* Preview Data Area */}
                 <div className="mb-4 text-xs max-h-32 overflow-y-auto pr-1 text-gray-300 border-t border-b border-gray-700 py-2">
-
                   {report.previewData?.insights
                     ? (
                       <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">
@@ -506,17 +512,49 @@ export function RelatoriosTab() {
                       <p className="italic text-gray-500">Preview não disponível para este tipo.</p>
                     )
                   }
+                  {/* Detalhes extras */}
+                  {report.previewData?.conclusion && (
+                    <div className="mt-2 text-gray-400 italic">
+                      <b>Conclusão:</b> {report.previewData.conclusion}
+                    </div>
+                  )}
+                  {report.previewData?.totalSales && (
+                    <div className="mt-2 text-green-400 font-semibold">
+                      Total de Vendas: R$ {report.previewData.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )}
+                  {report.previewData?.totalTransactions && (
+                    <div className="text-blue-400 font-semibold">
+                      Total de Transações: {report.previewData.totalTransactions}
+                    </div>
+                  )}
+                  {report.previewData?.bestSellingProduct && (
+                    <div className="text-yellow-400 font-semibold">
+                      Produto Mais Vendido: {report.previewData.bestSellingProduct}
+                    </div>
+                  )}
+                  {report.previewData?.lowStockItems && (
+                    <div className="text-red-400 font-semibold">
+                      Itens com Baixo Estoque: {report.previewData.lowStockItems}
+                    </div>
+                  )}
+                  {report.previewData?.outOfStockItems && (
+                    <div className="text-red-500 font-semibold">
+                      Itens Esgotados: {report.previewData.outOfStockItems}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Card Footer */}
-              <div className="mt-auto text-xs text-gray-500 pt-2">
-                Gerado em: {report.generatedAt}
+              <div className="mt-auto text-xs text-gray-500 pt-2 flex flex-col gap-1">
+                <span>Gerado em: {report.generatedAt}</span>
                 {report.isAIGenerated && report.promptUsed && (
-                  <div className="mt-1 truncate" title={report.promptUsed}>
-                    Prompt: <span className="italic">{report.promptUsed}</span>
+                  <div className="truncate" title={report.promptUsed}>
+                    <span className="text-gray-400">Prompt:</span> <span className="italic">{report.promptUsed}</span>
                   </div>
                 )}
+                <span className="text-gray-400">ID: <span className="font-mono">{report.id}</span></span>
               </div>
             </div>
           ))}
@@ -525,46 +563,44 @@ export function RelatoriosTab() {
 
       {/* --- Modal (Novo/Editar) --- */}
       {(isNewReportModalOpen || isEditModalOpen) && (
-        <div className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center p-4 z-50 ">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-xl border border-gray-700 shadow-xl">
+        <div className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-8 w-full max-w-xl border border-gray-700 shadow-2xl">
             {/* Modal Header */}
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-2xl font-bold">
                 {isEditModalOpen ? 'Editar Relatório' : 'Gerar Novo Relatório'}
               </h3>
-              <button onClick={resetForm} className="text-gray-400 hover:text-white" title="Fechar">✕</button>
+              <button onClick={resetForm} className="text-gray-400 hover:text-white text-xl" title="Fechar">✕</button>
             </div>
 
             {/* Type Selection (Only for New Report) */}
             {!isEditModalOpen && (
               <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Botão Padrão */}
                 <button
                   onClick={() => setNewReportType('standard')}
-                  className={`p-3 rounded-lg border text-center transition-colors ${newReportType === 'standard'
-                      ? 'bg-blue-900 border-blue-600 ring-1 ring-blue-500'
-                      : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    }`} >
-                  <FiBarChart2 size={18} className="mx-auto mb-1" />
-                  <span className="text-sm font-medium">Padrão</span>
-                  <span className="block text-xs text-gray-400 mt-0.5">Modelos fixos</span>
+                  className={`p-4 rounded-xl border text-center transition-colors ${newReportType === 'standard'
+                    ? 'bg-blue-900 border-blue-600 ring-2 ring-blue-500'
+                    : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                    }`}>
+                  <FiBarChart2 size={22} className="mx-auto mb-1" />
+                  <span className="text-base font-semibold">Padrão</span>
+                  <span className="block text-xs text-gray-400 mt-1">Modelos fixos</span>
                 </button>
-                {/* Botão IA */}
                 <button
                   onClick={() => setNewReportType('ai')}
-                  className={`p-3 rounded-lg border text-center transition-colors ${newReportType === 'ai'
-                      ? 'bg-purple-900 border-purple-600 ring-1 ring-purple-500'
-                      : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
-                    }`} >
-                  <FiCpu size={18} className="mx-auto mb-1" />
-                  <span className="text-sm font-medium">Análise IA</span>
-                  <span className="block text-xs text-gray-400 mt-0.5">Insights via prompt</span>
+                  className={`p-4 rounded-xl border text-center transition-colors ${newReportType === 'ai'
+                    ? 'bg-purple-900 border-purple-600 ring-2 ring-purple-500'
+                    : 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                    }`}>
+                  <FiCpu size={22} className="mx-auto mb-1" />
+                  <span className="text-base font-semibold">Análise IA</span>
+                  <span className="block text-xs text-gray-400 mt-1">Insights via prompt</span>
                 </button>
               </div>
             )}
 
             {/* Form Fields */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* Title */}
               <div>
                 <label htmlFor="reportTitle" className="block text-xs font-medium mb-1 text-gray-300">Título do Relatório</label>
@@ -574,7 +610,7 @@ export function RelatoriosTab() {
                   value={reportTitle}
                   onChange={(e) => setReportTitle(e.target.value)}
                   placeholder={newReportType === 'ai' ? "Ex: Análise vendas Q1 com IA" : "Ex: Vendas - Maio 2024"}
-                  className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm text-white"
+                  className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base text-white"
                 />
               </div>
 
@@ -592,7 +628,7 @@ export function RelatoriosTab() {
                       const found = aiPromptOptions.find(opt => opt.value === e.target.value);
                       setAiPrompt(found?.prompt || '');
                     }}
-                    className="w-full px-3 py-1.5 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm text-white"
+                    className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base text-white"
                     required
                   >
                     {aiPromptOptions.map(opt => (
@@ -607,61 +643,87 @@ export function RelatoriosTab() {
 
               {/* Error Display Area */}
               {error && (
-                <div className="p-3 my-2 bg-red-900/50 border border-red-700/50 text-red-200 rounded-md text-xs flex items-center gap-2">
-                  <FiAlertTriangle size={14} />
+                <div className="p-3 my-2 bg-red-900/50 border border-red-700/50 text-red-200 rounded-md text-sm flex items-center gap-2">
+                  <FiAlertTriangle size={16} />
                   {error}
                 </div>
               )}
               {aiPreview && (
-                <div className="mt-4 p-3 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                <div className="mt-4 p-4 bg-gray-900 border border-gray-700 rounded-lg text-base text-gray-200 whitespace-pre-wrap max-h-48 overflow-y-auto">
                   <strong>Preview do Relatório:</strong>
                   <div>{aiPreview}</div>
-                  <button
-                    className="mt-3 px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                    onClick={async () => {
-                      // Salvar o relatório usando o preview já gerado
-                      const newReport: Report = {
-                        id: `ai-report-${Date.now()}`,
-                        title: reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`,
-                        type: 'custom',
-                        dateRange: 'Período completo',
-                        generatedAt: new Date().toLocaleString('pt-BR'),
-                        previewData: {
-                          insights: aiPreview,
-                          conclusion: 'Análise gerada por IA com base nos dados e prompt fornecidos.',
-                        },
-                        isAIGenerated: true,
-                        promptUsed: aiPrompt,
-                      };
-                      await saveReportToBackend(newReport);
-                      resetForm();
-                    }}
-                  >
-                    Salvar Relatório
-                  </button>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      className="px-5 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold"
+                      onClick={async () => {
+                        // Salvar o relatório usando o preview já gerado
+                        const limitedTitle = (reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`).slice(0, 35);
+                        const newReport: Report = {
+                          id: `ai-report-${Date.now()}`,
+                          title: limitedTitle,
+                          type: 'custom',
+                          dateRange: 'Período completo',
+                          generatedAt: new Date().toLocaleString('pt-BR'),
+                          previewData: {
+                            insights: aiPreview,
+                            conclusion: 'Análise gerada por IA com base nos dados e prompt fornecidos.',
+                          },
+                          isAIGenerated: true,
+                          promptUsed: aiPrompt,
+                        };
+                        await saveReportToBackend(newReport);
+                        resetForm();
+                      }}
+                    >
+                      Salvar Relatório
+                    </button>
+                    <button
+                      className="px-5 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-base font-semibold"
+                      onClick={() => {
+                        // Gera PDF do preview AI (sem salvar no backend)
+                        const limitedTitle = (reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`).slice(0, 35);
+                        const tempReport: Report = {
+                          id: `ai-preview-${Date.now()}`,
+                          title: limitedTitle,
+                          type: 'custom',
+                          dateRange: 'Período completo',
+                          generatedAt: new Date().toLocaleString('pt-BR'),
+                          previewData: {
+                            insights: aiPreview,
+                            conclusion: 'Análise gerada por IA com base nos dados e prompt fornecidos.',
+                          },
+                          isAIGenerated: true,
+                          promptUsed: aiPrompt,
+                        };
+                        // Chame a função corretamente
+                        generatePDF(tempReport);
+                      }}
+                      type="button"
+                    >
+                      Salvar como PDF
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Modal Actions */}
-            <div className="flex justify-end gap-3 mt-6 border-t border-gray-700 pt-4">
+            <div className="flex justify-end gap-4 mt-8 border-t border-gray-700 pt-6">
               <button
                 onClick={resetForm}
-                type="button" // Prevent form submission if wrapped in <form>
-                className="px-4 py-1.5 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors text-sm text-gray-300"
+                type="button"
+                className="px-5 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors text-base text-gray-300"
               >
                 Cancelar
               </button>
-
-              {/* Primary Action Button */}
               <button
-                type="button" // Or "submit" if inside a form
+                type="button"
                 onClick={() => {
                   if (isEditModalOpen) { updateReport(); }
                   else if (newReportType === 'ai') { handleGenerateAIPreview(); }
                   else { generateStandardReport(); }
                 }}
-                className={`px-4 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-medium min-w-[120px]
+                className={`px-5 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-base font-semibold min-w-[140px]
                     ${(isGenerating || isSaving)
                     ? 'bg-gray-500 cursor-not-allowed'
                     : newReportType === 'ai'
@@ -672,24 +734,22 @@ export function RelatoriosTab() {
               >
                 {(isGenerating || isSaving) ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg>
                     {isGenerating ? 'Gerando IA...' : 'Salvando...'}
                   </>
                 ) : (
                   isEditModalOpen
                     ? 'Salvar Alterações'
                     : newReportType === 'ai'
-                      ? <><FiCpu size={14} /> Gerar Preview IA</>
-                      : <><FiBarChart2 size={14} /> Gerar Padrão</>
+                      ? <><FiCpu size={16} /> Gerar Preview IA</>
+                      : <><FiBarChart2 size={16} /> Gerar Padrão</>
                 )}
               </button>
             </div>
-
-          </div> {/* End Modal Content */}
-        </div> // End Modal Backdrop
+          </div>
+        </div>
       )}
-
-    </div> // End Main Container
+    </div>
   );
 }
 
