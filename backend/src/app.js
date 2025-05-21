@@ -22,6 +22,13 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'], // Cabeçalhos permitidos
 };
 
+const passport = require('passport');
+require('./config/passport');
+const googleAuthRoutes = require('./routes/googleAuthRoutes');
+
+app.use(passport.initialize());
+app.use('/api/auth', googleAuthRoutes);
+
 // Middleware
 app.use(cors(corsOptions)); 
 app.use(express.json()); 

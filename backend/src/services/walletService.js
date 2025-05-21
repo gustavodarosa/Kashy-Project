@@ -15,7 +15,8 @@ const cashaddr = require('cashaddrjs'); // Needed for addressToScriptHash
 const cache = require('./cacheService'); // Cache service
 // --- MODIFICATION: Add User model and cryptoUtils ---
 const User = require('../models/user');
-const cryptoUtils = require('../utils/cryptoUtils'); // Uses AES-GCM now
+const { encrypt } = require('../utils/cryptoUtils');
+const bip39 = require('bip39');
 // --- END MODIFICATION ---
 // --- ADDED: Import Transaction model ---
 const Transaction = require('../models/transaction');

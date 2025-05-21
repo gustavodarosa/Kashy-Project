@@ -7,7 +7,8 @@ const ElectrumClient = require('electrum-client');
 const crypto = require('crypto');
 const cashaddr = require('cashaddrjs');
 const bitcore = require('bitcore-lib-cash'); // <<< --- ADD THIS LINE ---
-const cryptoUtils = require('../utils/cryptoUtils'); // Assuming path is correct
+const bip39 = require('bip39');
+const cryptoUtils = require('../utils/cryptoUtils');
 const logger = require('../utils/logger'); // Assuming path is correct
 const { getBchToBrlRate } = require('./exchangeRate'); // Import BRL rate function
 const { withTimeout } = require('../utils/asyncUtils'); // Assuming asyncUtils.js exists and exports withTimeout
@@ -500,9 +501,6 @@ async function getTransactionHistoryFromElectrum(bchAddress, limit = 20) {
 }
 // --- END getTransactionHistoryFromElectrum ---
 
-// --- End Electrum Implementation Functions ---
-
-
 // --- Module Exports ---
 module.exports = {
     generateAddress,
@@ -514,3 +512,24 @@ module.exports = {
     connectToElectrum, // Export if needed elsewhere (though maybe not needed externally now)
   };
 // --- End Module Exports ---
+
+async function generateMnemonicAndKeys() {
+  const mnemonic = bip39.generateMnemonic();
+  const derivationPath = "m/44'/145'/0'/0/0";
+  const bchjs = new BCHJS({ restURL: network === 'testnet'
+    ? process.env.BCH_TESTNET_API
+    : process.env.BCH_MAINNET_API
+  });
+
+  // Derive address from mnemonic and derivation path
+  const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+  const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
+  const childNode = bchjs.HDNode.derivePath(masterHDNode, derivationPath);
+  const bchAddress = bchjs.HDNode.toCashAddress(childNode);
+
+  const encryptedMnemonic = cryptoUtils.encrypt(mnemonic, process.env.ENCRYPTION_KEY);
+  const encryptedDerivationPath = cryptoUtils.encrypt(derivationPath, process.env.ENCRYPTION_KEY);
+  return { encryptedMnemonic, encryptedDerivationPath, bchAddress };
+}
+
+module.exports = { generateMnemonicAndKeys };

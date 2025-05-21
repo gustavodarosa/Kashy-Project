@@ -36,6 +36,7 @@ export function Dashboard() {
         localStorage.removeItem("username");
         localStorage.removeItem("email");
         localStorage.removeItem("userId");
+        localStorage.clear();
         navigate('/');
     };
 
@@ -308,6 +309,18 @@ export function Dashboard() {
         }
     };
 
+    useEffect(() => {
+        console.log("DashboardLayout montado");
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        console.log("Token na URL:", token);
+        if (token) {
+            localStorage.setItem("token", token);
+            // Limpa o token da URL e força reload para garantir que o ProtectedRoute veja o token
+            window.location.replace("/DashboardHome");
+        }
+    }, []);
+
     return (
         <div className="flex min-h-screen">
             {/* Sidebar */}
@@ -372,7 +385,7 @@ export function Dashboard() {
                         >
                             <Bell className="h-6 w-6 text-white" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--color-bg-tertiary)]"></span>
+                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--color-bg-tertiary]"></span>
                             )}
                         </button>
 
@@ -466,7 +479,7 @@ export function Dashboard() {
                                         </button>
                                         <button
                                             onClick={handleLogout}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary] transition-colors"
                                         >
                                             <UserPlus className="mr-2 h-4 w-4" />
                                             Trocar de conta
@@ -585,7 +598,7 @@ export function Dashboard() {
                         <div className="space-y-4 max-h-80 overflow-y-auto">
                             {notifications.length === 0 ? (
                                 <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
-                            ) : (
+                            ) : 
                                 notifications.map((notification) => (
                                     <div
                                         key={notification.id}
@@ -595,7 +608,7 @@ export function Dashboard() {
                                         <p className="text-xs text-gray-400 mt-1">{notification.timestamp}</p>
                                     </div>
                                 ))
-                            )}
+                            }
                         </div>
                     </div>
                 </div>
@@ -655,7 +668,8 @@ export function Dashboard() {
                                         </div>
                                     </div>
                                 ))
-                            )}
+                            )
+                            }
                             {isChatLoading && <p className="text-gray-400 text-center">Carregando...</p>}
                         </div>
 

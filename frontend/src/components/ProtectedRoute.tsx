@@ -1,18 +1,25 @@
-import { Navigate } from 'react-router-dom';
-import { ReactNode } from 'react';
+import { useEffect, useState } from "react";
+import { useLocation, Navigate } from "react-router-dom";
 
-interface ProtectedRouteProps {
-  children: ReactNode; 
-}
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const token = localStorage.getItem('token'); 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlToken = params.get("token");
+    if (urlToken) {
+      localStorage.setItem("token", urlToken);
+      setToken(urlToken); // Atualiza o estado para forçar re-render
+      window.history.replaceState({}, document.title, location.pathname);
+    } else {
+      // Sempre que a rota mudar, tente atualizar o token do localStorage
+      setToken(localStorage.getItem("token"));
+    }
+  }, [location]);
 
   if (!token) {
     return <Navigate to="/" replace />;
   }
-
-  return <>{children}</>; 
-};
-
-export default ProtectedRoute;
+  return <>{children}</>;
+}

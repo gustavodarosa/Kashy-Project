@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LockKeyhole, Mail } from "lucide-react";
 const renewToken = async () => {
 const token = localStorage.getItem("token");
@@ -24,10 +24,12 @@ const data = await response.json();
   }
 };
 const Login = () => {
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const [message, setMessage] = useState("");
-const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
   useEffect(() => {
 const interval = setInterval(() => {
       renewToken();
@@ -70,6 +72,19 @@ const data = await response.json();
     }
   };
 const messageColor = message.includes("sucesso") ? "text-green-400" : "text-red-400";
+
+  // Detecta token do Google OAuth na URL
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (token) {
+    localStorage.setItem("token", token);
+    setMessage("Login realizado com sucesso!");
+    setTimeout(() => {
+      window.location.reload(); // ou "/dashboard" se for o seu caso
+    }, 500);
+  }
+}, [navigate]);
   return (
 <div className="bg-[rgb(17,40,54)] flex justify-center items-center min-h-screen p-4">
 <div className="flex flex-col md:flex-row items-center w-full max-w-6xl">
