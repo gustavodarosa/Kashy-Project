@@ -95,7 +95,7 @@ export function CryptoChart() {
         <stop offset="100%" stopColor="#00f2fe" />
       </linearGradient>
     </defs>
-    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d3748" />
+    
     <XAxis 
       dataKey="time" 
       tick={{ fontSize: 12, fill: "#94a3b8" }}

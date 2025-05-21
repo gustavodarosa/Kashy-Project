@@ -230,7 +230,7 @@ export function SettingsTab() {
         {activeTab === 'security' && (
           <section>
             <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiLock /> Segurança</h3>
-            
+
             {/* 2FA Switch */}
             <div className="flex items-center justify-between py-2 mb-6">
               <div>
@@ -274,7 +274,7 @@ export function SettingsTab() {
                 />
               </button>
             </div>
-            
+
             {/* Username */}
             <form
               onSubmit={async (e) => {
@@ -506,8 +506,8 @@ export function SettingsTab() {
                 Atualizar Telefone
               </button>
             </form>
-          
-              
+
+
           </section>
         )}
 

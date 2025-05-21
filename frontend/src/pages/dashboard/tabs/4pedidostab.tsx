@@ -329,7 +329,7 @@ export function PedidosTab() {
       // Refetch orders to show the new one
       setCurrentPage(1); // Go to first page to see the new order
       // Manually trigger a re-fetch if dependencies don't cover it
-      setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
+      setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
       setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
 
 
@@ -627,7 +627,7 @@ export function PedidosTab() {
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-400">
-                    Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + (orders.length > 0 ? 1: 0)}</span> a{' '}
+                    Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + (orders.length > 0 ? 1 : 0)}</span> a{' '}
                     <span className="font-medium">{Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + orders.length)}</span> de{' '}
                     <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
                   </p>
@@ -693,38 +693,38 @@ export function PedidosTab() {
             <h3 className="text-lg font-bold mb-4">Pagamento do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}</h3>
 
             {isLoadingQr ? (
-               <div className="absolute inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center rounded-lg">
-                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-               </div>
+              <div className="absolute inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center rounded-lg">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
             ) : error && !qrOrder.merchantAddress ? ( // Show error only if merchantAddress is missing
-                <div className="text-red-500 text-center p-4">{error}</div>
+              <div className="text-red-500 text-center p-4">{error}</div>
             ) : (
-                (() => {
-                  console.log("[PedidosTab] Renderizando QR Code. qrOrder:", qrOrder);
+              (() => {
+                console.log("[PedidosTab] Renderizando QR Code. qrOrder:", qrOrder);
 
-                  const merchantAddress = qrOrder.merchantAddress;
-                  if (!merchantAddress) {
-                    console.error("[PedidosTab] Endereço BCH ausente ou inválido no pedido:", qrOrder);
-                    return <p className="text-red-500 p-4">Erro: Endereço BCH não encontrado no pedido.</p>;
-                  }
+                const merchantAddress = qrOrder.merchantAddress;
+                if (!merchantAddress) {
+                  console.error("[PedidosTab] Endereço BCH ausente ou inválido no pedido:", qrOrder);
+                  return <p className="text-red-500 p-4">Erro: Endereço BCH não encontrado no pedido.</p>;
+                }
 
-                  if (!qrOrder.exchangeRate) {
-                    console.error("[PedidosTab] Taxa de câmbio ausente ou inválida no qrOrder:", qrOrder);
-                    return <p className="text-red-500 p-4">Erro: Taxa de câmbio não encontrada.</p>;
-                  }
+                if (!qrOrder.exchangeRate) {
+                  console.error("[PedidosTab] Taxa de câmbio ausente ou inválida no qrOrder:", qrOrder);
+                  return <p className="text-red-500 p-4">Erro: Taxa de câmbio não encontrada.</p>;
+                }
 
-                  const amountBCH = parseFloat((qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8));
-                  console.log(`[PedidosTab] Calculando amountBCH para QR Code: totalAmount=${qrOrder.totalAmount}, exchangeRate=${qrOrder.exchangeRate}, amountBCH=${amountBCH}`);
-                  
-                  const qrValue = `${merchantAddress}?amount=${amountBCH}&label=Kashy&message=Pedido%20#${qrOrder._id}`; // Removed the extra "bitcoincash:" prefix
-                  console.log("QR Code Value:", qrValue);
+                const amountBCH = parseFloat((qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8));
+                console.log(`[PedidosTab] Calculando amountBCH para QR Code: totalAmount=${qrOrder.totalAmount}, exchangeRate=${qrOrder.exchangeRate}, amountBCH=${amountBCH}`);
 
-                  return (
-                    <div className="bg-white p-2 rounded-md inline-block">
-                        <QRCode value={qrValue} size={200} level="M" />
-                    </div>
-                  );
-                })()
+                const qrValue = `${merchantAddress}?amount=${amountBCH}&label=Kashy&message=Pedido%20#${qrOrder._id}`; // Removed the extra "bitcoincash:" prefix
+                console.log("QR Code Value:", qrValue);
+
+                return (
+                  <div className="bg-white p-2 rounded-md inline-block">
+                    <QRCode value={qrValue} size={200} level="M" />
+                  </div>
+                );
+              })()
             )}
 
             <p className="mt-4 text-center text-gray-300">
@@ -841,13 +841,13 @@ export function PedidosTab() {
                             className="text-red-400 hover:text-red-300"
                             title="Remover Produto"
                           >
-                            <FiTrash2 size={16}/>
+                            <FiTrash2 size={16} />
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                   <p className="text-right font-bold mt-2">Total: {formatCurrency(calculateTotal())}</p>
+                  <p className="text-right font-bold mt-2">Total: {formatCurrency(calculateTotal())}</p>
                 </div>
               )}
 
@@ -878,7 +878,7 @@ export function PedidosTab() {
                   <option value="card">Cartão</option>
                 </select>
               </div>
-            
+
               {/* Botões de Ação */}
               <div className="flex justify-end gap-4 pt-4 flex-shrink-0 border-t border-[var(--color-border)] mt-auto">
                 <button

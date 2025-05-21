@@ -172,7 +172,7 @@ export function TransacoesTab() {
                 <option value="all">Todos os status</option>
                 <option value="confirmed">Confirmadas</option>
                 <option value="pending">Pendentes</option>
-                
+
               </select>
             </div>
             <div>
@@ -320,11 +320,10 @@ export function TransacoesTab() {
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === pageNum
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
                               ? 'z-10 bg-blue-600 border-blue-600 text-white'
                               : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
-                          }`}
+                            }`}
                         >
                           {pageNum}
                         </button>

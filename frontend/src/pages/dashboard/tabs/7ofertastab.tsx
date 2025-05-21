@@ -34,7 +34,7 @@ export function OfertasTab() {
         setLoading(true);
         // Simulando uma chamada API
         await new Promise(resolve => setTimeout(resolve, 800));
-        
+
         // Dados mockados
         const mockOffers: Offer[] = [
           {
@@ -118,7 +118,7 @@ export function OfertasTab() {
             ]
           }
         ];
-        
+
         setOffers(mockOffers);
         setError(null);
       } catch (err) {
@@ -128,13 +128,13 @@ export function OfertasTab() {
         setLoading(false);
       }
     };
-    
+
     fetchOffers();
   }, []);
 
   // Filtrar ofertas por categoria
-  const filteredOffers = selectedCategory === 'all' 
-    ? offers 
+  const filteredOffers = selectedCategory === 'all'
+    ? offers
     : offers.filter(offer => offer.category === selectedCategory);
 
   // Formatar data
@@ -183,51 +183,46 @@ export function OfertasTab() {
       <div className="flex overflow-x-auto pb-2 mb-6 gap-2">
         <button
           onClick={() => setSelectedCategory('all')}
-          className={`px-4 py-2 rounded-full whitespace-nowrap ${
-            selectedCategory === 'all' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-4 py-2 rounded-full whitespace-nowrap ${selectedCategory === 'all'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
         >
           Todas
         </button>
         <button
           onClick={() => setSelectedCategory('cashback')}
-          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${
-            selectedCategory === 'cashback' 
-              ? 'bg-green-600 text-white' 
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${selectedCategory === 'cashback'
+            ? 'bg-green-600 text-white'
+            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
         >
           <FiCreditCard /> Cashback
         </button>
         <button
           onClick={() => setSelectedCategory('discount')}
-          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${
-            selectedCategory === 'discount' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${selectedCategory === 'discount'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
         >
           <FiPercent /> Descontos
         </button>
         <button
           onClick={() => setSelectedCategory('benefit')}
-          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${
-            selectedCategory === 'benefit' 
-              ? 'bg-yellow-600 text-white' 
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${selectedCategory === 'benefit'
+            ? 'bg-yellow-600 text-white'
+            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
         >
           <FiStar /> Benefícios
         </button>
         <button
           onClick={() => setSelectedCategory('partner')}
-          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${
-            selectedCategory === 'partner' 
-              ? 'bg-purple-600 text-white' 
-              : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-          }`}
+          className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center gap-2 ${selectedCategory === 'partner'
+            ? 'bg-purple-600 text-white'
+            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
         >
           <FiShoppingBag /> Parceiros
         </button>
@@ -249,33 +244,30 @@ export function OfertasTab() {
           </div>
         ) : (
           filteredOffers.map((offer) => (
-            <div 
-              key={offer.id} 
-              className={`bg-gray-800 rounded-lg p-6 border hover:border-blue-500 transition-colors relative overflow-hidden ${
-                !offer.isActive ? 'opacity-70' : ''
-              } ${
-                offer.isExclusive ? 'border-yellow-500' : 'border-gray-700'
-              }`}
+            <div
+              key={offer.id}
+              className={`bg-gray-800 rounded-lg p-6 border hover:border-blue-500 transition-colors relative overflow-hidden ${!offer.isActive ? 'opacity-70' : ''
+                } ${offer.isExclusive ? 'border-yellow-500' : 'border-gray-700'
+                }`}
             >
               {offer.isExclusive && (
                 <div className="absolute top-0 right-0 bg-yellow-600 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">
                   EXCLUSIVO
                 </div>
               )}
-              
+
               {!offer.isActive && (
                 <div className="absolute top-0 left-0 w-full bg-gray-900 bg-opacity-70 text-center py-1 text-xs font-bold">
                   EXPIRADA
                 </div>
               )}
-              
+
               <div className="flex items-start gap-4 mb-4">
-                <div className={`p-3 rounded-full ${
-                  offer.category === 'cashback' ? 'bg-green-900 text-green-400' :
+                <div className={`p-3 rounded-full ${offer.category === 'cashback' ? 'bg-green-900 text-green-400' :
                   offer.category === 'discount' ? 'bg-blue-900 text-blue-400' :
-                  offer.category === 'benefit' ? 'bg-yellow-900 text-yellow-400' :
-                  'bg-purple-900 text-purple-400'
-                }`}>
+                    offer.category === 'benefit' ? 'bg-yellow-900 text-yellow-400' :
+                      'bg-purple-900 text-purple-400'
+                  }`}>
                   {getCategoryIcon(offer.category)}
                 </div>
                 <div>
@@ -287,30 +279,28 @@ export function OfertasTab() {
                   )}
                 </div>
               </div>
-              
+
               <p className="text-gray-300 mb-4">{offer.description}</p>
-              
+
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2 text-sm text-gray-400">
                   <FiClock /> Válido até: {offer.validity}
                 </div>
-                <div className={`text-xl font-bold ${
-                  offer.category === 'cashback' ? 'text-green-400' :
+                <div className={`text-xl font-bold ${offer.category === 'cashback' ? 'text-green-400' :
                   offer.category === 'discount' ? 'text-blue-400' :
-                  offer.category === 'benefit' ? 'text-yellow-400' :
-                  'text-purple-400'
-                }`}>
+                    offer.category === 'benefit' ? 'text-yellow-400' :
+                      'text-purple-400'
+                  }`}>
                   {offer.discount}
                 </div>
               </div>
-              
+
               <button
                 onClick={() => setSelectedOffer(offer)}
-                className={`w-full py-2 rounded-lg flex items-center justify-center gap-2 ${
-                  !offer.isActive ? 'bg-gray-700 cursor-not-allowed' :
+                className={`w-full py-2 rounded-lg flex items-center justify-center gap-2 ${!offer.isActive ? 'bg-gray-700 cursor-not-allowed' :
                   offer.isExclusive ? 'bg-yellow-600 hover:bg-yellow-700' :
-                  'bg-blue-600 hover:bg-blue-700'
-                } transition-colors`}
+                    'bg-blue-600 hover:bg-blue-700'
+                  } transition-colors`}
                 disabled={!offer.isActive}
               >
                 {offer.isActive ? (
@@ -347,7 +337,7 @@ export function OfertasTab() {
                 ✕
               </button>
             </div>
-            
+
             {selectedOffer.partner && (
               <div className="flex items-center gap-3 mb-4 p-3 bg-gray-700 rounded-lg">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
@@ -363,26 +353,25 @@ export function OfertasTab() {
                 </div>
               </div>
             )}
-            
+
             <div className="mb-6">
               <p className="text-gray-300 mb-4">{selectedOffer.description}</p>
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-gray-700 p-3 rounded-lg">
                   <p className="text-sm text-gray-400">Validade</p>
                   <p className="font-medium">{selectedOffer.validity}</p>
                 </div>
-                <div className={`p-3 rounded-lg ${
-                  selectedOffer.category === 'cashback' ? 'bg-green-900 text-green-400' :
+                <div className={`p-3 rounded-lg ${selectedOffer.category === 'cashback' ? 'bg-green-900 text-green-400' :
                   selectedOffer.category === 'discount' ? 'bg-blue-900 text-blue-400' :
-                  selectedOffer.category === 'benefit' ? 'bg-yellow-900 text-yellow-400' :
-                  'bg-purple-900 text-purple-400'
-                }`}>
+                    selectedOffer.category === 'benefit' ? 'bg-yellow-900 text-yellow-400' :
+                      'bg-purple-900 text-purple-400'
+                  }`}>
                   <p className="text-sm">Benefício</p>
                   <p className="font-bold text-xl">{selectedOffer.discount}</p>
                 </div>
               </div>
-              
+
               {selectedOffer.conditions && (
                 <div>
                   <h4 className="font-medium mb-2">Condições</h4>
@@ -394,7 +383,7 @@ export function OfertasTab() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setSelectedOffer(null)}
@@ -403,11 +392,10 @@ export function OfertasTab() {
                 Fechar
               </button>
               <button
-                className={`px-4 py-2 rounded-lg transition-colors flex-1 flex items-center justify-center gap-2 ${
-                  !selectedOffer.isActive ? 'bg-gray-700 cursor-not-allowed' :
+                className={`px-4 py-2 rounded-lg transition-colors flex-1 flex items-center justify-center gap-2 ${!selectedOffer.isActive ? 'bg-gray-700 cursor-not-allowed' :
                   selectedOffer.isExclusive ? 'bg-yellow-600 hover:bg-yellow-700' :
-                  'bg-blue-600 hover:bg-blue-700'
-                }`}
+                    'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 disabled={!selectedOffer.isActive}
               >
                 {selectedOffer.isActive ? (
@@ -422,7 +410,7 @@ export function OfertasTab() {
           </div>
         </div>
       )}
- {/* <Marketplace /> */}
+      {/* <Marketplace /> */}
 
       {/* Seção de Ofertas em Destaque */}
       {/* Seção de Programa de Recompensas */}
@@ -430,7 +418,7 @@ export function OfertasTab() {
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <FiStar className="text-yellow-400" /> Programa Kashy Rewards
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-gray-750 p-4 rounded-lg">
             <div className="flex items-center gap-3 mb-3">
@@ -443,7 +431,7 @@ export function OfertasTab() {
               Receba parte do valor das suas vendas de volta como crédito na plataforma.
             </p>
           </div>
-          
+
           <div className="bg-gray-750 p-4 rounded-lg">
             <div className="flex items-center gap-3 mb-3">
               <div className="bg-purple-600 p-2 rounded-full">
@@ -455,7 +443,7 @@ export function OfertasTab() {
               Quanto mais você usa, maiores os descontos em taxas e serviços.
             </p>
           </div>
-          
+
           <div className="bg-gray-750 p-4 rounded-lg">
             <div className="flex items-center gap-3 mb-3">
               <div className="bg-blue-600 p-2 rounded-full">
@@ -468,12 +456,12 @@ export function OfertasTab() {
             </p>
           </div>
         </div>
-        
+
         <div className="mt-6 p-4 bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg">
           <h4 className="font-bold mb-2">Seu nível atual: <span className="text-yellow-400">Prata</span></h4>
           <div className="w-full bg-gray-700 rounded-full h-2.5 mb-2">
-            <div 
-              className="bg-yellow-400 h-2.5 rounded-full" 
+            <div
+              className="bg-yellow-400 h-2.5 rounded-full"
               style={{ width: '45%' }}
             ></div>
           </div>

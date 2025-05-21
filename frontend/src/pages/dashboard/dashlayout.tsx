@@ -412,7 +412,12 @@ export function Dashboard() {
                 <div className="flex items-center gap-4 justify-center h-16 px-2 flex-shrink-0">
                     {isOpen ? (
                         <>
-                            <h1 className="text-lg ml- sm:ml-17 sm:text-xl font-bold">Dashboard</h1>
+                            <div className="text-lg ml- sm:ml-17 sm:text-xl font-bold">
+                        <img
+                            src="/logokashy.svg"
+                            alt="Kashy Logo Header"
+                            className="h-14 w-36"
+                        /></div>
                             <button onClick={toggleSidebar} className="sm:ml-auto flex-shrink-0">
                                 <ChevronLeft className="text-white h-7 w-7 sm:h-8 sm:w-8" />
                             </button>
@@ -459,6 +464,8 @@ export function Dashboard() {
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
 
+                      
+                      
                     <div className="flex items-center gap-4">
                         {/* Ícone de Notificações */}
                         <button
@@ -482,10 +489,10 @@ export function Dashboard() {
                                     <img
                                         src={savedImage}
                                         alt="User"
-                                        className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-amber-500 transition-colors"
+                                        className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-white transition-colors"
                                     />
                                 ) : (
-                                    <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                                    <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-white transition-colors" />
                                 )}
                             </button>
 
@@ -518,7 +525,7 @@ export function Dashboard() {
                                                     <img
                                                         src={savedImage}
                                                         alt="User Preview"
-                                                        className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-amber-500 hover:opacity-50"
+                                                        className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-white hover:opacity-50"
                                                     />
                                                 ) : (
                                                     <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
@@ -584,7 +591,7 @@ export function Dashboard() {
             {/* Profile Edit Modal */}
             {showProfileModal && (
                 <div
-                    className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+                    className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center z-50 p-4"
                     onClick={() => setShowProfileModal(false)}
                 >
                     <div
@@ -607,17 +614,19 @@ export function Dashboard() {
                             {/* Imagem de Perfil */}
                             <div className="flex flex-col items-center gap-3">
                                 <div className="relative group">
-                                    <img
-                                        src={selectedImage || savedImage || "/default-avatar.png"}
-                                        alt="Preview"
-                                        className="w-44 h-44 object-cover rounded-full border-4 border-[#232428] shadow-lg transition-all duration-300 group-hover:opacity-80"
-                                    />
                                     <label
                                         htmlFor="profileImageInput"
-                                        className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 cursor-pointer shadow-lg transition"
+                                        className="cursor-pointer"
                                         title="Alterar Imagem"
                                     >
-                                        <Pencil className="h-5 w-5" />
+                                        <img
+                                            src={selectedImage || savedImage || "/default-avatar.png"}
+                                            alt="Preview"
+                                            className="w-44 h-44 object-cover rounded-full border-4 border-[#232428] group-hover:opacity-50 transition"
+                                        />
+                                        <div className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 shadow-lg transition pointer-events-none">
+                                            <Pencil className="h-5 w-5" />
+                                        </div>
                                         <input
                                             id="profileImageInput"
                                             type="file"
@@ -627,7 +636,7 @@ export function Dashboard() {
                                         />
                                     </label>
                                 </div>
-                                <span className="text-xs text-gray-400">Clique no lápis para alterar a imagem</span>
+                                <span className="text-xs text-gray-400">Clique na imagem para alterar</span>
                                 {selectedImage && (
                                     <button
                                         onClick={() => setSelectedImage(null)}
@@ -653,10 +662,9 @@ export function Dashboard() {
                                                 if (el) el.scrollIntoView({ behavior: 'smooth' });
                                             }, 100);
                                         }}
-                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
-                                        title="Editar nome de usuário"
+                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
                                     >
-                                        <Edit className="w-4 h-4" />
+                                        Editar
                                     </button>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -673,10 +681,9 @@ export function Dashboard() {
                                                 if (el) el.scrollIntoView({ behavior: 'smooth' });
                                             }, 100);
                                         }}
-                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
-                                        title="Editar email"
+                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
                                     >
-                                        <Edit className="w-4 h-4" />
+                                        Editar
                                     </button>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -693,10 +700,9 @@ export function Dashboard() {
                                                 if (el) el.scrollIntoView({ behavior: 'smooth' });
                                             }, 100);
                                         }}
-                                        className="ml-2 p-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors"
-                                        title="Editar telefone"
+                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
                                     >
-                                        <Edit className="w-4 h-4" />
+                                        Editar
                                     </button>
                                 </div>
                             </div>

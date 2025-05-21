@@ -13,7 +13,7 @@ export type Product = {
 };
 
 import { useState, useEffect } from 'react';
-import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart } from 'react-icons/fi';
 import { useNotification } from '../../../context/NotificationContext'; // Importe o contexto de notificações
 
 export function ProdutosTab() {
@@ -21,17 +21,17 @@ export function ProdutosTab() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estado para paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const itemsPerPage = 8;
-  
+
   // Estado para busca/filtro
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStore, setSelectedStore] = useState<string>('all');
-  
+
   // Estado para o formulário
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -58,7 +58,7 @@ export function ProdutosTab() {
     { value: 'eletronicos', label: 'Eletrônicos' },
     { value: 'vestuario', label: 'Vestuário' },
     { value: 'servicos', label: 'Serviços' },
-    
+
   ];
 
   // Simulação de fetch de dados
@@ -106,12 +106,12 @@ export function ProdutosTab() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-              type === 'number' ? parseFloat(value) || 0 : 
-              value
+      [name]: type === 'checkbox' ? checked :
+        type === 'number' ? parseFloat(value) || 0 :
+          value
     }));
 
     // Calcular automaticamente o preço em BCH quando BRL é alterado
@@ -235,17 +235,19 @@ export function ProdutosTab() {
   };
 
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
-      <h2 className="text-2xl font-bold mb-6">Dashboard de Produtos</h2>
-      
+    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen font-sans">
+      <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
+        <FiShoppingCart className="text-green-400" /> Dashboard de Produtos
+      </h2>
+
       {/* Barra de ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           <div className="relative w-full md:w-64">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por produto..."
+              placeholder="Buscar por produto, SKU..."
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => {
@@ -254,7 +256,7 @@ export function ProdutosTab() {
               }}
             />
           </div>
-          
+
           <select
             value={selectedCategory}
             onChange={(e) => {
@@ -284,23 +286,54 @@ export function ProdutosTab() {
             <option value="Loja C">Loja C</option>
           </select>
         </div>
-        
+
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors w-full md:w-auto justify-center"
+          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 px-6 py-2 rounded-lg transition-colors w-full md:w-auto justify-center shadow font-semibold"
         >
           <FiPlus /> Novo Produto
         </button>
       </div>
-      
+
+      {/* Resumo rápido */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Alto estoque */}
+        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
+          <span className="text-xs text-green-300">Produtos de alto estoque (30+)</span>
+          <span className="text-2xl font-bold text-green-200">
+            {products.filter(p => p.quantity >= 30).length}
+          </span>
+        </div>
+        {/* Médio estoque */}
+        <div className="bg-gradient-to-br from-blue-900/80 to-blue-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
+          <span className="text-xs text-blue-300">Produtos de médio estoque (15 - 30)</span>
+          <span className="text-2xl font-bold text-blue-200">
+            {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
+          </span>
+        </div>
+        {/* Baixo estoque */}
+        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
+          <span className="text-xs text-yellow-300">Produtos de baixo estoque (1 - 15)</span>
+          <span className="text-2xl font-bold text-yellow-200">
+            {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
+          </span>
+        </div>
+        {/* Esgotados */}
+        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
+          <span className="text-xs text-red-300">Produtos esgotados (0)</span>
+          <span className="text-2xl font-bold text-red-200">
+            {products.filter(p => p.quantity === 0).length}
+          </span>
+        </div>
+      </div>
+
       {/* Formulário modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-8 w-full max-w-3xl shadow-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-8 w-full max-w-3xl shadow-xl border border-[var(--color-border)]">
             <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-6">
               {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
             </h3>
-
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Nome do Produto */}
@@ -471,9 +504,9 @@ export function ProdutosTab() {
           </div>
         </div>
       )}
-      
+
       {/* Tabela de produtos */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
+      <div className="bg-[var(--color-bg-secondary)] rounded-2xl overflow-hidden border border-[var(--color-border)] shadow">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
@@ -493,78 +526,95 @@ export function ProdutosTab() {
               <table className="min-w-full divide-y divide-[var(--color-divide)]">
                 <thead className="bg-gray-750">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Nome</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Estoque</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loja</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Nome</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Estoque</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Nível Estoque</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Categoria</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Loja</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-bold text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {products.map((product) => (
-                    <tr key={product._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">{product.name}</div>
-                        <div className="text-xs text-gray-400">{product.sku}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
-                        <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.quantity > 10 
-                            ? 'bg-green-100 text-green-800' 
-                            : product.quantity > 0 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-red-100 text-red-800'
-                        }`}>
-                          {product.quantity} unidades
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {categories.find(c => c.value === product.category)?.label || 'Outros'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap"> {/* Nova célula para a loja */}
-                        <span className="text-sm text-gray-400">{product.store}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.isActive 
-                            ? 'bg-green-100 text-green-800' 
+                  {products.map((product) => {
+                    let estoqueLabel = '';
+                    let estoqueClass = '';
+                    if (product.quantity >= 30) {
+                      estoqueLabel = 'Alto';
+                      estoqueClass = 'bg-green-100 text-green-800';
+                    } else if (product.quantity >= 16) {
+                      estoqueLabel = 'Médio';
+                      estoqueClass = 'bg-blue-100 text-blue-800';
+                    } else if (product.quantity > 0) {
+                      estoqueLabel = 'Baixo';
+                      estoqueClass = 'bg-yellow-100 text-yellow-800';
+                    } else {
+                      estoqueLabel = 'Esgotado';
+                      estoqueClass = 'bg-red-100 text-red-800';
+                    }
+                    return (
+                      <tr key={product._id} className="hover:bg-gray-750 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold">{product.name}</div>
+                          <div className="text-xs text-gray-400">{product.sku}</div>
+                          <div className="text-xs text-gray-500">Criado em: {formatDate(product.createdAt)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
+                          <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-800 text-gray-100">
+                            {product.quantity} unidades
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${estoqueClass}`}>
+                            {estoqueLabel}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {categories.find(c => c.value === product.category)?.label || 'Outros'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-400">{product.store}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.isActive
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
-                          {product.isActive ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-3">
-                          <button
-                            onClick={() => handleEdit(product)}
-                            className="text-blue-400 hover:text-blue-300 transition-colors"
-                            title="Editar"
-                          >
-                            <FiEdit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product._id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            title="Excluir"
-                          >
-                            <FiTrash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            }`}>
+                            {product.isActive ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="text-blue-400 hover:text-blue-300 transition-colors"
+                              title="Editar"
+                            >
+                              <FiEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product._id)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Excluir"
+                            >
+                              <FiTrash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            
+
             {/* Paginação */}
             <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
               <div className="flex-1 flex justify-between sm:hidden">
@@ -578,21 +628,21 @@ export function ProdutosTab() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-secondary) disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-secondary)] disabled:opacity-50"
                 >
                   Próxima
                 </button>
               </div>
-              
+
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-gray-400">
                     Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
                     <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> de{' '}
-                    <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
+                    <span className="font-medium">{products.length}</span> resultados
                   </p>
                 </div>
-                
+
                 <div>
                   <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                     <button
@@ -603,7 +653,7 @@ export function ProdutosTab() {
                       <span className="sr-only">Anterior</span>
                       <FiChevronLeft size={20} />
                     </button>
-                    
+
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
                       if (totalPages <= 5) {
@@ -615,22 +665,21 @@ export function ProdutosTab() {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                            currentPage === pageNum
-                              ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-secondary)]'
-                          }`}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
+                            ? 'z-10 bg-blue-600 border-blue-600 text-white'
+                            : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-secondary)]'
+                            }`}
                         >
                           {pageNum}
                         </button>
                       );
                     })}
-                    
+
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}

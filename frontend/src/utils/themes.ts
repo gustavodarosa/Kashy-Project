@@ -8,7 +8,7 @@ type ThemeColors = {
   '--color-accent': string;
   '--color-accent-hover': string;
   '--color-border': string;
-  '--color-divide': string; // Nova propriedade
+  '--color-divide': string; 
   '--color-success'?: string;
   '--color-success-hover'?: string;
   '--color-danger'?: string;
@@ -26,9 +26,9 @@ export const themes = {
   default: {
     name: 'Tema Escuro',
     colors: {
-      '--color-bg-primary': '#19181D',
-      '--color-bg-secondary': '#1F1E22',
-      '--color-bg-tertiary': '#28272b',
+      '--color-bg-primary': '#050505',
+      '--color-bg-secondary': '#0a0a0a',
+      '--color-bg-tertiary': '#0f0f0f',
       '--color-bg-secondary-hover': '#28272b',
       '--color-shadow': '#404040',
       '--color-text-primary': '#ffffff',
@@ -36,7 +36,7 @@ export const themes = {
       '--color-accent': '#0f0f0f',
       '--color-accent-hover': '#0f0f0f',
       '--color-border': '#303030',
-      '--color-divide': '#303030', // Adicionado
+      '--color-divide': '#303030', 
     },
   },
   Bluetheme: {
