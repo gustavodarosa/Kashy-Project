@@ -214,7 +214,7 @@ export function ProdutosTab() {
   };
 
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <h2 className="text-2xl font-bold mb-6">Dashboard de Produtos</h2>
       
       {/* Barra de ações */}

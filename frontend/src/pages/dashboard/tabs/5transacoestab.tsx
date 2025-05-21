@@ -180,7 +180,7 @@ export function TransacoesTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <h2 className="text-2xl font-bold mb-6">Histórico de Transações</h2>
       
       {/* Barra de ações */}

@@ -159,7 +159,7 @@ export function OfertasTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <FiShoppingBag /> Ofertas Exclusivas
       </h2>
@@ -251,7 +251,7 @@ export function OfertasTab() {
           filteredOffers.map((offer) => (
             <div 
               key={offer.id} 
-              className={`bg-gray-800 rounded-lg p-6 border hover:border-blue-500 transition-colors relative overflow-hidden ${
+              className={`bg-[linear-gradient(to_top_left,transparent,rgba(59,130,246,0.25)_60%)] rounded-lg p-6 border hover:border-blue-500 transition-colors relative overflow-hidden ${
                 !offer.isActive ? 'opacity-70' : ''
               } ${
                 offer.isExclusive ? 'border-yellow-500' : 'border-gray-700'
@@ -329,7 +329,7 @@ export function OfertasTab() {
       {/* Modal de Detalhes da Oferta */}
       {selectedOffer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-[linear-gradient(to_top_left,transparent,rgba(59,130,246,0.25)_60%)] rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 {getCategoryIcon(selectedOffer.category)}

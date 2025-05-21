@@ -169,7 +169,7 @@ export function DashboardTab() {
   }, []);
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-[var(--color-bg-primary)]">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       {/* Cabeçalho */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-[var(--color-text-primary)]">Minha Loja Digital</h1>

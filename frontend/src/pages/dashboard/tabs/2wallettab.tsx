@@ -282,7 +282,7 @@ export function WalletTab() {
 
   // --- Component Rendering ---
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold">Minha Carteira Bitcoin Cash</h2>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiBarChart2, FiCalendar, FiDownload, FiTrash2, FiEdit } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiDownload, FiTrash2, FiEdit, FiActivity, FiShoppingCart, FiAlertTriangle } from 'react-icons/fi';
 
 type Report = {
   id: string;
@@ -173,7 +173,7 @@ export function RelatoriosTab() {
   };
 
   return (
-    <div className="p-6 bg-gray-900 text-white min-h-screen">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] dark:bg-[var(--color-bg-primary)] text-white">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
         <FiBarChart2 /> Relatórios e Análises
       </h2>
@@ -194,100 +194,128 @@ export function RelatoriosTab() {
       </div>
 
       {/* Grid de Relatórios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {reports.map((report) => (
-          <div key={report.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700 hover:border-blue-500 transition-colors group relative">
-            {/* Menu de ações */}
-            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-              <button
-                onClick={() => prepareForEdit(report)}
-                className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded"
-                title="Editar"
-              >
-                <FiEdit size={16} />
-              </button>
-              <button
-                onClick={() => deleteReport(report.id)}
-                className="p-1.5 bg-gray-700 hover:bg-red-600 rounded"
-                title="Excluir"
-              >
-                <FiTrash2 size={16} />
-              </button>
-            </div>
-            
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-bold">
-                {report.title}
-                {report.isAIGenerated && (
-                  <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-full">
-                    IA
-                  </span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {reports.map((report) => {
+          // Escolher ícone e cor de destaque por tipo
+          let icon, iconBg, mainValue, mainLabel, mainColor;
+          if (report.type === 'sales') {
+            icon = <FiActivity size={32} className="text-blue-400" />;
+            iconBg = 'bg-blue-900';
+            mainValue = `R$ ${report.previewData.totalSales?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+            mainLabel = 'Total de Vendas';
+            mainColor = 'text-blue-400';
+          } else if (report.type === 'transactions') {
+            icon = <FiShoppingCart size={32} className="text-green-400" />;
+            iconBg = 'bg-green-900';
+            mainValue = `${report.previewData.totalBCH} BCH`;
+            mainLabel = 'Total BCH';
+            mainColor = 'text-green-400';
+          } else if (report.type === 'inventory') {
+            icon = <FiAlertTriangle size={32} className="text-yellow-400" />;
+            iconBg = 'bg-yellow-900';
+            mainValue = `${report.previewData.totalProducts} produtos`;
+            mainLabel = 'Produtos cadastrados';
+            mainColor = 'text-yellow-400';
+          } else {
+            icon = <FiBarChart2 size={32} className="text-indigo-400" />;
+            iconBg = 'bg-indigo-900';
+            mainValue = '';
+            mainLabel = '';
+            mainColor = 'text-indigo-400';
+          }
+          return (
+            <div
+              key={report.id}
+              className="p-7 rounded-2xl shadow-lg border border-gray-700 hover:border-blue-500 transition-all group relative bg-[linear-gradient(to_top_left,transparent,rgba(0,0,0,0.7)_60%)]"
+              style={{ backgroundColor: '#111', filter: report.type === 'sales' ? 'drop-shadow(0 0 8px #5298f2)' : report.type === 'transactions' ? 'drop-shadow(0 0 8px #3dd445)' : report.type === 'inventory' ? 'drop-shadow(0 0 8px #c4791d)' : 'drop-shadow(0 0 8px #4018c4)', transform: 'scale(1)', transition: 'transform 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {/* Menu de ações */}
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                <button
+                  onClick={() => prepareForEdit(report)}
+                  className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded"
+                  title="Editar"
+                >
+                  <FiEdit size={16} />
+                </button>
+                <button
+                  onClick={() => deleteReport(report.id)}
+                  className="p-1.5 bg-gray-700 hover:bg-red-600 rounded"
+                  title="Excluir"
+                >
+                  <FiTrash2 size={16} />
+                </button>
+              </div>
+              {/* Ícone e badge IA */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`rounded-full p-3 ${iconBg} flex items-center justify-center shadow-lg`}>{icon}</div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  {report.title}
+                  {report.isAIGenerated && (
+                    <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-1 rounded-full animate-pulse">IA</span>
+                  )}
+                </h3>
+              </div>
+              {/* Valor principal em destaque */}
+              {mainValue && (
+                <div className={`text-3xl font-extrabold mb-2 ${mainColor}`}>{mainValue}</div>
+              )}
+              {mainLabel && (
+                <div className="text-sm text-gray-400 mb-4">{mainLabel}</div>
+              )}
+              {/* Data e período */}
+              <div className="mb-4 text-xs text-gray-400 flex items-center gap-2">
+                <FiCalendar /> {report.dateRange}
+              </div>
+              {/* Preview dos dados */}
+              <div className="mb-6">
+                {report.type === 'sales' && (
+                  <div className="space-y-2">
+                    <p><span className="text-gray-400">Transações:</span> {report.previewData.totalTransactions}</p>
+                    <p><span className="text-gray-400">Produto mais vendido:</span> {report.previewData.bestSellingProduct}</p>
+                    <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>{report.previewData.comparison}</span></p>
+                  </div>
                 )}
-              </h3>
-              <button className="text-gray-400 hover:text-blue-400">
-                <FiDownload />
-              </button>
+                {report.type === 'transactions' && (
+                  <div className="space-y-2">
+                    <p><span className="text-gray-400">Média por transação:</span> {report.previewData.avgTransaction} BCH</p>
+                    <p><span className="text-gray-400">Dia com mais transações:</span> {report.previewData.peakDay}</p>
+                    <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>{report.previewData.comparison}</span></p>
+                  </div>
+                )}
+                {report.type === 'inventory' && (
+                  <div className="space-y-2">
+                    <p><span className="text-gray-400">Itens com baixo estoque:</span> {report.previewData.lowStockItems}</p>
+                    <p><span className="text-gray-400">Itens esgotados:</span> {report.previewData.outOfStockItems}</p>
+                    <p><span className="text-gray-400">Categoria com mais itens:</span> {report.previewData.mostStockedCategory}</p>
+                  </div>
+                )}
+                {report.type === 'custom' && (
+                  <div className="space-y-3">
+                    {Array.isArray(report.previewData.insights) ? (
+                      <ul className="list-disc pl-5 space-y-1">
+                        {report.previewData.insights.map((insight: string, index: number) => (
+                          <li key={index}>{insight}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>{report.previewData.insights || report.previewData.summary}</p>
+                    )}
+                    {report.previewData.conclusion && (
+                      <p className="mt-2 p-2 bg-gray-700 rounded italic">{report.previewData.conclusion}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Rodapé do card */}
+              <div className="pt-3 mt-4 border-t border-gray-800 text-xs text-gray-500 flex items-center gap-2">
+                <FiDownload /> Gerado em: {report.generatedAt}
+              </div>
             </div>
-            
-            <div className="mb-4 text-sm text-gray-400 flex items-center gap-2">
-              <FiCalendar /> {report.dateRange}
-            </div>
-            
-            <div className="mb-6">
-              {report.type === 'sales' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Total vendas:</span> R$ {report.previewData.totalSales.toLocaleString('pt-BR')}</p>
-                  <p><span className="text-gray-400">Transações:</span> {report.previewData.totalTransactions}</p>
-                  <p><span className="text-gray-400">Produto mais vendido:</span> {report.previewData.bestSellingProduct}</p>
-                  <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>
-                    {report.previewData.comparison}
-                  </span></p>
-                </div>
-              )}
-              
-              {report.type === 'transactions' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Total BCH:</span> {report.previewData.totalBCH} BCH</p>
-                  <p><span className="text-gray-400">Média por transação:</span> {report.previewData.avgTransaction} BCH</p>
-                  <p><span className="text-gray-400">Dia com mais transações:</span> {report.previewData.peakDay}</p>
-                  <p><span className="text-gray-400">Comparativo:</span> <span className={report.previewData.comparison.includes('+') ? 'text-green-400' : 'text-red-400'}>
-                    {report.previewData.comparison}
-                  </span></p>
-                </div>
-              )}
-              
-              {report.type === 'inventory' && (
-                <div className="space-y-2">
-                  <p><span className="text-gray-400">Produtos cadastrados:</span> {report.previewData.totalProducts}</p>
-                  <p><span className="text-gray-400">Itens com baixo estoque:</span> {report.previewData.lowStockItems}</p>
-                  <p><span className="text-gray-400">Itens esgotados:</span> {report.previewData.outOfStockItems}</p>
-                  <p><span className="text-gray-400">Categoria com mais itens:</span> {report.previewData.mostStockedCategory}</p>
-                </div>
-              )}
-              
-              {report.type === 'custom' && (
-                <div className="space-y-3">
-                  {Array.isArray(report.previewData.insights) ? (
-                    <ul className="list-disc pl-5 space-y-1">
-                      {report.previewData.insights.map((insight: string, index: number) => (
-                        <li key={index}>{insight}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{report.previewData.insights || report.previewData.summary}</p>
-                  )}
-                  {report.previewData.conclusion && (
-                    <p className="mt-2 p-2 bg-gray-700 rounded italic">{report.previewData.conclusion}</p>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <div className="text-xs text-gray-500">
-              Gerado em: {report.generatedAt}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal de Novo Relatório */}

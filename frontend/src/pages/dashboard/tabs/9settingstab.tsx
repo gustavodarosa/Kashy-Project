@@ -77,18 +77,18 @@ export function SettingsTab() {
   ];
  
   return (
-    <div className="space-y-8 p-6 bg-[var(--color-bg-primary)] min-h-screen">
-      <h2 className="text-2xl text-[var(--color-text-primary)] font-bold">
+    <div className="p-6 min-h-screen bg-[var(--color-bg-primary)] text-[var(--color-text-primary)]">
+      <h2 className="text-2xl font-bold">
         {t('settingsTitle', language)}
       </h2>
  
       {/* Seção de Aparência */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiSun /> {t('appearance.title', language)}
         </h3>
         <div>
-          <p className="font-medium text-[var(--color-text-primary)] mb-3">
+          <p className="font-medium mb-3">
             {t('appearance.colorTheme', language)}
           </p>
           <p className="text-sm text-[var(--color-text-secondary)] mb-4">
@@ -131,7 +131,7 @@ export function SettingsTab() {
  
       {/* Seção de Notificações */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiBell /> {t('notificationsSection.title', language)}
         </h3>
  
@@ -143,7 +143,7 @@ export function SettingsTab() {
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between py-2">
               <div>
-                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="font-medium">{item.label}</p>
                 <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
               </div>
               <button
@@ -168,13 +168,13 @@ export function SettingsTab() {
  
       {/* Seção de Idioma */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiGlobe /> {t('language.title', language)}
         </h3>
  
         <div className="space-y-4">
           <div>
-            <label htmlFor="language" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+            <label htmlFor="language" className="block text-sm font-medium mb-1">
               {t('language.language', language)}
             </label>
             <select
@@ -190,7 +190,7 @@ export function SettingsTab() {
           </div>
  
           <div>
-            <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+            <label htmlFor="timezone" className="block text-sm font-medium mb-1">
               {t('language.timezone', language)}
             </label>
             <select
@@ -207,7 +207,7 @@ export function SettingsTab() {
  
       {/* Seção de Segurança */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiLock /> {t('security.title', language)}
         </h3>
  
@@ -226,7 +226,7 @@ export function SettingsTab() {
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between py-2">
               <div>
-                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="font-medium">{item.label}</p>
                 <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
               </div>
               <button
@@ -252,7 +252,7 @@ export function SettingsTab() {
       </div>
  
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiLock /> {t('security.changeUsernamePassword', language)}
         </h3>
  
@@ -282,7 +282,7 @@ export function SettingsTab() {
           }}
           className="space-y-4"
         >
-          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+          <label className="block text-sm font-medium">
             {t('security.newUsername', language)}
           </label>
           <input
@@ -326,7 +326,7 @@ export function SettingsTab() {
           }}
           className="space-y-4 mt-6"
         >
-          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+          <label className="block text-sm font-medium">
             {t('security.currentPassword', language)}
           </label>
           <input
@@ -336,7 +336,7 @@ export function SettingsTab() {
             className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
             placeholder={t('security.enterCurrentPassword', language)}
           />
-          <label className="block text-sm font-medium text-[var(--color-text-primary)] mt-4">
+          <label className="block text-sm font-medium mt-4">
             {t('security.newPassword', language)}
           </label>
           <input
@@ -357,7 +357,7 @@ export function SettingsTab() {
  
       {/* Seção de Dados */}
       <div className="bg-[var(--color-bg-secondary)] p-6 rounded-lg shadow-lg shadow-[color:var(--color-shadow)]">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)] border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-4 border-b border-[var(--color-border)] pb-2 flex items-center gap-2">
           <FiHardDrive /> {t('data.title', language)}
         </h3>
  
@@ -376,7 +376,7 @@ export function SettingsTab() {
           ].map((item) => (
             <div key={item.key} className="flex items-center justify-between py-2">
               <div>
-                <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
+                <p className="font-medium">{item.label}</p>
                 <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
               </div>
               <button
@@ -398,7 +398,7 @@ export function SettingsTab() {
           ))}
  
           <div className="pt-4 space-y-3 border-t border-[var(--color-border)] mt-4">
-            <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
+            <button className="hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
               <FiDownload /> {t('data.export', language)}
             </button>
             <button className="text-red-500 hover:text-red-400 transition-colors flex items-center gap-2">
