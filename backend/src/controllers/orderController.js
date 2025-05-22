@@ -120,16 +120,15 @@ const verifyOrderPayment = async (req, res) => {
     // verifyPayment expects the amount in BCH
     const isPaid = await verifyPayment(order.merchantAddress, order.amountBCH); 
 
+    // ...existing code...
     if (isPaid) {
-      order.status = 'paid'; // Or 'payment_detected' if you want to wait for confirmations
-      // Optionally, update transaction details here if verifyPayment provides them
-      // order.transaction.txHash = ...;
-      // order.transaction.paidAmountBCH = ...;
-      // order.transaction.paymentReceivedAt = new Date();
+      order.status = 'paid'; // <-- Aqui também, mantenha apenas 'paid'
+      // ...outros campos...
       await order.save();
       logger.info(`[verifyOrderPayment] Pagamento confirmado para OrderId ${orderId}.`);
       return res.status(200).json({ message: 'Pagamento confirmado.', order });
     }
+    // ...existing code...
 
     logger.info(`[verifyOrderPayment] Pagamento ainda não recebido para OrderId ${orderId}.`);
     res.status(200).json({ message: 'Pagamento ainda não recebido.', order });

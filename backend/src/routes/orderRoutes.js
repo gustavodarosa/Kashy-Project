@@ -89,7 +89,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Endpoint para deletar um pedido
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
 

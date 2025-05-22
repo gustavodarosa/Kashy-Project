@@ -5,7 +5,7 @@ import {
 import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
 import { useSidebar } from '../../hooks/usersidebar';
 import { useState, useEffect } from 'react';
-import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, OfertasTab, SettingsTab, TransacoesTab } from './tabs';
+import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
 
@@ -385,7 +385,6 @@ export function Dashboard() {
         { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
         { id: 'clientes', label: 'Clientes', icon: <Users /> },
         { id: 'relatorios', label: 'Relatórios', icon: <NotepadText /> },
-        { id: 'ofertas', label: 'Ofertas', icon: <Megaphone /> },
         { id: 'settings', label: 'Configurações', icon: <Settings /> }
     ];
 
@@ -398,7 +397,6 @@ export function Dashboard() {
             case 'transacoes': return <TransacoesTab />;
             case 'clientes': return <ClientesTab />;
             case 'relatorios': return <RelatoriosTab />;
-            case 'ofertas': return <OfertasTab />;
             case 'settings': return <SettingsTab />;
             default: return <DashboardTab />;
         }

@@ -5,5 +5,4 @@ export { PedidosTab } from './4pedidostab';
 export { TransacoesTab } from './5transacoestab';
 export { ClientesTab } from './6clientestab';
 export { RelatoriosTab } from './8relatoriostab';
-export { OfertasTab } from './7ofertastab';
 export { SettingsTab } from './9settingstab';

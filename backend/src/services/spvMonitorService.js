@@ -406,11 +406,10 @@ class SpvMonitorService {
                         // Basic amount check (can add tolerance for overpayment)
                         if (receivedSatoshis >= expectedSatoshis) {
                             logger.info(`SPV: [Order Payment] Payment DETECTED for Order ${orderId}. TX: ${item.tx_hash}, Amount: ${receivedSatoshis} sats.`);
-                            order.status = item.height > 0 ? 'confirmed_paid' : 'payment_detected'; // 'paid' if unconfirmed is acceptable
+                            order.status = 'paid'; // <-- Altere aqui para ir direto para 'paid'
                             order.transactionId = item.tx_hash;
                             order.paidAmountBCH = receivedSatoshis / SATOSHIS_PER_BCH;
                             order.paymentReceivedAt = new Date();
-                            // TODO: Add confirmations field to order and update it here
                             await order.save();
                             logger.info(`SPV: [Order Payment] Order ${orderId} status updated to ${order.status}.`);
                             // Notify merchant via WebSocket about the order update
