@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiClock, FiCheckCircle, FiXCircle, FiEdit, FiTrash2, FiCopy, FiPrinter } from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiEdit, FiTrash2, FiCopy, FiPrinter, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import QRCode from 'react-qr-code';
 
 type OrderItem = {
@@ -26,7 +26,7 @@ type Order = {
     status: 'pending' | 'confirmed' | 'failed';
   };
   merchantAddress?: string;
-  exchangeRate?: number;
+  exchangeRateUsed?: number; // Changed from exchangeRate to exchangeRateUsed
 };
 
 type Product = {
@@ -205,14 +205,14 @@ export function PedidosTab() {
     setQrOrder(null);
     setError(null);
     try {
-      console.log(`[PedidosTab] Buscando detalhes para QR Code do pedido ID: ${orderId}`);
+      console.log(`[PedidosTab] openQrModal: Buscando detalhes para QR Code do pedido ID: ${orderId}`);
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (!response.ok) throw new Error('Erro ao buscar detalhes para QR Code.');
       const order = await response.json();
-      console.log('[PedidosTab] Detalhes para QR Code recebidos:', order);
+      console.log('[PedidosTab] openQrModal: Detalhes para QR Code recebidos:', order);
       setQrOrder(order);
     } catch (err: any) {
       console.error('[PedidosTab] Erro em openQrModal:', err);
@@ -326,12 +326,19 @@ export function PedidosTab() {
       setSelectedProducts([]);
       setPaymentMethod("");
       setIsOrderModalOpen(false);
-      // Refetch orders to show the new one
-      setCurrentPage(1); // Go to first page to see the new order
-      // Manually trigger a re-fetch if dependencies don't cover it
-      setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
-      setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
+      setCurrentPage(1);
 
+      // Se o pagamento for BCH, abra o modal de QR Code imediatamente
+      if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
+        console.log("[PedidosTab] Pedido BCH criado. Abrindo modal de QR Code para ID:", savedOrder._id);
+        openQrModal(savedOrder._id);
+      } else {
+        // Se não for BCH, apenas atualize a lista de pedidos
+        // Refetch para garantir que a lista e paginação estejam corretas
+        // fetchOrders não está disponível aqui, então forçamos atualização manual
+        setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
+        setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
+      }
 
     } catch (error: any) {
       console.error("[PedidosTab] Erro ao criar pedido:", error);
@@ -409,7 +416,7 @@ export function PedidosTab() {
       // Add styles if needed
       printWindow.document.write('<style> body { font-family: sans-serif; margin: 20px; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left;} </style>');
       printWindow.document.write('</head><body>');
-      printWindow.document.write(`<h1>Detalhes do Pedido #${order._id.substring(6)}</h1>`);
+      printWindow.document.write(`<h1>Detalhes do Pedido #${order._id.substring(order._id.length - 6)}</h1>`);
       printWindow.document.write(`<p><strong>Loja:</strong> ${order.store}</p>`);
       printWindow.document.write(`<p><strong>Cliente:</strong> ${order.customerEmail || 'Anônimo'}</p>`);
       printWindow.document.write(`<p><strong>Total:</strong> ${formatCurrency(order.totalAmount)}</p>`);
@@ -428,6 +435,44 @@ export function PedidosTab() {
     }
   };
 
+  const getStatusIconComponent = (status: Order['status']) => {
+    switch (status) {
+      case 'paid':
+        return <FiCheckCircle className="text-green-500" />;
+      case 'pending':
+        return <FiClock className="text-yellow-500" />;
+      case 'cancelled':
+      case 'refunded':
+      case 'expired':
+        return <FiXCircle className="text-red-500" />;
+      default:
+        return <FiClock className="text-gray-500" />;
+    }
+  };
+  
+  const getStatusLabelText = (status: Order['status']): string => {
+    switch (status) {
+      case 'paid':
+        return 'Pago';
+      case 'pending':
+        return 'Pendente';
+      case 'cancelled':
+        return 'Cancelado';
+      case 'expired':
+        return 'Expirado';
+      case 'refunded':
+        return 'Reembolsado';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+
+  // Função para obter a cor e o rótulo do status da transação (se houver)
+  // const getTransactionStatusVisuals = (status?: Order['transaction']['status']) => {
+    // Similar a getOrderStatusVisuals, mas para status de transação
+    // return status ? { label: status, color: 'bg-blue-200 text-blue-800' } : null;
+  // };
   return (
     <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
@@ -502,7 +547,7 @@ export function PedidosTab() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
             <p className="mt-4">Carregando pedidos...</p>
           </div>
-        ) : error ? (
+        ) : error && !qrOrder ? ( // Modificado para não mostrar erro global se qrOrder estiver ativo (modal de detalhes)
           <div className="p-8 text-center text-red-400">
             <p>{error}</p>
           </div>
@@ -518,6 +563,7 @@ export function PedidosTab() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pagamento</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fatura</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
@@ -559,6 +605,12 @@ export function PedidosTab() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                           {formatDate(order.createdAt)}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm">
+                            {getStatusIconComponent(order.status)}
+                            <span>{getStatusLabelText(order.status)}</span>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             className="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded-lg text-white text-xs"
@@ -596,7 +648,7 @@ export function PedidosTab() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={8} className="text-center py-4 text-gray-400">
+                      <td colSpan={9} className="text-center py-4 text-gray-400">
                         Nenhum pedido encontrado.
                       </td>
                     </tr>
@@ -611,14 +663,14 @@ export function PedidosTab() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
                 >
                   Próxima
                 </button>
@@ -686,63 +738,134 @@ export function PedidosTab() {
         )}
       </div>
 
-      {/* Modal QR Code */}
+      {/* Modal Detalhes do Pedido (antigo Modal QR Code) */}
       {qrOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)] flex flex-col items-center relative">
-            <h3 className="text-lg font-bold mb-4">Pagamento do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}</h3>
+          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-3xl shadow-xl border border-[var(--color-border)] max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <FiShoppingCart /> Detalhes do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}
+              </h3>
+              <button
+                onClick={() => setQrOrder(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
-            {isLoadingQr ? (
-              <div className="absolute inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center rounded-lg">
+            {isLoadingQr && (
+              <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               </div>
-            ) : error && !qrOrder.merchantAddress ? ( // Show error only if merchantAddress is missing
-              <div className="text-red-500 text-center p-4">{error}</div>
-            ) : (
-              (() => {
-                console.log("[PedidosTab] Renderizando QR Code. qrOrder:", qrOrder);
-
-                const merchantAddress = qrOrder.merchantAddress;
-                if (!merchantAddress) {
-                  console.error("[PedidosTab] Endereço BCH ausente ou inválido no pedido:", qrOrder);
-                  return <p className="text-red-500 p-4">Erro: Endereço BCH não encontrado no pedido.</p>;
-                }
-
-                if (!qrOrder.exchangeRate) {
-                  console.error("[PedidosTab] Taxa de câmbio ausente ou inválida no qrOrder:", qrOrder);
-                  return <p className="text-red-500 p-4">Erro: Taxa de câmbio não encontrada.</p>;
-                }
-
-                const amountBCH = parseFloat((qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8));
-                console.log(`[PedidosTab] Calculando amountBCH para QR Code: totalAmount=${qrOrder.totalAmount}, exchangeRate=${qrOrder.exchangeRate}, amountBCH=${amountBCH}`);
-
-                const qrValue = `${merchantAddress}?amount=${amountBCH}&label=Kashy&message=Pedido%20#${qrOrder._id}`; // Removed the extra "bitcoincash:" prefix
-                console.log("QR Code Value:", qrValue);
-
-                return (
-                  <div className="bg-white p-2 rounded-md inline-block">
-                    <QRCode value={qrValue} size={200} level="M" />
-                  </div>
-                );
-              })()
             )}
 
-            <p className="mt-4 text-center text-gray-300">
-              Escaneie o QR Code para efetuar o pagamento.<br />
-              Valor: <span className="font-bold">{formatCurrency(qrOrder.totalAmount)}</span>
-              {qrOrder.exchangeRate && qrOrder.merchantAddress && (
-                <>
-                  <br />
-                  <span className="text-xs">({(qrOrder.totalAmount / qrOrder.exchangeRate).toFixed(8)} BCH)</span>
-                </>
-              )}
-            </p>
-            <button
-              className="mt-6 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-              onClick={() => setQrOrder(null)}
-            >
-              Fechar
-            </button>
+            {!isLoadingQr && error && (
+              <div className="text-red-500 text-center p-4">{error}</div>
+            )}
+
+            {!isLoadingQr && !error && qrOrder && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Main grid for details and QR */}
+                {/* Coluna da Esquerda: Detalhes do Pedido */}
+                <div className="md:col-span-2 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-lg font-semibold mb-2 text-gray-200">Informações do Pedido</h4>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-gray-400">Status:</span>
+                          <span className="ml-2 inline-flex items-center">
+                            {getStatusIconComponent(qrOrder.status)}
+                            <span className="ml-1">{getStatusLabelText(qrOrder.status)}</span>
+                          </span>
+                        </p>
+                        <p><span className="text-gray-400">Data:</span> <span className="text-gray-300">{formatDate(qrOrder.createdAt)}</span></p>
+                        <p><span className="text-gray-400">Método de Pagamento:</span> <span className="text-gray-300">{getPaymentMethodLabel(qrOrder.paymentMethod)}</span></p>
+                        {qrOrder.transaction?.txHash && (
+                          <p><span className="text-gray-400">Hash Transação:</span>
+                            <a href={`https://explorer.bitcoinabc.org/tx/${qrOrder.transaction.txHash}`} target="_blank" rel="noopener noreferrer" className="ml-2 font-mono text-blue-400 hover:text-blue-300 break-all">
+                              {qrOrder.transaction.txHash.substring(0, 10)}...
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold mb-2 text-gray-200">Partes Envolvidas</h4>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-gray-400">Loja:</span> <span className="text-gray-300">{qrOrder.store}</span></p>
+                        <p><span className="text-gray-400">Cliente:</span> <span className="text-gray-300">{qrOrder.customerEmail || 'Não identificado'}</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-semibold mb-2 text-gray-200">Itens do Pedido</h4>
+                    <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-[var(--color-divide)]">
+                        <thead className="bg-gray-750">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Produto</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qtd</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço Unit.</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
+                          {qrOrder.items.map((item, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-2 text-sm text-gray-300">{item.product.name}</td>
+                              <td className="px-4 py-2 text-sm text-gray-300">{item.quantity}</td>
+                              <td className="px-4 py-2 text-sm text-gray-300">{formatCurrency(item.priceBRL)}</td>
+                              <td className="px-4 py-2 text-sm text-gray-300">{formatCurrency(item.priceBRL * item.quantity)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-start"> {/* Alinhado à esquerda */}
+                    <p className="text-gray-400 text-sm">Total do Pedido:</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(qrOrder.totalAmount)}</p>
+                    {qrOrder.paymentMethod === 'bch' && qrOrder.exchangeRateUsed && (
+                      <p className="text-sm text-yellow-400">
+                        ({(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)} BCH)
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* QR Code Section - Conditionally Displayed */}
+                <div className="md:col-span-1">
+                  {qrOrder.paymentMethod === 'bch' && qrOrder.status === 'pending' && qrOrder.merchantAddress && qrOrder.exchangeRateUsed && (
+                    <div className="flex flex-col items-center p-4 bg-[var(--color-bg-tertiary)] rounded-lg sticky top-6"> {/* sticky e top-6 para fixar ao rolar */}
+                      <h4 className="text-md font-semibold mb-3 text-gray-200">Pagar com Bitcoin Cash</h4>
+                      <div className="bg-white p-2 rounded-md inline-block">
+                        <QRCode value={`${qrOrder.merchantAddress.startsWith('bitcoincash:') ? qrOrder.merchantAddress : `bitcoincash:${qrOrder.merchantAddress}`}?amount=${(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)}&label=Kashy&message=Pedido%20#${qrOrder._id}`} size={180} level="M" />
+                      </div>
+                      <p className="mt-2 text-xs text-gray-400 text-center break-all">Endereço: {qrOrder.merchantAddress}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 border-t border-[var(--color-border)] pt-4">
+              <button
+                onClick={() => handlePrint(qrOrder!)} // Assuming qrOrder is not null here
+                disabled={!qrOrder || isLoadingQr}
+                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors text-sm text-gray-300 flex items-center gap-2 disabled:opacity-50"
+              >
+                <FiPrinter /> Imprimir
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white"
+                onClick={() => setQrOrder(null)}
+                disabled={isLoadingQr}
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -789,7 +912,7 @@ export function PedidosTab() {
                   className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
                 />
                 <div className="max-h-40 overflow-y-auto border border-[var(--color-border)] rounded-md">
-                  {loadingProducts && <p className="text-gray-400 p-2">Carregando produtos...</p>}
+                  {loadingProducts && <p className="text-gray-400 p-2 text-center">Carregando produtos...</p>}
                   {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-2">Nenhum produto encontrado para esta loja.</p>}
                   {!loadingProducts && !selectedStore && <p className="text-gray-400 p-2">Selecione uma loja para ver os produtos.</p>}
                   {products
@@ -799,7 +922,7 @@ export function PedidosTab() {
                     .map((product) => (
                       <div
                         key={product._id}
-                        className="flex justify-between items-center px-3 py-2 hover:bg-[var(--color-bg-tertiary)] cursor-pointer border-b border-[var(--color-border)] last:border-b-0"
+                        className="flex justify-between items-center px-3 py-2 hover:bg-[var(--color-bg-terciary)] cursor-pointer border-b border-[var(--color-border)] last:border-b-0"
                         onClick={() => {
                           setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
                           console.log('[PedidosTab] Produto adicionado ao carrinho:', product);
@@ -820,7 +943,7 @@ export function PedidosTab() {
                     {selectedProducts.map((product, index) => (
                       <div
                         key={`${product._id}-${index}`} // Ensure unique key if same product added multiple times
-                        className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-tertiary)] rounded-lg"
+                        className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-terciary)] rounded-lg"
                       >
                         <span className="truncate max-w-[60%]">{product.name}</span>
                         <div className="flex items-center gap-2">
