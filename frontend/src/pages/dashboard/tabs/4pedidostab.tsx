@@ -616,8 +616,27 @@ export function PedidosTab() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm flex items-center gap-2">
-                            {order.paymentMethod === 'bch' && <img src="/bch-logo.svg" alt="BCH" className="w-5 h-5" />}
-                            {order.paymentMethod === 'pix' && <img src="/pix-logo.svg" alt="PIX" className="w-5 h-5" />}
+                            {order.paymentMethod === 'bch' && (
+                              <span className="w-5 h-5 inline-block align-middle">
+                                {/* BCH SVG */}
+                                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                                  <rect width="32" height="32" rx="8" fill="#0AC18E"/>
+                                  <g>
+                                    <circle cx="16" cy="16" r="10" fill="#fff"/>
+                                    <path d="M18.7 13.2c.3-2-1.2-3.1-3.3-3.1l.3-1.3-1.2-.3-.3 1.3c-.3-.1-.6-.1-.9-.2l.3-1.3-1.2-.3-.3 1.3c-.2 0-.4-.1-.6-.1l-1.6-.4-.3 1.3s.9.2.9.2c.5.1.6.5.6.8l-1.5 6.1c-.1.2-.2.5-.6.4 0 0-.9-.2-.9-.2l-.3 1.4 1.5.4c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c2.1.4 3.7.2 4.4-1.7.5-1.3 0-2.1-1-2.6.7-.2 1.2-.8 1.3-1.9zm-2.3 4.1c-.3 1.3-2.6.6-3.3.4l.6-2.3c.7.2 3 .7 2.7 1.9zm.3-4.2c-.3 1.1-2.1.6-2.7.5l.5-2c.6.1 2.5.4 2.2 1.5z" fill="#0AC18E"/>
+                                  </g>
+                                </svg>
+                              </span>
+                            )}
+                            {order.paymentMethod === 'pix' && (
+                              <span className="w-5 h-5 inline-block align-middle">
+                                {/* PIX SVG */}
+                                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                                  <rect width="32" height="32" rx="8" fill="#00E1CC"/>
+                                  <path d="M16 8.5c.5 0 1 .2 1.4.6l5.5 5.5c.8.8.8 2 0 2.8l-5.5 5.5c-.8.8-2 .8-2.8 0l-5.5-5.5c-.8-.8-.8-2 0-2.8l5.5-5.5c.4-.4.9-.6 1.4-.6z" fill="#fff"/>
+                                </svg>
+                              </span>
+                            )}
                             {order.paymentMethod === 'card' && <FiCreditCard className="text-blue-400" />}
                             {getPaymentMethodLabel(order.paymentMethod)}
                           </div>
