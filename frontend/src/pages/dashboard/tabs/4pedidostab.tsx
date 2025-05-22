@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiEdit, FiTrash2, FiCopy, FiPrinter, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiEdit, FiTrash2, FiCopy, FiPrinter, FiClock, FiCheckCircle, FiXCircle, FiPlus, FiCreditCard } from 'react-icons/fi';
 import QRCode from 'react-qr-code';
 
 type OrderItem = {
@@ -463,7 +463,7 @@ export function PedidosTab() {
       case 'refunded':
         return 'Reembolsado';
       default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
+        return (status as string).charAt(0).toUpperCase() + (status as string).slice(1);
     }
   };
 
@@ -529,14 +529,31 @@ export function PedidosTab() {
           {/* Botão de Novo Pedido */}
           <button
             id="btn-novo-pedido"
-            onClick={() => {
-              console.log("[PedidosTab] Botão Novo Pedido clicado.");
-              setIsOrderModalOpen(true);
-            }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            onClick={() => setIsOrderModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white rounded-lg transition-colors font-semibold shadow"
           >
-            Novo Pedido
+            <FiPlus className="inline mr-1" /> Novo Pedido
           </button>
+        </div>
+      </div>
+
+      {/* Resumo rápido */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-green-300">Pagos</span>
+          <span className="text-xl font-bold text-green-200">{orders.filter(o => o.status === 'paid').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-yellow-300">Pendentes</span>
+          <span className="text-xl font-bold text-yellow-200">{orders.filter(o => o.status === 'pending').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-red-300">Cancelados/Expirados</span>
+          <span className="text-xl font-bold text-red-200">{orders.filter(o => o.status === 'cancelled' || o.status === 'expired').length}</span>
+        </div>
+        <div className="bg-gradient-to-br from-blue-900/80 to-blue-800/60 p-4 rounded-xl shadow flex flex-col items-center">
+          <span className="text-xs text-blue-300">Total</span>
+          <span className="text-xl font-bold text-blue-200">{orders.length}</span>
         </div>
       </div>
 
@@ -598,7 +615,10 @@ export function PedidosTab() {
                           <div className="text-sm font-medium">{formatCurrency(order.totalAmount)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm">
+                          <div className="text-sm flex items-center gap-2">
+                            {order.paymentMethod === 'bch' && <img src="/bch-logo.svg" alt="BCH" className="w-5 h-5" />}
+                            {order.paymentMethod === 'pix' && <img src="/pix-logo.svg" alt="PIX" className="w-5 h-5" />}
+                            {order.paymentMethod === 'card' && <FiCreditCard className="text-blue-400" />}
                             {getPaymentMethodLabel(order.paymentMethod)}
                           </div>
                         </td>
@@ -740,7 +760,7 @@ export function PedidosTab() {
 
       {/* Modal Detalhes do Pedido (antigo Modal QR Code) */}
       {qrOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-3xl shadow-xl border border-[var(--color-border)] max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2">
@@ -872,7 +892,7 @@ export function PedidosTab() {
 
       {/* Modal Novo Pedido */}
       {isOrderModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-3xl shadow-xl border border-[var(--color-border)] max-h-[90vh] flex flex-col">
             <h3 className="text-lg font-bold mb-4 flex-shrink-0">Novo Pedido</h3>
             <form
