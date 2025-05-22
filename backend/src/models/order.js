@@ -1,4 +1,4 @@
-// c:\Users\natan.bagatoli\Desktop\Kashy-Project\backend\src\models\order.js
+// z:\git lixo\Kashy-Project\backend\src\models\order.js
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
@@ -50,15 +50,28 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: function() { return this.paymentMethod === 'bch'; }
   },
+  // Campos para rastrear o valor total pago
+  amountPaidBRL: { // Valor total efetivamente pago em BRL
+    type: Number,
+    default: 0,
+  },
+  amountPaidBCH: { // Valor total efetivamente pago em BCH (se aplicável)
+    type: Number,
+    default: 0,
+  },
+  overpaymentAmountBRL: { // Valor pago a mais em BRL
+    type: Number,
+    default: 0,
+  },
   status: {
     type: String,
-    enum: ['pending', 'payment_detected', 'paid', 'confirmed_paid', 'cancelled', 'refunded', 'expired'],
+    enum: ['pending', 'partially_paid', 'payment_detected', 'paid', 'confirmed_paid', 'cancelled', 'refunded', 'expired'],
     default: 'pending',
   },
   transaction: { // Optional: details of the payment transaction (if applicable)
     txHash: { type: String },
     status: { type: String, enum: ['pending', 'confirmed', 'failed'] },
-    paidAmountBCH: { type: Number }, // Actual amount paid in BCH
+    paidAmountBCH: { type: Number }, // Actual amount paid in BCH for this specific transaction
     paymentReceivedAt: { type: Date }, // Timestamp when payment was detected/confirmed
     confirmations: { type: Number, default: 0 }
   },
@@ -70,4 +83,3 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true }); // Adds createdAt and updatedAt automatically
 
 module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
-

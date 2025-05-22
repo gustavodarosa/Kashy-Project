@@ -27,6 +27,8 @@ type Order = {
   };
   merchantAddress?: string;
   exchangeRateUsed?: number; // Changed from exchangeRate to exchangeRateUsed
+  amountPaidBRL?: number; // Valor efetivamente pago em BRL
+  amountPaidBCH?: number; // Valor efetivamente pago em BCH
 };
 
 type Product = {
@@ -764,6 +766,55 @@ export function PedidosTab() {
               <div className="text-red-500 text-center p-4">{error}</div>
             )}
 
+            {/* Seção de Status de Pagamento (Under/Overpayment) */}
+            {!isLoadingQr && !error && qrOrder && qrOrder.amountPaidBRL !== undefined && qrOrder.amountPaidBRL !== null && (
+              (() => {
+                const discrepancyBRL = qrOrder.amountPaidBRL! - qrOrder.totalAmount;
+                let paymentStatusMessage = null;
+
+                if (discrepancyBRL < 0) { // Underpayment
+                  const remainingBRL = Math.abs(discrepancyBRL);
+                  paymentStatusMessage = (
+                    <div className="my-4 p-3 bg-yellow-800 bg-opacity-50 border border-yellow-700 rounded-md text-sm">
+                      <p className="font-semibold text-yellow-300">Pagamento Parcial Recebido</p>
+                      <p>Valor Pago: {formatCurrency(qrOrder.amountPaidBRL!)}</p>
+                      <p>Valor Total da Fatura: {formatCurrency(qrOrder.totalAmount)}</p>
+                      <p className="font-bold text-yellow-200">Valor Restante: {formatCurrency(remainingBRL)}</p>
+                      {qrOrder.paymentMethod === 'bch' && qrOrder.exchangeRateUsed && qrOrder.amountPaidBCH !== undefined && (
+                        <p className="text-xs text-yellow-400">
+                          Restante em BCH: {( (qrOrder.totalAmount / qrOrder.exchangeRateUsed) - qrOrder.amountPaidBCH ).toFixed(8)} BCH
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs text-yellow-400">
+                        A loja pode: solicitar o valor restante, ajustar itens, ou cancelar e reembolsar o valor pago.
+                        O pedido não será expirado automaticamente enquanto houver pagamento parcial.
+                      </p>
+                    </div>
+                  );
+                } else if (discrepancyBRL > 0) { // Overpayment
+                  paymentStatusMessage = (
+                    <div className="my-4 p-3 bg-green-800 bg-opacity-50 border border-green-700 rounded-md text-sm">
+                      <p className="font-semibold text-green-300">Pagamento Excedente Recebido</p>
+                      <p>Valor Pago: {formatCurrency(qrOrder.amountPaidBRL!)}</p>
+                      <p>Valor Total da Fatura: {formatCurrency(qrOrder.totalAmount)}</p>
+                      <p className="font-bold text-green-200">Valor a Devolver: {formatCurrency(discrepancyBRL)}</p>
+                      {qrOrder.paymentMethod === 'bch' && qrOrder.exchangeRateUsed && qrOrder.amountPaidBCH !== undefined && (
+                         <p className="text-xs text-green-400">
+                           Excedente em BCH: {(qrOrder.amountPaidBCH - (qrOrder.totalAmount / qrOrder.exchangeRateUsed) ).toFixed(8)} BCH
+                         </p>
+                      )}
+                      <p className="mt-2 text-xs text-green-400">
+                        A loja é responsável por reembolsar o valor excedente ao cliente.
+                      </p>
+                    </div>
+                  );
+                }
+                return paymentStatusMessage;
+              })()
+            )}
+            {/* Fim da Seção de Status de Pagamento */}
+
+
             {!isLoadingQr && !error && qrOrder && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Main grid for details and QR */}
                 {/* Coluna da Esquerda: Detalhes do Pedido */}
@@ -838,13 +889,34 @@ export function PedidosTab() {
                 {/* QR Code Section - Conditionally Displayed */}
                 <div className="md:col-span-1">
                   {qrOrder.paymentMethod === 'bch' && qrOrder.status === 'pending' && qrOrder.merchantAddress && qrOrder.exchangeRateUsed && (
-                    <div className="flex flex-col items-center p-4 bg-[var(--color-bg-tertiary)] rounded-lg sticky top-6"> {/* sticky e top-6 para fixar ao rolar */}
-                      <h4 className="text-md font-semibold mb-3 text-gray-200">Pagar com Bitcoin Cash</h4>
-                      <div className="bg-white p-2 rounded-md inline-block">
-                        <QRCode value={`${qrOrder.merchantAddress.startsWith('bitcoincash:') ? qrOrder.merchantAddress : `bitcoincash:${qrOrder.merchantAddress}`}?amount=${(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)}&label=Kashy&message=Pedido%20#${qrOrder._id}`} size={180} level="M" />
-                      </div>
-                      <p className="mt-2 text-xs text-gray-400 text-center break-all">Endereço: {qrOrder.merchantAddress}</p>
-                    </div>
+                    (() => {
+                      let amountForQrBCH = qrOrder.totalAmount / qrOrder.exchangeRateUsed;
+                      let qrTitle = "Pagar com Bitcoin Cash";
+
+                      if (qrOrder.amountPaidBRL !== undefined && qrOrder.amountPaidBCH !== undefined) {
+                        const discrepancyBRL = qrOrder.amountPaidBRL - qrOrder.totalAmount;
+                        if (discrepancyBRL < 0) { // Underpayment
+                          amountForQrBCH = (qrOrder.totalAmount / qrOrder.exchangeRateUsed) - qrOrder.amountPaidBCH;
+                          qrTitle = "Pagar Valor Restante";
+                        } else { // Overpayment or exact payment
+                          amountForQrBCH = 0; // Don't show QR if fully paid or overpaid
+                        }
+                      }
+
+                      if (amountForQrBCH > 0) {
+                        return (
+                          <div className="flex flex-col items-center p-4 bg-[var(--color-bg-tertiary)] rounded-lg sticky top-6">
+                            <h4 className="text-md font-semibold mb-3 text-gray-200">{qrTitle}</h4>
+                            <div className="bg-white p-2 rounded-md inline-block">
+                              <QRCode value={`${qrOrder.merchantAddress.startsWith('bitcoincash:') ? qrOrder.merchantAddress : `bitcoincash:${qrOrder.merchantAddress}`}?amount=${amountForQrBCH.toFixed(8)}&label=Kashy&message=Pedido%20#${qrOrder._id}`} size={180} level="M" />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-400 text-center break-all">Endereço: {qrOrder.merchantAddress}</p>
+                            <p className="mt-1 text-sm font-semibold text-yellow-300">Valor: {amountForQrBCH.toFixed(8)} BCH</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()
                   )}
                 </div>
               </div>

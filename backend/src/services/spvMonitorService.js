@@ -1,4 +1,4 @@
-// z:\Kashy-Project\backend\src\services\spvMonitorService.js
+// z:\git lixo\Kashy-Project\backend\src\services\spvMonitorService.js
 const ElectrumClient = require('electrum-client');
 const cashaddr = require('cashaddrjs');
 const crypto = require('crypto');
@@ -389,34 +389,75 @@ class SpvMonitorService {
 
             // Find new, relevant transactions
             for (const item of history.sort((a, b) => b.height - a.height)) { // Process recent first
-                if (order.transactionId && order.transactionId === item.tx_hash) {
-                    logger.debug(`SPV: [Order Payment] Transaction ${item.tx_hash} already processed for order ${orderId}. Checking confirmations.`);
-                    // TODO: Potentially update confirmations if height changed and notify.
+                if (order.transaction && order.transaction.txHash === item.tx_hash) { // Check against subdocument
+                    logger.debug(`SPV: [Order Payment] Transaction ${item.tx_hash} already recorded for order ${orderId}. Checking for confirmation updates.`);
+                    // If already recorded, check if it's now confirmed
+                    if (item.height > 0 && order.status !== 'confirmed_paid' && order.status !== 'paid') { // Assuming 'paid' can be unconfirmed
+                        const oldStatus = order.status;
+                        order.status = 'confirmed_paid';
+                        if (order.transaction) {
+                            order.transaction.status = 'confirmed';
+                            // Ideally, get current block height to calculate confirmations accurately
+                            // For simplicity here, we'll just mark as confirmed.
+                            // order.transaction.confirmations = (await walletService.getBlockHeight()) - item.height + 1;
+                        }
+                        await order.save();
+                        logger.info(`SPV: [Order Payment] Order ${orderId} (TX: ${item.tx_hash}) status updated from ${oldStatus} to ${order.status}.`);
+                        if (this.io) this.io.to(userId.toString()).emit('orderUpdate', order.toObject());
+                    }
                     continue;
                 }
 
                 const txDetails = await electrumRequestManager.raceRequest('blockchain.transaction.get', [item.tx_hash, true]);
-                if (!txDetails) continue;
+                if (!txDetails) {
+                    logger.warn(`SPV: [Order Payment] Could not get details for TX ${item.tx_hash} for order ${orderId}.`);
+                    continue;
+                }
 
                 for (const vout of txDetails.vout) {
                     if (vout.scriptPubKey?.addresses?.includes(bchAddress)) {
-                        const receivedSatoshis = Math.round((vout.value || 0) * SATOSHIS_PER_BCH);
-                        const expectedSatoshis = Math.round(order.amountBCH * SATOSHIS_PER_BCH);
+                        const receivedSatoshisThisTx = Math.round((vout.value || 0) * SATOSHIS_PER_BCH);
+                        logger.info(`SPV: [Order Payment] Payment DETECTED for Order ${orderId}. TX: ${item.tx_hash}, Addr: ${bchAddress}, Amount in this TX: ${receivedSatoshisThisTx} sats.`);
 
-                        // Basic amount check (can add tolerance for overpayment)
-                        if (receivedSatoshis >= expectedSatoshis) {
-                            logger.info(`SPV: [Order Payment] Payment DETECTED for Order ${orderId}. TX: ${item.tx_hash}, Amount: ${receivedSatoshis} sats.`);
-                            order.status = item.height > 0 ? 'confirmed_paid' : 'payment_detected'; // 'paid' if unconfirmed is acceptable
-                            order.transactionId = item.tx_hash;
-                            order.paidAmountBCH = receivedSatoshis / SATOSHIS_PER_BCH;
-                            order.paymentReceivedAt = new Date();
-                            // TODO: Add confirmations field to order and update it here
-                            await order.save();
-                            logger.info(`SPV: [Order Payment] Order ${orderId} status updated to ${order.status}.`);
-                            // Notify merchant via WebSocket about the order update
-                            if (this.io) this.io.to(userId.toString()).emit('orderUpdate', order.toObject());
-                            return; // Payment found and processed for this order
+                        // Update accumulated paid amounts
+                        const receivedBCHThisTx = receivedSatoshisThisTx / SATOSHIS_PER_BCH;
+                        order.amountPaidBCH = (order.amountPaidBCH || 0) + receivedBCHThisTx;
+                        
+                        const exchangeRateToUse = order.exchangeRateUsed;
+                        if (!exchangeRateToUse) {
+                            logger.error(`SPV: [Order Payment] Missing exchangeRateUsed for order ${orderId}. Cannot calculate amountPaidBRL accurately.`);
+                            // Potentially fetch current rate as a fallback, but it's not ideal for reconciliation
                         }
+                        const receivedBRLThisTx = exchangeRateToUse ? receivedBCHThisTx * exchangeRateToUse : 0;
+                        order.amountPaidBRL = (order.amountPaidBRL || 0) + receivedBRLThisTx;
+
+                        // Update transaction subdocument
+                        order.transaction = {
+                            txHash: item.tx_hash,
+                            status: item.height > 0 ? 'confirmed' : 'pending',
+                            paidAmountBCH: receivedBCHThisTx, // Amount of this specific transaction
+                            paymentReceivedAt: txDetails.blocktime ? new Date(txDetails.blocktime * 1000) : new Date(),
+                            confirmations: item.height > 0 && txDetails.confirmations ? txDetails.confirmations : (item.height > 0 ? 1 : 0) // Use confirmations from txDetails if available
+                        };
+
+                        // Update order status based on total paid vs total expected
+                        if (order.amountPaidBRL >= order.totalAmount) {
+                            order.status = item.height > 0 ? 'confirmed_paid' : 'paid';
+                            if (order.amountPaidBRL > order.totalAmount) {
+                                order.overpaymentAmountBRL = order.amountPaidBRL - order.totalAmount;
+                                logger.info(`SPV: [Order Payment] Overpayment for Order ${orderId}. Overpaid by: ${order.overpaymentAmountBRL.toFixed(2)} BRL`);
+                            }
+                        } else {
+                            order.status = 'partially_paid';
+                            logger.info(`SPV: [Order Payment] Partial payment for Order ${orderId}. Paid BRL: ${order.amountPaidBRL.toFixed(2)}, Remaining BRL: ${(order.totalAmount - order.amountPaidBRL).toFixed(2)}`);
+                        }
+                        
+                        // order.paymentReceivedAt = new Date(); // This might be better in order.transaction.paymentReceivedAt
+                        
+                        await order.save();
+                        logger.info(`SPV: [Order Payment] Order ${orderId} (TX: ${item.tx_hash}) status updated to ${order.status}. Total Paid BRL: ${order.amountPaidBRL.toFixed(2)}`);
+                        if (this.io) this.io.to(userId.toString()).emit('orderUpdate', order.toObject());
+                        return; // Found and processed a relevant payment for this order
                     }
                 }
             }
@@ -499,8 +540,8 @@ class SpvMonitorService {
             for (const user of usersToMonitor) { await this.addSubscription(user._id.toString(), user.bchAddress); }
 
             // Also load pending order addresses
-            const pendingOrders = await Order.find({ status: { $in: ['pending', 'payment_detected'] }, paymentMethod: 'bch', merchantAddress: { $exists: true } }).select('user merchantAddress _id').lean();
-            logger.debug(`SPV: [Initial Load] Found ${pendingOrders.length} pending BCH orders to monitor.`);
+            const pendingOrders = await Order.find({ status: { $in: ['pending', 'payment_detected', 'partially_paid'] }, paymentMethod: 'bch', merchantAddress: { $exists: true } }).select('user merchantAddress _id').lean(); // Added 'partially_paid'
+            logger.debug(`SPV: [Initial Load] Found ${pendingOrders.length} pending/partial BCH orders to monitor.`);
             for (const order of pendingOrders) { await this.addSubscription(order.user.toString(), order.merchantAddress, order._id.toString()); }
 
             logger.info(`SPV: [Initial Load] Finished adding initial subscriptions. Monitoring ${this.subscriptions.size} unique scriptHashes.`);
