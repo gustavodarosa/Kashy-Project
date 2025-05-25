@@ -4,11 +4,11 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ArrowUpRight } from "lucide-react";
 import * as Progress from "@radix-ui/react-progress";
 
 const data = [
-  { valor: 30 },
+  { valor: 15 },
   { valor: 20 },
   { valor: 25 },
   { valor: 15 },
@@ -16,6 +16,14 @@ const data = [
   { valor: 20 },
   { valor: 24 }, // vendas de hoje
 ];
+
+// CustomDot agora é uma função que retorna um componente
+const CustomDot = (data: typeof data) => (props: any) => {
+  // const { cx, cy, index } = props; // Variáveis não mais necessárias aqui
+  // const isLast = index === data.length - 1; // Não mais necessário
+
+  return null;
+};
 
 const ResumoVendasCard = () => {
   const hoje = data[data.length - 1].valor;
@@ -92,52 +100,7 @@ const ResumoVendasCard = () => {
       </div>
 
       {/* Gráfico */}
-      <div className="h-24 w-40 flex-shrink-0 flex flex-col">
-        <div className="text-center mb-1">
-          <p className="text-xs text-white/70">Vendas (Últimos 7 dias)</p>
-          <p className="text-sm font-semibold" style={{ color: cor }}>
-            {prefixo}
-            {percentual}%
-          </p>
-        </div>
-        <div className="flex-grow">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient
-                  id="lineGradientGreen"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor="#00ffcc" />
-                  <stop offset="100%" stopColor="#008080" />
-                </linearGradient>
-              </defs>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#2a2a40",
-                  border: "none",
-                  borderRadius: "6px",
-                }}
-                labelFormatter={(_, i) => `Dia ${i + 1}`}
-                formatter={(value) => [`${value} vendas`, ""]}
-              />
-              <Line
-                type="linear"
-                dataKey="valor"
-                stroke="url(#lineGradientGreen)"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {/* O gráfico foi removido daqui */}
     </div>
   );
 };

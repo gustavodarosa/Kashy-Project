@@ -1,19 +1,34 @@
-import WalletHeader from '../../../components/DashboardHeader'; // O arquivo é DashboardHeader.tsx, mas exporta WalletHeader
+import { TrendingUp } from 'lucide-react';
+import WalletHeader from '../../../components/DashboardHeader';
 import ResumoVendasCard from '../../../components/ResumoVendasCard';
+import CotacaoCriptoCard from '../../../components/PriceContainer';
+import { WalletBalanceCard } from '../../../components/WalletBalanceCard';
+import { LowStockAlert } from '../../../components/LowStocksAlert'; // ✅ Novo componente
 
 export function DashboardTab() {
   return (
-    <div
-      className="min-h-screen flex flex-col items-stretch justify-start"
-      style={{
-        backgroundImage: 'linear-gradient(to bottom, #26a7a2 0%, #26a7a2 5%, #141414 20%, #141414 100%)',
-      }}
-    >
-      <WalletHeader />
-      <div> {/* Adiciona margem acima do card */}
-        <ResumoVendasCard />
+    <div className="min-h-screen bg-[#141414] text-white p-6">
+      {/* Header opcional */}
+      {/* <WalletHeader /> */}
+
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        {/* Coluna principal */}
+        <div className="flex flex-col gap-4 md:w-2/3">
+          <ResumoVendasCard />
+
+          {/* ➕ Novo componente de alerta de estoque */}
+          <LowStockAlert />
+
+          {/* Aqui você pode adicionar outro componente, como TopProdutos, Últimas Vendas, etc */}
+          {/* <TopProdutosMaisVendidos /> */}
+        </div>
+
+        {/* Coluna lateral com cotação e saldo */}
+        <div className="flex flex-col gap-4 md:w-1/3 md:pr-2">
+          <CotacaoCriptoCard />
+          <WalletBalanceCard />
+        </div>
       </div>
-      {/* Mais conteúdo pode ser adicionado aqui abaixo */}
     </div>
   );
 }

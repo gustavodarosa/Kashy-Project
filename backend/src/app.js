@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
 const userRoutes = require('./routes/userRoutes');
-const cryptoProxy = require('./routes/cryptoProxy');
+const cryptoProxyRoutes = require('./routes/cryptoProxy'); // Renamed for clarity
 const walletRoutes = require('./routes/walletRoutes'); 
 const reportRoutes = require("./routes/reportRoutes");
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const rateRoutes = require('./routes/rateRoutes'); // Import new rate routes
+const transactionRoutes = require('./routes/transactionRoutes'); // Import transaction routes
 
 
 const errorHandler = require('./middlewares/errorHandler');
@@ -27,11 +29,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 app.use('/api/users', userRoutes);
 app.use('/api/wallet', walletRoutes);
-app.use('/api/crypto', cryptoProxy);
+app.use('/api/crypto-proxy', cryptoProxyRoutes); // Changed mount path
 app.use('/api', routes); 
 app.use("/api/reports", reportRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/rates', rateRoutes); // Mount new rate routes
+app.use('/api/transactions', transactionRoutes); // Mount transaction routes
 
 
 app.use(errorHandler);
