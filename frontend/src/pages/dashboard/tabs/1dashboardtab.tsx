@@ -4,6 +4,7 @@ import ResumoVendasCard from '../../../components/ResumoVendasCard';
 import CotacaoCriptoCard from '../../../components/PriceContainer';
 import { WalletBalanceCard } from '../../../components/WalletBalanceCard';
 import { LowStockAlert } from '../../../components/LowStocksAlert'; // ✅ Novo componente
+import  MostSoldProducts  from '../../../components/MostSoldProducts'; // ✅ Novo componente
 
 export function DashboardTab() {
   return (
@@ -27,6 +28,7 @@ export function DashboardTab() {
         <div className="flex flex-col gap-4 md:w-1/3 md:pr-2">
           <CotacaoCriptoCard />
           <WalletBalanceCard />
+          <MostSoldProducts />
         </div>
       </div>
     </div>
