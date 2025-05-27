@@ -223,7 +223,7 @@ export function WalletTab() {
       <div className="flex gap-6 mb-8">
         <div className="flex flex-col items-center">
           <button
-            className="flex items-center justify-center w-16 h-16 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
             onClick={() => setSendModalOpen(true)}
           >
             <FiArrowUp size={24} />
@@ -232,7 +232,7 @@ export function WalletTab() {
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="flex items-center justify-center w-16 h-16 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
             onClick={() => setReceiveModalOpen(true)}
           >
             <FiArrowDown size={24} />
@@ -241,7 +241,7 @@ export function WalletTab() {
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="opacity-60 cursor-not-allowed flex items-center justify-center w-16 h-16 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 opacity-60 cursor-not-allowed flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
             disabled
           >
             <FiRepeat size={24} />
@@ -250,7 +250,7 @@ export function WalletTab() {
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="opacity-60 cursor-not-allowed flex items-center justify-center w-16 h-16 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 opacity-60 cursor-not-allowed flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
             disabled
           >
             <FiRefreshCw size={24} />
@@ -258,72 +258,129 @@ export function WalletTab() {
           <span className="text-xs mt-2 text-white">Convert</span>
         </div>
       </div>
-<div className="w-full max-w-7xl bg-[#2f3741] rounded-4xl p-8 mb-8">
-  <h3 className="text-lg font-semibold text-white mb-6">Transações Recentes</h3>
-  <div className="flex flex-col gap-4">
-    {transactions.length === 0 && (
-      <div className="text-gray-400 text-center py-8">Nenhuma transação encontrada.</div>
-    )}
-    {transactions.map((tx) => (
-      <div
-        key={tx.txid}
-        className="flex items-center justify-between bg-[#23272B] rounded-xl px-6 py-4 shadow-sm border border-[#23272B] hover:border-teal-600 transition"
-      >
-        {/* Ícone e info */}
-        <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center
-            ${tx.type === 'received' ? 'bg-green-700' : tx.type === 'sent' ? 'bg-blue-700' : 'bg-blue-900'}`}>
-            {tx.type === 'received' ? (
-              <FiArrowDown size={22} className="text-white" />
-            ) : tx.type === 'sent' ? (
-              <FiArrowUp size={22} className="text-white" />
-            ) : (
-              <FiRepeat size={22} className="text-white" />
-            )}
-          </div>
-          <div>
-            <div className="font-semibold text-white text-base">
-              {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
-            </div>
-            <div className="text-xs text-gray-400">
-              {new Date(tx.timestamp).toLocaleDateString('pt-BR')}<span className="mx-1">,</span>
-              {new Date(tx.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <div className="text-xs text-teal-400">
-              Hash: <a
-                href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-teal-300"
-              >
-                {tx.txid.slice(0, 8)}...{tx.txid.slice(-6)}
-              </a>
-            </div>
-          </div>
-        </div>
-        {/* Valor e status */}
-        <div className="flex flex-col items-end min-w-[160px]">
-          <div className={`font-semibold text-right ${tx.type === 'received' ? 'text-green-400' : 'text-white'}`}>
-            {tx.type === 'received' ? '+' : ''}
-            {tx.amountBCH.toFixed(8)} BCH
-          </div>
-          <div className="text-xs text-gray-400 text-right">
-            R$ {tx.amountBRL.toFixed(2)}
-          </div>
-          <div className="mt-1">
-            <span className="bg-green-700 text-green-200 text-xs px-3 py-1 rounded-full font-medium">
-              {tx.status === 'confirmed'
-                ? `Confirmado (${tx.confirmations} conf.)`
-                : tx.status === 'pending'
-                ? 'Pendente'
-                : 'Erro'}
-            </span>
-          </div>
-        </div>
-      </div>
-    ))}
+      <h3 className="text-lg font-semibold text-white mb-6">Transações Recentes</h3>
+<div className="w-full bg-[#2F363E] max-w-7xl rounded-4xl p-4 mb-6 shadow-2xl ">
+  <div className="flex justify-between items-center">
+    <div className="flex gap-4">
+      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#23272B] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Transações
+      </button>
+      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#23272B] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Withdraw
+      </button>
+    </div>
+    <div className="flex gap-4">
+      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Hoje
+      </button>
+      <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-800 transition">
+        Semanal
+      </button>
+      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Mensal
+      </button>
+      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Anual
+      </button>
+    </div>
   </div>
 </div>
+
+{/* Histórico de transações */}
+<div className="w-full max-w-7xl bg-[#2f3741] rounded-4xl p-8 mb-8 shadow-2xl">
+  <div className="overflow-x-auto">
+    <table className="w-full text-left text-sm text-gray-400  ">
+      <thead className="bg-[#23272B] border-2 border-gray-600 text-xs uppercase text-gray-500 ">
+        <tr>
+          <th scope="col" className="px-6 py-3">Descrição</th>
+          <th scope="col" className="px-6 py-3">Data</th>
+          <th scope="col" className="px-6 py-3">Quantidade</th>
+          <th scope="col" className="px-6 py-3">Status</th>
+          <th scope="col" className="px-6 py-3">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+  {transactions.length === 0 ? (
+    <tr>
+      <td colSpan={5} className="text-center py-8 text-gray-400">
+        Nenhuma transação encontrada.
+      </td>
+    </tr>
+  ) : (
+    transactions.map((tx) => (
+      <tr
+        key={tx.txid}
+        className="border-b border-[#333a41] hover:bg-[#272c31] transition"
+      >
+        <td className="px-6 py-4 flex items-center gap-2">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center
+              ${tx.type === 'received' ? 'bg-green-500' : tx.type === 'sent' ? 'bg-blue-700' : 'bg-blue-900'}`}
+            title={tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
+          >
+            {tx.type === 'received' ? (
+              <FiArrowDown size={18} className="text-white" />
+            ) : tx.type === 'sent' ? (
+              <FiArrowUp size={18} className="text-white" />
+            ) : (
+              <FiRepeat size={18} className="text-white" />
+            )}
+          </div>
+          <span className="text-white font-medium">
+            {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
+          </span>
+        </td>
+        <td className="px-6 py-4">
+          {new Date(tx.timestamp).toLocaleDateString('pt-BR')}
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-white font-medium">
+            {tx.amountBCH.toFixed(8)} BCH
+          </div>
+          <div className="text-xs text-gray-400">
+            R$ {tx.amountBRL.toFixed(2)}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              tx.status === 'confirmed'
+                ? 'bg-green-500 text-green-100'
+                : tx.status === 'pending'
+                ? 'bg-yellow-700 text-yellow-200'
+                : 'bg-red-700 text-red-200'
+            }`}
+            title={
+              tx.status === 'confirmed'
+                ? 'Transação confirmada'
+                : tx.status === 'pending'
+                ? 'Transação pendente'
+                : 'Erro na transação'
+            }
+          >
+            {tx.status === 'confirmed'
+              ? `Confirmado`
+              : tx.status === 'pending'
+              ? 'Pendente'
+              : 'Erro'}
+          </span>
+        </td>
+        <td className="px-6 py-4">
+          <button
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-teal-700 transition"
+            onClick={() => console.log(`Repetir transação ${tx.txid}`)}
+          >
+            Detalhes
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
+    </table>
+  </div>
+</div>
+
 {/* Modal de envio de transação */}
 {sendModalOpen && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm bg-opacity-60">
@@ -429,7 +486,7 @@ export function WalletTab() {
         </div>
         <button
           type="submit"
-          className="w-full  delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white rounded-lg py-2 font-semibold mt-2 hover:bg-teal-700 transition"
+          className="w-full ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white rounded-lg py-2 font-semibold mt-2 hover:bg-teal-700 transition"
           disabled={isSending}
         >
           {isSending ? 'Enviando...' : 'Continue'}
@@ -471,7 +528,7 @@ export function WalletTab() {
           Transaction sent to external address.
         </p>
         <button
-          className="bg-teal-600 hover:bg-teal-700 delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 text-white font-semibold px-8 py-3 rounded-2xl mb-4 transition"
+          className="bg-teal-600 hover:bg-teal-700 ease-in-out hover:-translate-y-1 hover:scale-110 text-white font-semibold px-8 py-3 rounded-2xl mb-4 transition"
           onClick={() => setShowSuccessModal(false)}
         >
           Back to home
