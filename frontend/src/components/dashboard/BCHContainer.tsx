@@ -242,7 +242,7 @@ const BitcoinCashCard = () => {
   const intervalosDisponiveis = ["1", "7", "15", "30"]; // Updated timeframes
 
   return (
-    <div className="w-full max-w-sm rounded-xl p-4 bg-[#1e1e2f] text-white shadow-md ">
+    <div className="w-full h-full flex flex-col text-white">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-semibold">Bitcoin Cash</p>
@@ -294,19 +294,19 @@ const BitcoinCashCard = () => {
       {/* Granularity selection buttons removed */}
 
       {isLoading && (
-        <div className="mt-3 h-40 flex items-center justify-center">
+        <div className="mt-3 flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-lime-300"></div>
         </div>
       )}
 
       {error && !isLoading && (
-        <div className="mt-3 h-40 flex items-center justify-center text-red-500 text-sm p-4 text-center">
+        <div className="mt-3 flex-1 flex items-center justify-center text-red-500 text-sm p-4 text-center">
           {error}
         </div>
       )}
 
       {!isLoading && !error && chartData.length > 0 && (
-        <div className="mt-2 h-40 bg-[#1e1e2f] rounded-lg mx-[-16px]">
+        <div className="mt-2 flex-1"> {/* Alterado para flex-1 e removido bg, rounded, mx */}
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
@@ -360,7 +360,7 @@ const BitcoinCashCard = () => {
       )}
 
       {!isLoading && !error && chartData.length === 0 && (
-        <div className="mt-3 h-40 flex items-center justify-center text-gray-500 text-sm">
+        <div className="mt-3 flex-1 flex items-center justify-center text-gray-500 text-sm">
           Sem dados de gráfico para exibir.
         </div>
       )}
