@@ -3,10 +3,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import bitcore from 'bitcore-lib-cash';
-import { Bitcoin } from 'lucide-react';
-import { FiArrowUp, FiArrowDown, FiRepeat, FiRefreshCw } from 'react-icons/fi';
-import { SiEthereum } from 'react-icons/si';
+import { Bitcoin, SearchIcon } from 'lucide-react';
+import { FiArrowUp, FiArrowDown, FiRepeat, FiRefreshCw} from 'react-icons/fi';
+import { SiEthereum } from 'react-icons/si'; // This import is not used, consider removing if not needed elsewhere
 import QRCode from 'react-qr-code';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { useNotification } from '../../../context/NotificationContext';
 
@@ -42,6 +43,32 @@ type WalletBalance = {
   currentRateBRL?: number;
 };
 
+// Simulação de dados para o gráfico de atividade
+const activityDataToday = [
+  { hour: '08h', received: 0.002, sent: 0.001 },
+  { hour: '10h', received: 0.001, sent: 0.000 },
+  { hour: '12h', received: 0.0015, sent: 0.0005 },
+  { hour: '14h', received: 0.003, sent: 0.002 },
+  { hour: '16h', received: 0.0025, sent: 0.0015 },
+  { hour: '18h', received: 0.001, sent: 0.001 },
+  { hour: '20h', received: 0.0005, sent: 0.0025 },
+];
+const activityDataWeek = [
+  { day: 'Seg', received: 0.02, sent: 0.01 },
+  { day: 'Ter', received: 0.01, sent: 0.00 },
+  { day: 'Qua', received: 0.015, sent: 0.005 },
+  { day: 'Qui', received: 0.03, sent: 0.02 },
+  { day: 'Sex', received: 0.025, sent: 0.015 },
+  { day: 'Sáb', received: 0.01, sent: 0.01 },
+  { day: 'Dom', received: 0.005, sent: 0.025 },
+];
+const activityDataMonth = [
+  { week: '1ª', received: 0.08, sent: 0.04 },
+  { week: '2ª', received: 0.06, sent: 0.03 },
+  { week: '3ª', received: 0.09, sent: 0.05 },
+  { week: '4ª', received: 0.07, sent: 0.06 },
+];
+
 // --- WalletTab Component ---
 export function WalletTab() {
   const { addNotification } = useNotification();
@@ -62,6 +89,11 @@ export function WalletTab() {
 
   // Novo estado para controlar a aba ativa
   const [activeTab, setActiveTab] = useState<'tokens' | 'nft' | 'activity'>('tokens');
+  // Estados para os novos filtros (apenas UI por enquanto)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activityPeriod, setActivityPeriod] = useState<'today' | 'week' | 'month'>('week');
 
   const fetchWalletData = useCallback(async () => {
     if (!isInitialized) {
@@ -199,98 +231,192 @@ export function WalletTab() {
     }, 1000);
   };
 
+  let chartData: any[] = [];
+  let xKey = '';
+  if (activityPeriod === 'today') {
+    chartData = activityDataToday;
+    xKey = 'hour';
+  } else if (activityPeriod === 'week') {
+    chartData = activityDataWeek;
+    xKey = 'day';
+  } else {
+    chartData = activityDataMonth;
+    xKey = 'week';
+  }
+
   return (
-    <div className="bg-gradient-to-br from-[#24292D] to-[#2F363E] min-h-screen flex flex-col items-center">
+    <div className="bg-[#24292D] min-h-screen flex flex-col items-center">
       <div
-  className="bg-gradient-to-br from-[#14B498] to-[#0A7460] p-20 w-full text-white text-center mb-8"
+  className="p-10 w-full text-white text-center mb-8 rounded-2xl shadow-2xl relative"
   style={{
-    backgroundImage: `url('/src/assets/bchsvg.svg'), linear-gradient(to bottom right, #14B498, #0A7460)`,
+    backgroundImage: `url('/src/assets/bchsvg.svg'), radial-gradient(ellipse at center, rgba(26, 194, 166, 0.25) 0%, transparent 70%), linear-gradient(to bottom, rgba(36, 41, 45, 0) 70%, #24292D), linear-gradient(to bottom right, #1ac2a6, #065546)`,
     backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center right',
-    backgroundSize: '300px, cover',
-    
+    backgroundPosition: 'center right, center right, center, center',
+    backgroundSize: '300px, 350px, cover, cover',
   }}
 >
-       
-        <p className="text-md text-2xl">Your available balance</p>
+
+        <p className="text-md text-2xl">Seu Saldo Total Disponível</p>
          <div className="flex items-center justify-center gap-2 mt-4 mb-2">
-        <Bitcoin size={40} /><p className="text-4xl font-bold">0.1827 <span className='text-teal-'>BCH</span></p>
-        </div>
-        <p className="text-2xl">$ 215.45 USD</p>
+        <Bitcoin size={40} />
+        <p className="text-4xl font-bold">0.1827 <span className='text-teal-'>BCH</span></p>
+        
       </div>
+        <p className="text-2xl">$ 215.45 BRL</p>
+
 
       {/* Action Buttons */}
-      <div className="flex gap-6 mb-8">
+      <div className="flex justify-center gap-6 mt-10">
         <div className="flex flex-col items-center">
           <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
             onClick={() => setSendModalOpen(true)}
           >
             <FiArrowUp size={24} />
           </button>
-          <span className="text-xs mt-2 text-white">Send</span>
+          <span className="text-xs mt-2 text-white">Enviar</span>
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white hover:bg-[#333333] transition border border-[#14B498]"
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white  transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
             onClick={() => setReceiveModalOpen(true)}
           >
             <FiArrowDown size={24} />
           </button>
-          <span className="text-xs mt-2 text-white">Receive</span>
+          <span className="text-xs mt-2 text-white">Receber</span>
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 opacity-60 cursor-not-allowed flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
-            disabled
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
+
           >
             <FiRepeat size={24} />
           </button>
-          <span className="text-xs mt-2 text-white">Swap</span>
+          <span className="text-xs mt-2 text-white">Trocar</span>
         </div>
         <div className="flex flex-col items-center">
           <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 opacity-60 cursor-not-allowed flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border border-[#14B498]"
-            disabled
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
+
           >
             <FiRefreshCw size={24} />
           </button>
-          <span className="text-xs mt-2 text-white">Convert</span>
+          <span className="text-xs mt-2 text-white">Converter</span>
         </div>
       </div>
-      <h3 className="text-lg font-semibold text-white mb-6">Transações Recentes</h3>
-<div className="w-full bg-[#2F363E] max-w-7xl rounded-4xl p-4 mb-6 shadow-2xl ">
+      </div>
+      <h3 className="text-xl font-semibold text-white mb-6">Atividade da Carteira</h3>
+      {/* Gráfico de Atividade - fora do container de histórico de transação */}
+      <div className="bg-[#2f3741] p-6 rounded-2xl w-full max-w-7xl mx-auto mb-8">
+        <div className="w-full bg-[#363f4b] max-w-7xl rounded-4xl p-4 mb-6 shadow-2xl ">
   <div className="flex justify-between items-center">
     <div className="flex gap-4">
-      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#23272B] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
-        Transações
+      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#2b3035] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Recebidas
       </button>
-      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#23272B] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
-        Withdraw
+      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#2b3035] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
+        Enviadas
       </button>
     </div>
     <div className="flex gap-4">
-      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
+      <button
+        className={`px-4 py-2 rounded-lg font-medium transition ${
+          activityPeriod === 'today'
+            ? 'bg-teal-600 text-white'
+            : 'text-gray-400 hover:bg-[#3d4855]'
+        }`}
+        onClick={() => setActivityPeriod('today')}
+      >
         Hoje
       </button>
-      <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-800 transition">
+      <button
+        className={`px-4 py-2 rounded-lg font-medium transition ${
+          activityPeriod === 'week'
+            ? 'bg-teal-600 text-white'
+            : 'text-gray-400 hover:bg-[#3d4855]'
+        }`}
+        onClick={() => setActivityPeriod('week')}
+      >
         Semanal
       </button>
-      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
+      <button
+        className={`px-4 py-2 rounded-lg font-medium transition ${
+          activityPeriod === 'month'
+            ? 'bg-teal-600 text-white'
+            : 'text-gray-400 hover:bg-[#3d4855]'
+        }`}
+        onClick={() => setActivityPeriod('month')}
+      >
         Mensal
-      </button>
-      <button className="px-4 py-2 text-gray-400 rounded-lg font-medium hover:bg-[#3d4855] transition">
-        Anual
       </button>
     </div>
   </div>
 </div>
+        <ResponsiveContainer width="100%" height={140}>
+          <LineChart data={chartData}>
+            <XAxis dataKey={xKey} stroke="#aaa" />
+            <YAxis hide />
+            <Tooltip
+              contentStyle={{ background: "#23272B", border: "none", color: "#fff" }}
+              labelStyle={{ color: "#14B498" }}
+              formatter={(value: number, name: string) =>
+                [`${value} BCH`, name === "received" ? "Recebido" : "Enviado"]
+              }
+            />
+            <Line type="monotone" dataKey="received" stroke="#14B498" strokeWidth={2} dot={{ r: 4 }} name="Recebido" />
+            <Line type="monotone" dataKey="sent" stroke="#F87171" strokeWidth={2} dot={{ r: 4 }} name="Enviado" />
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="flex justify-between text-xs text-gray-400 mt-2">
+          <span>
+            +{chartData.reduce((acc, d) => acc + (d.received > 0 ? 1 : 0), 0)} recebimentos
+          </span>
+          <span>
+            -{chartData.reduce((acc, d) => acc + (d.sent > 0 ? 1 : 0), 0)} envios
+          </span>
+        </div>
+      </div>
+<h3 className="text-xl font-semibold text-white mb-6">Histórico de Transações</h3>
+      {/* Histórico de transações */}
+      <div className="w-full max-w-7xl bg-[#2f3741] rounded-2xl p-10 md:p-10 mb-8 shadow-2xl">
+        {/* Barra de Filtros e Pesquisa */}
+        <div className="flex flex-col bg-[#3f4a57] p-4 rounded-full md:flex-row justify-between items-center gap-4 mb-6">
+          <div className="relative w-full md:w-1/2 lg:w-2/5">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar por ID, endereço ou valor..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 w-full md:w-auto">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="all">Todos Status</option>
+              <option value="confirmed">Confirmadas</option>
+              <option value="pending">Pendentes</option>
+              <option value="cancelled">Canceladas</option>
+            </select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="all">Todas Categorias</option>
+              <option value="sent">Enviadas</option>
+              <option value="received">Recebidas</option>
+            </select>
+          </div>
+        </div>
 
-{/* Histórico de transações */}
-<div className="w-full max-w-7xl bg-[#2f3741] rounded-4xl p-8 mb-8 shadow-2xl">
-  <div className="overflow-x-auto">
-    <table className="w-full text-left text-sm text-gray-400  ">
-      <thead className="bg-[#23272B] border-2 border-gray-600 text-xs uppercase text-gray-500 ">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-400  ">
+            <thead className="bg-[#23272B] border-2 border-[#313e4b] text-xs uppercase text-gray-500 ">
         <tr>
           <th scope="col" className="px-6 py-3">Descrição</th>
           <th scope="col" className="px-6 py-3">Data</th>
@@ -310,12 +436,12 @@ export function WalletTab() {
     transactions.map((tx) => (
       <tr
         key={tx.txid}
-        className="border-b border-[#333a41] hover:bg-[#272c31] transition"
+        className="border-b border-[#313e4b] hover:bg-[#272c31] transition "
       >
         <td className="px-6 py-4 flex items-center gap-2">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center
-              ${tx.type === 'received' ? 'bg-green-500' : tx.type === 'sent' ? 'bg-blue-700' : 'bg-blue-900'}`}
+              ${tx.type === 'received' ? 'bg-green-500 border-2 border-green-700' : tx.type === 'sent' ? 'bg-red-700 border-2 border-red-500' : 'bg-blue-600 border-2 border-blue-800'}`}
             title={tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
           >
             {tx.type === 'received' ? (
@@ -491,7 +617,7 @@ export function WalletTab() {
         >
           {isSending ? 'Enviando...' : 'Continue'}
         </button>
-       
+
       </form>
     </div>
   </div>
@@ -516,7 +642,7 @@ export function WalletTab() {
       <div className="flex flex-col items-center w-full px-8">
         <div className="rounded-full border-8 border-teal-600 flex items-center justify-center mb-6 mt-4" style={{ width: 180, height: 180 }}>
   <svg width="130" height="130" viewBox="0 0 100 100" fill="none">
-    
+
     <path d="M32 54l15 15 25-25" stroke="#14B498" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 </div>
@@ -542,7 +668,7 @@ export function WalletTab() {
           >
             Bitcoin transaction <span>↗</span>
           </a>
-         
+
         </div>
       </div>
       {/* Details */}
@@ -622,8 +748,10 @@ export function WalletTab() {
     </div>
   </div>
 )}
-      
+
+
+
       </div>
-    
+
   );
 }
