@@ -470,7 +470,12 @@ export function Dashboard() {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             title={tab.label}
-                            className={`py-5 px-2 sm:px-4 hover:bg-[var(--color-bg-tertiary)] rounded-2xl flex items-center justify-start gap-6 ${activeTab === tab.id ? 'bg-[var(--color-bg-tertiary)] font-semibold' : ''} transition-colors duration-200`}
+                            className={`py-5 px-2 sm:px-4 rounded-[10px] flex items-center justify-start gap-6
+                                       ${activeTab === tab.id
+                                         ? 'bg-gradient-to-r from-[rgb(112,254,192)] to-[rgba(112,254,192,0.1)] text-black font-semibold border border-[rgb(112,254,192)]'
+                                         : 'text-white border border-transparent hover:border-[rgb(112,254,192)]'
+                                       }
+                                       transition-colors duration-200`}
                         >
                             <div className="w-5 h-5 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>
@@ -489,7 +494,7 @@ export function Dashboard() {
                             type="text"
                             id="search"
                             placeholder="Pesquisar..."
-                            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-tertiary)] text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white text-sm sm:text-base"
+                            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-tertiary)] text-white focus:outline-none focus:border-[rgb(112,254,192)] focus:ring-1 focus:ring-[rgb(112,254,192)] text-sm sm:text-base"
                         />
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
@@ -500,20 +505,20 @@ export function Dashboard() {
                          {/* Chatbot Button */}
                         <button
                             onClick={() => setIsChatbotOpen(true)}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] text-white transition-colors shadow"
+                            className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(112,254,192,0.1)] hover:bg-[rgba(112,254,192,0.2)] text-[rgb(112,254,192)] transition-colors shadow"
                             title="Abrir Chatbot"
                         >
                             <FiMessageCircle size={22} />
                         </button>
-                        {/* Ícone de Notificações */}
+                        {/* Notification Button */}
                         <button
                             onClick={handleOpenNotificationModal}
-                            className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] transition-colors"
+                            className="relative flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(112,254,192,0.1)] hover:bg-[rgba(112,254,192,0.2)] text-[rgb(112,254,192)] transition-colors"
                             title="Notificações"
                         >
-                            <Bell className="h-6 w-6 text-white" />
+                            <Bell className="h-6 w-6" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--color-bg-tertiary)]"></span>
+                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[rgba(112,254,192,0.1)]"></span>
                             )}
                         </button>
 
@@ -528,10 +533,10 @@ export function Dashboard() {
                                         <img
                                             src={savedImage}
                                             alt="User"
-                                            className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-white transition-colors"
+                                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-[10px] object-cover border-2 border-[rgb(112,254,192)] group-hover:border-white transition-colors"
                                         />
                                     ) : (
-                                        <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-white transition-colors" />
+                                        <UserCircle className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 group-hover:text-white transition-colors" />
                                     )}
                                 </button>
                                 {showUserDropdown && (
@@ -563,7 +568,7 @@ export function Dashboard() {
                                                         <img
                                                             src={savedImage}
                                                             alt="User Preview"
-                                                            className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-white hover:opacity-50"
+                                                            className="h-24 w-24 rounded-[10px] object-cover mb-2 border-2 border-[rgb(112,254,192)] hover:opacity-50"
                                                         />
                                                     ) : (
                                                         <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
@@ -680,7 +685,7 @@ export function Dashboard() {
                                         <img
                                             src={selectedImage || savedImage || "/default-avatar.png"}
                                             alt="Preview"
-                                            className="w-44 h-44 object-cover rounded-full border-4 border-[#232428] group-hover:opacity-50 transition"
+                                            className="w-40 h-40 object-cover rounded-[10px] border-4 border-[rgb(112,254,192)] group-hover:opacity-50 transition"
                                         />
                                         <div className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 shadow-lg transition pointer-events-none">
                                             <Pencil className="h-5 w-5" />
