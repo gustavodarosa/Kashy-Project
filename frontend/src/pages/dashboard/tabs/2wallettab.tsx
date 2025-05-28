@@ -3,10 +3,9 @@ import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import bitcore from 'bitcore-lib-cash';
 import { Bitcoin, SearchIcon, TrendingUp, ArrowUpRight, ArrowDownLeft, RotateCcw, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { FiArrowUp, FiArrowDown, FiRepeat, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
-import { SiEthereum } from 'react-icons/si';
+import { FiCheckCircle } from 'react-icons/fi';
 import QRCode from 'react-qr-code';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 import { useNotification } from '../../../context/NotificationContext';
 
@@ -246,10 +245,7 @@ export function WalletTab() {
     <div className="min-h-screen bg-gradient-to-b from-[#24292D] to-[#1E2328] p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Carteira BCH</h1>
-          
-        </div>
+      
 
         {/* Balance Card */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 p-8 mb-8 shadow-2xl">
@@ -452,14 +448,14 @@ export function WalletTab() {
                               <p className="text-white font-medium">
                                 {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Transferência'}
                               </p>
-                              <p className="text-gray-400 text-sm">
+                              <p className="text-gray-300 text-sm">
                                 {tx.address.slice(0, 6)}...{tx.address.slice(-6)}
                               </p>
                             </div>
                           </div>
                         </td>
                         
-                        <td className="px-6 py-4 text-gray-300">
+                        <td className="px-6 py-4 text-gray-200">
                           {new Date(tx.timestamp).toLocaleDateString('pt-BR')}
                         </td>
                         
@@ -467,7 +463,7 @@ export function WalletTab() {
                           <div className="text-white font-medium">
                             {tx.amountBCH.toFixed(8)} BCH
                           </div>
-                          <div className="text-gray-400 text-sm">
+                          <div className="text-gray-300 text-sm">
                             R$ {tx.amountBRL.toFixed(2)}
                           </div>
                         </td>
@@ -491,7 +487,7 @@ export function WalletTab() {
                             href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 bg-teal-600/20 text-teal-400 rounded-lg font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
+                            className="px-4 py-2 bg-teal-600/20 text-teal-400 rounded-lg  font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
                           >
                             Detalhes
                           </a>
@@ -584,28 +580,28 @@ export function WalletTab() {
               <div className="bg-[#24292D]/50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ArrowDownLeft className="text-green-400" size={20} />
-                  <span className="text-gray-300 text-sm">Total Recebido</span>
+                  <span className="text-gray-200 text-sm">Total Recebido</span>
                 </div>
                 <p className="text-2xl font-bold text-white">0.0456 BCH</p>
-                <p className="text-green-400 text-sm">+12.5% vs período anterior</p>
+                <p className="text-green-300 text-sm">+12.5% vs período anterior</p> {/* Adjusted green for consistency if needed */}
               </div>
               
               <div className="bg-[#24292D]/50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ArrowUpRight className="text-red-400" size={20} />
-                  <span className="text-gray-300 text-sm">Total Enviado</span>
+                  <span className="text-gray-200 text-sm">Total Enviado</span>
                 </div>
                 <p className="text-2xl font-bold text-white">0.0123 BCH</p>
-                <p className="text-red-400 text-sm">-5.3% vs período anterior</p>
+                <p className="text-red-300 text-sm">-5.3% vs período anterior</p> {/* Adjusted red for consistency if needed */}
               </div>
               
               <div className="bg-[#24292D]/50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="text-blue-400" size={20} />
-                  <span className="text-gray-300 text-sm">Saldo Líquido</span>
+                  <span className="text-gray-200 text-sm">Saldo Líquido</span>
                 </div>
                 <p className="text-2xl font-bold text-white">+0.0333 BCH</p>
-                <p className="text-blue-400 text-sm">+18.2% vs período anterior</p>
+                <p className="text-blue-300 text-sm">+18.2% vs período anterior</p> {/* Adjusted blue for consistency if needed */}
               </div>
             </div>
           </div>
@@ -624,7 +620,7 @@ export function WalletTab() {
               
               <div className="p-6 border-b border-[#3A414A]/70">
                 <h2 className="text-xl font-semibold text-white mb-2">Enviar BCH</h2>
-                <p className="text-gray-400 text-sm">Transfira Bitcoin Cash para outro endereço</p>
+                <p className="text-gray-300 text-sm">Transfira Bitcoin Cash para outro endereço</p>
               </div>
               
               <form onSubmit={handleSendSubmit} className="p-6 space-y-4">
@@ -663,7 +659,7 @@ export function WalletTab() {
                       required
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <div className="flex justify-between text-xs text-gray-300 mt-1">
                     <span>BRL</span>
                     <span>BCH</span>
                   </div>
@@ -683,7 +679,7 @@ export function WalletTab() {
                 </div>
                 
                 <div className="bg-[#24292D]/50 rounded-xl p-4 space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-gray-200">
                     <span>Taxa de Rede</span>
                     <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
                   </div>
@@ -718,7 +714,7 @@ export function WalletTab() {
               
               <div className="p-6 border-b border-[#3A414A]/70">
                 <h2 className="text-xl font-semibold text-white mb-2">Receber BCH</h2>
-                <p className="text-gray-400 text-sm">Compartilhe este endereço para receber Bitcoin Cash</p>
+                <p className="text-gray-300 text-sm">Compartilhe este endereço para receber Bitcoin Cash</p>
               </div>
               
               <div className="p-6 text-center space-y-6">
@@ -778,16 +774,16 @@ export function WalletTab() {
                 </div>
                 
                 <h3 className="text-2xl font-bold text-white mb-2">Transação Enviada!</h3>
-                <p className="text-gray-400 mb-6">
+                <p className="text-gray-300 mb-6">
                   Você enviou <span className="font-medium text-teal-400">{parseFloat(lastSent.amount).toFixed(4)} BCH</span> com sucesso.
                 </p>
                 
                 <div className="bg-[#24292D]/50 rounded-xl p-4 mb-6 space-y-2 text-sm border border-[#3A414A]/50">
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-gray-200">
                     <span>Valor Enviado</span>
                     <span>{lastSent.amount} BCH</span>
                   </div>
-                  <div className="flex justify-between text-gray-300">
+                  <div className="flex justify-between text-gray-200">
                     <span>Taxa de Rede</span>
                     <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
                   </div>

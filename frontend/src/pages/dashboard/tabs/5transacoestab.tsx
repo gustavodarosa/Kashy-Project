@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiDownload, FiFilter } from 'react-icons/fi';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ListFilter,
+  CheckCircle,
+  Clock,
+  XCircle,
+  AlertCircle,
+  TrendingUp, // Para o resumo
+  FileText,   // Para o cabeçalho
+} from 'lucide-react';
 
 type Transaction = {
   _id: string;
@@ -27,12 +39,16 @@ export function TransacoesTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
-  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
+        // Simulação de fetch com token, se necessário
+        // const token = localStorage.getItem('token');
+        // const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        // const response = await fetch('http://localhost:3000/api/transactions', { headers });
         const response = await fetch('http://localhost:3000/api/transactions');
         if (!response.ok) throw new Error('Erro ao buscar transações');
         const data: Transaction[] = await response.json();
@@ -78,11 +94,17 @@ export function TransacoesTab() {
 
   const formatBCH = (value: number | undefined | null) => {
     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
-    return value.toFixed(8) + ' BCH';
+    return (value / 1e8).toFixed(8) + ' BCH'; // Convertendo satoshis para BCH
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+    return new Date(dateString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const formatAddress = (address: string | undefined) => {
@@ -90,311 +112,345 @@ export function TransacoesTab() {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusClasses = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/20 text-red-300 border-red-500/30';
       case 'expired':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'confirmed':
-        return 'Confirmada';
-      case 'pending':
-        return 'Pendente';
-      case 'failed':
-        return 'Falhou';
-      case 'expired':
-        return 'Expirada';
-      default:
-        return status;
+      case 'confirmed': return 'Confirmada';
+      case 'pending': return 'Pendente';
+      case 'failed': return 'Falhou';
+      case 'expired': return 'Expirada';
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'confirmed': return <CheckCircle size={14} />;
+      case 'pending': return <Clock size={14} />;
+      case 'failed': return <XCircle size={14} />;
+      case 'expired': return <AlertCircle size={14} />;
+      default: return <FileText size={14} />;
+    }
+  };
+
+  const handleExportCSV = () => {
+    const csvHeader = ['Hash/ID', 'Tipo', 'Valor (BCH)', 'Endereço', 'Status', 'Data', 'Confirmações', 'Taxa (BCH)'];
+    const csvRows = transactions.map(tx => [
+      tx.txid || tx._id,
+      tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna',
+      (tx.amountSatoshis / 1e8).toFixed(8),
+      tx.address,
+      getStatusLabel(tx.status),
+      formatDate(tx.timestamp || tx.createdAt),
+      typeof tx.confirmations === 'number' ? tx.confirmations.toString() : '-',
+      typeof tx.feeBCH === 'number' ? tx.feeBCH.toFixed(8) : '-'
+    ]);
+
+    const csvContent = [
+      csvHeader.join(';'),
+      ...csvRows.map(row => row.join(';'))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `transacoes_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
-      {/* Cabeçalho */}
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <FiDownload /> Histórico de Transações
-      </h2>
+    <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
+      <div className="container mx-auto px-4 py-6">
 
-      {/* Barra de ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="relative w-full md:w-96">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por hash, ID ou endereço..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors"
-          >
-            <FiFilter /> Filtrar
-          </button>
-          <button
-            className="flex items-center gap-2 border border-[var(--color-border)] hover:bg-[var(--color-bg-secondary)] px-4 py-2 rounded-lg transition-colors"
-            onClick={() => {
-              // Exporta CSV simples
-              const csv = [
-                ['Hash/ID', 'Tipo', 'Valor', 'Endereço', 'Status', 'Data'],
-                ...transactions.map(tx => [
-                  tx.txid,
-                  tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Outro',
-                  formatBCH(tx.amountSatoshis ? tx.amountSatoshis / 1e8 : 0),
-                  tx.address,
-                  getStatusLabel(tx.status),
-                  formatDate(tx.timestamp || tx.createdAt)
-                ])
-              ].map(row => row.join(';')).join('\n');
-              const blob = new Blob([csv], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `transacoes_${new Date().toISOString().slice(0, 10)}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
+        {/* Hero Section */}
+        <div className="relative overflow-hidden mb-10">
+          <div
+            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            style={{
+              background: `
+                radial-gradient(circle at 20% 50%, rgba(129, 140, 248, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.3) 0%, transparent 50%),
+                linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(99, 102, 241, 0.15) 100%)
+              `,
             }}
           >
-            <FiDownload /> Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Resumo rápido */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-green-300">Confirmadas</span>
-          <span className="text-xl font-bold text-green-200">{transactions.filter(t => t.status === 'confirmed').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-yellow-300">Pendentes</span>
-          <span className="text-xl font-bold text-yellow-200">{transactions.filter(t => t.status === 'pending').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-red-300">Falhas</span>
-          <span className="text-xl font-bold text-red-200">{transactions.filter(t => t.status === 'failed').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-gray-900/80 to-gray-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-gray-300">Total</span>
-          <span className="text-xl font-bold text-gray-200">{transactions.length}</span>
-        </div>
-      </div>
-
-      {/* Filtros avançados */}
-      {isFilterOpen && (
-        <div className="bg-[var(--color-bg-secondary)] rounded-lg p-4 mb-6 border border-[var(--color-border)]">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">Todos os status</option>
-                <option value="confirmed">Confirmadas</option>
-                <option value="pending">Pendentes</option>
-                <option value="failed">Falhas</option>
-                <option value="expired">Expiradas</option>
-              </select>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-indigo-700/20 rounded-xl backdrop-blur-sm border border-indigo-400/30">
+                  <FileText size={36} className="text-indigo-300" />
+                </div>
+                <div className="text-left">
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
+                    Histórico de Transações
+                  </h1>
+                  <p className="text-base text-indigo-100/80">Visualize e gerencie todas as suas transações</p>
+                </div>
+              </div>
+              <div className="mt-8">
+                <button
+                  onClick={handleExportCSV}
+                  className="group relative px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-indigo-400/30 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download size={18} />
+                    <span>Exportar CSV</span>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Período</label>
-              <select
-                value={dateFilter}
-                onChange={(e) => {
-                  setDateFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full px-3 py-2 rounded bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">Todo período</option>
-                <option value="today">Hoje</option>
-                <option value="week">Últimos 7 dias</option>
-                <option value="month">Últimos 30 dias</option>
-              </select>
-            </div>
-            <div className="flex items-end">
+          </div>
+        </div>
+
+        {/* Filters Section */}
+        <div className="mb-6">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full lg:max-w-md">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <Search size={18} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por hash, ID ou endereço..."
+                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
               <button
-                onClick={() => {
-                  setStatusFilter('all');
-                  setDateFilter('all');
-                  setCurrentPage(1);
-                }}
-                className="px-4 py-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)] transition-colors w-full"
+                onClick={() => setIsFilterModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-xl border border-indigo-500/30 hover:border-indigo-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
               >
-                Limpar filtros
+                <ListFilter size={18} />
+                Filtros Avançados
               </button>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Tabela de transações */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4">Carregando transações...</p>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-emerald-300 mb-1">{transactions.filter(t => t.status === 'confirmed').length}</div>
+            <div className="text-xs text-emerald-200/80 font-medium">Confirmadas</div>
           </div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-400">
-            <p>{error}</p>
+          <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-amber-300 mb-1">{transactions.filter(t => t.status === 'pending').length}</div>
+            <div className="text-xs text-amber-200/80 font-medium">Pendentes</div>
           </div>
-        ) : transactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
-            <p>Nenhuma transação encontrada</p>
+          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-red-300 mb-1">{transactions.filter(t => t.status === 'failed').length}</div>
+            <div className="text-xs text-red-200/80 font-medium">Falhas</div>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                <thead className="bg-gray-750">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Hash/ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Tipo</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Valor</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Endereço</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Confirmações</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Taxa</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {transactions.map((tx) => (
-                    <tr key={tx._id} className="hover:bg-gray-750 transition-colors">
-                      <td className="px-6 py-4 font-mono text-blue-400">
-                        {formatAddress(tx.txid)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="capitalize">
-                          {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Outro'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium">
-                          {formatBCH(tx.amountSatoshis ? tx.amountSatoshis / 1e8 : 0)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono">{formatAddress(tx.address)}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tx.status)}`}>
-                          {getStatusLabel(tx.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {formatDate(tx.timestamp || tx.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {typeof tx.confirmations === 'number' ? tx.confirmations : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {typeof tx.feeBCH === 'number' ? `${tx.feeBCH.toFixed(8)} BCH` : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="group p-4 bg-gradient-to-br from-sky-500/10 to-sky-600/5 rounded-xl backdrop-blur-sm border border-sky-400/20 hover:border-sky-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-sky-300 mb-1">{transactions.length}</div>
+            <div className="text-xs text-sky-200/80 font-medium">Total de Transações</div>
+          </div>
+        </div>
 
-            {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
-                >
-                  Próxima
-                </button>
+        {/* Advanced Filters Modal */}
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="relative w-full max-w-lg bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col">
+              <button
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                onClick={() => setIsFilterModalOpen(false)}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+              <div className="p-6 border-b border-white/10 flex-shrink-0">
+                <h2 className="text-xl font-bold text-white">Filtros Avançados</h2>
+                <p className="text-gray-400 mt-1 text-sm">Refine sua busca de transações.</p>
               </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div className="p-6 flex-grow overflow-y-auto space-y-4">
                 <div>
-                  <p className="text-sm text-gray-400">
-                    Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
-                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, transactions.length)}</span> de{' '}
-                    <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
-                  </p>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm"
+                  >
+                    <option value="all">Todos os status</option>
+                    <option value="confirmed">Confirmadas</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="failed">Falhas</option>
+                    <option value="expired">Expiradas</option>
+                  </select>
                 </div>
                 <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Período</label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm"
+                  >
+                    <option value="all">Todo período</option>
+                    <option value="today">Hoje</option>
+                    <option value="week">Últimos 7 dias</option>
+                    <option value="month">Últimos 30 dias</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
+                <button
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setDateFilter('all');
+                    setCurrentPage(1);
+                    setIsFilterModalOpen(false);
+                  }}
+                  className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                >
+                  Limpar Filtros
+                </button>
+                <button
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transactions Table */}
+        <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
+                <span className="text-white font-medium">Carregando transações...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <div className="text-red-400 font-medium">{error}</div>
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="text-gray-400">Nenhuma transação encontrada com os filtros aplicados.</div>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                    <tr className="text-xs">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Hash/ID</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Tipo</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Valor</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Endereço</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Conf.</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Taxa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {transactions.map((tx) => (
+                      <tr key={tx._id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-sm font-mono text-indigo-400 hover:text-indigo-300 cursor-pointer" title={tx.txid || tx._id}>
+                            {formatAddress(tx.txid || tx._id)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`capitalize text-sm ${
+                            tx.type === 'incoming' ? 'text-green-400' : 
+                            tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
+                          }`}>
+                            {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm text-white font-medium">
+                            {formatBCH(tx.amountSatoshis)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="text-sm font-mono text-gray-300" title={tx.address}>{formatAddress(tx.address)}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusClasses(tx.status)}`}>
+                            {getStatusIcon(tx.status)}
+                            {getStatusLabel(tx.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                          {formatDate(tx.timestamp || tx.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-center">
+                          {typeof tx.confirmations === 'number' ? tx.confirmations : '-'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                          {typeof tx.feeBCH === 'number' ? `${tx.feeBCH.toFixed(8)} BCH` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {!loading && !error && transactions.length > 0 && (
+                <div className="mt-0 flex items-center justify-between px-4 py-3 border-t border-white/10">
+                  <div>
+                    <p className="text-xs text-gray-300">
+                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
-                      <span className="sr-only">Anterior</span>
-                      <FiChevronLeft size={20} />
+                      <ChevronLeft size={16} />
+                      Anterior
                     </button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
-                              ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                              : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
-                            }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
-                      <span className="sr-only">Próxima</span>
-                      <FiChevronRight size={20} />
+                      Próximo
+                      <ChevronRight size={16} />
                     </button>
-                  </nav>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
