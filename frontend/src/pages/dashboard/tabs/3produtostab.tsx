@@ -1,3 +1,8 @@
+
+import { useState, useEffect } from 'react';
+import { Edit, Trash2, Plus, Search, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { useNotification } from '../../../context/NotificationContext';
+
 export type Product = {
   _id: string;
   name: string;
@@ -9,30 +14,21 @@ export type Product = {
   category: string;
   isActive: boolean;
   createdAt: string;
-  store: string; // Adicionando a propriedade store
+  store: string;
 };
 
-import { useState, useEffect } from 'react';
-import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart } from 'react-icons/fi';
-import { useNotification } from '../../../context/NotificationContext'; // Importe o contexto de notificações
-
 export function ProdutosTab() {
-  // Estado para os produtos
+  // ... keep existing code (state declarations)
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Estado para paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const itemsPerPage = 8;
-
-  // Estado para busca/filtro
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStore, setSelectedStore] = useState<string>('all');
-
-  // Estado para o formulário
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -44,24 +40,21 @@ export function ProdutosTab() {
     sku: '',
     category: 'outros',
     isActive: true,
-    store: '', // Adicionado o campo store
-    minimum: 1, // Add the `minimum` field with a default value
+    store: '',
+    minimum: 1,
   });
 
-  // Contexto de notificações
   const { addNotification } = useNotification();
 
-  // Categorias de produtos
   const categories = [
     { value: 'alimentos', label: 'Alimentos' },
     { value: 'bebidas', label: 'Bebidas' },
     { value: 'eletronicos', label: 'Eletrônicos' },
     { value: 'vestuario', label: 'Vestuário' },
     { value: 'servicos', label: 'Serviços' },
-
   ];
 
-  // Simulação de fetch de dados
+  // ... keep existing code (useEffect for fetchProducts)
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -74,7 +67,6 @@ export function ProdutosTab() {
 
         const data = await response.json();
 
-        // Aplicar filtros de busca e categoria
         const filteredProducts = data.filter((product: Product) => {
           const matchesCategory =
             selectedCategory === 'all' || product.category === selectedCategory;
@@ -102,7 +94,7 @@ export function ProdutosTab() {
     fetchProducts();
   }, [currentPage, searchTerm, selectedCategory, selectedStore, addNotification]);
 
-  // Manipuladores de formulário
+  // ... keep existing code (form handlers)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
@@ -114,19 +106,18 @@ export function ProdutosTab() {
           value
     }));
 
-    // Calcular automaticamente o preço em BCH quando BRL é alterado
     if (name === 'priceBRL') {
       const brlValue = parseFloat(value) || 0;
       setFormData(prev => ({
         ...prev,
-        priceBCH: brlValue * 0.0001 // Simulação de conversão
+        priceBCH: brlValue * 0.0001
       }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Payload being sent:', formData); // Log the payload
+    console.log('Payload being sent:', formData);
     try {
       const method = currentProduct ? 'PUT' : 'POST';
       const url = currentProduct
@@ -140,7 +131,7 @@ export function ProdutosTab() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json(); // Log server error response
+        const errorData = await response.json();
         console.error('Server error:', errorData);
         throw new Error('Erro ao salvar produto');
       }
@@ -170,8 +161,8 @@ export function ProdutosTab() {
       sku: '',
       category: 'outros',
       isActive: true,
-      store: '', // Adicionado o campo store
-      minimum: 1, // Add the `minimum` field with a default value
+      store: '',
+      minimum: 1,
     });
     setCurrentProduct(null);
     setIsFormOpen(false);
@@ -188,8 +179,8 @@ export function ProdutosTab() {
       sku: product.sku,
       category: product.category,
       isActive: product.isActive,
-      store: product.store, // Preenche o campo store
-      minimum: 1, // Add the `minimum` field with a default value
+      store: product.store,
+      minimum: 1,
     });
     setIsFormOpen(true);
   };
@@ -197,7 +188,6 @@ export function ProdutosTab() {
   const handleDelete = async (productId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
       try {
-        // Enviar solicitação DELETE para o backend
         const response = await fetch(`http://localhost:3000/api/products/${productId}`, {
           method: 'DELETE',
         });
@@ -208,7 +198,6 @@ export function ProdutosTab() {
           throw new Error('Erro ao excluir produto no servidor.');
         }
 
-        // Atualizar o estado local para remover o produto excluído
         setProducts(prev => prev.filter(p => p._id !== productId));
         console.log('Produto excluído com sucesso.');
       } catch (err) {
@@ -218,7 +207,6 @@ export function ProdutosTab() {
     }
   };
 
-  // Formatação de valores monetários
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -235,20 +223,95 @@ export function ProdutosTab() {
   };
 
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen font-sans">
-      <h2 className="text-3xl font-bold mb-8 flex items-center gap-3">
-        <FiShoppingCart className="text-green-400" /> Dashboard de Produtos
-      </h2>
+    <div className="bg-[#24292D] min-h-screen flex flex-col items-center">
+      {/* Hero Section with Statistics */}
+      <div
+        className="p-10 w-full text-white text-center mb-8 rounded-2xl shadow-2xl relative"
+        style={{
+          backgroundImage: `radial-gradient(ellipse at center, rgba(26, 194, 166, 0.25) 0%, transparent 70%), linear-gradient(to bottom right, #1ac2a6, #065546)`,
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center right, center right, center, center',
+          backgroundSize: '350px, cover, cover',
+        }}
+      >
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <ShoppingCart size={40} className="text-teal-300" />
+          <h2 className="text-3xl font-bold">Dashboard de Produtos</h2>
+        </div>
+        
+        <p className="text-lg text-teal-100 mb-6">Gerencie seu inventário com facilidade</p>
 
-      {/* Barra de ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-64">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+          <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-4">
+            <div className="text-2xl font-bold text-green-300">
+              {products.filter(p => p.quantity >= 30).length}
+            </div>
+            <div className="text-xs text-green-200">Alto Estoque</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-4">
+            <div className="text-2xl font-bold text-blue-300">
+              {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
+            </div>
+            <div className="text-xs text-blue-200">Médio Estoque</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-4">
+            <div className="text-2xl font-bold text-yellow-300">
+              {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
+            </div>
+            <div className="text-xs text-yellow-200">Baixo Estoque</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-4">
+            <div className="text-2xl font-bold text-red-300">
+              {products.filter(p => p.quantity === 0).length}
+            </div>
+            <div className="text-xs text-red-200">Esgotados</div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center gap-2 bg-[#1E1E1E] px-6 py-3 rounded-full text-white transition border-2 border-[#14B498] font-semibold"
+          >
+            <Plus size={20} />
+            Novo Produto
+          </button>
+        </div>
+      </div>
+
+      {/* View Mode Toggle */}
+      <div className="bg-[#2F363E] rounded-full p-6 mb-6 shadow-2xl">
+        <div className="flex justify-center items-center">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`ease-in-out hover:-translate-y-1 hover:scale-110 px-6 py-3 rounded-lg font-medium transition text-white
+                ${viewMode === 'table' ? 'bg-teal-600 shadow-md' : 'bg-[#24292D] hover:bg-[#333c46]'}`}
+            >
+              Tabela
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`ease-in-out hover:-translate-y-1 hover:scale-110 px-6 py-3 rounded-lg font-medium transition text-white
+                ${viewMode === 'grid' ? 'bg-teal-600 shadow-md' : 'bg-[#24292D] hover:bg-[#333c46]'}`}
+            >
+              Cards
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="w-full max-w-7xl bg-[#2F363E] rounded-2xl p-6 mb-8 shadow-2xl">
+        <div className="flex flex-col bg-[#3a424c] p-4 rounded-xl md:flex-row justify-between items-center gap-4">
+          <div className="relative w-full md:w-1/2 lg:w-2/5">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar por produto, SKU..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-3 rounded-lg bg-[#24292D] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -256,120 +319,270 @@ export function ProdutosTab() {
               }}
             />
           </div>
-
-          <select
-            value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full md:w-48 px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todas categorias</option>
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value}>{cat.label}</option>
-            ))}
-          </select>
-
-          {/* Filtro por loja */}
-          <select
-            value={selectedStore}
-            onChange={(e) => {
-              setSelectedStore(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full md:w-48 px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todas as lojas</option>
-            <option value="Loja A">Loja A</option>
-            <option value="Loja B">Loja B</option>
-            <option value="Loja C">Loja C</option>
-          </select>
-        </div>
-
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 px-6 py-2 rounded-lg transition-colors w-full md:w-auto justify-center shadow font-semibold"
-        >
-          <FiPlus /> Novo Produto
-        </button>
-      </div>
-
-      {/* Resumo rápido */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Alto estoque */}
-        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
-          <span className="text-xs text-green-300">Produtos de alto estoque (30+)</span>
-          <span className="text-2xl font-bold text-green-200">
-            {products.filter(p => p.quantity >= 30).length}
-          </span>
-        </div>
-        {/* Médio estoque */}
-        <div className="bg-gradient-to-br from-blue-900/80 to-blue-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
-          <span className="text-xs text-blue-300">Produtos de médio estoque (15 - 30)</span>
-          <span className="text-2xl font-bold text-blue-200">
-            {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
-          </span>
-        </div>
-        {/* Baixo estoque */}
-        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
-          <span className="text-xs text-yellow-300">Produtos de baixo estoque (1 - 15)</span>
-          <span className="text-2xl font-bold text-yellow-200">
-            {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
-          </span>
-        </div>
-        {/* Esgotados */}
-        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-5 rounded-2xl shadow flex flex-col gap-2">
-          <span className="text-xs text-red-300">Produtos esgotados (0)</span>
-          <span className="text-2xl font-bold text-red-200">
-            {products.filter(p => p.quantity === 0).length}
-          </span>
+          <div className="flex gap-3 w-full md:w-auto">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-3 rounded-lg bg-[#24292D] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="all">Todas categorias</option>
+              {categories.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+            <select
+              value={selectedStore}
+              onChange={(e) => {
+                setSelectedStore(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-3 rounded-lg bg-[#24292D] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="all">Todas as lojas</option>
+              <option value="Loja A">Loja A</option>
+              <option value="Loja B">Loja B</option>
+              <option value="Loja C">Loja C</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Formulário modal */}
+      {/* Products Content */}
+      {viewMode === 'table' && (
+        <div className="w-full max-w-7xl bg-[#2F363E] rounded-2xl p-6 mb-8 shadow-2xl">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 mx-auto"></div>
+              <p className="mt-4 text-white">Carregando produtos...</p>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-red-400">
+              <p>{error}</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="p-8 text-center text-gray-400">
+              <p>Nenhum produto encontrado</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-gray-400">
+                <thead className="bg-[#24292D] border-2 border-[#333c46] text-xs uppercase text-gray-500">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">Produto</th>
+                    <th scope="col" className="px-6 py-3">Preço</th>
+                    <th scope="col" className="px-6 py-3">Estoque</th>
+                    <th scope="col" className="px-6 py-3">Status</th>
+                    <th scope="col" className="px-6 py-3">Categoria</th>
+                    <th scope="col" className="px-6 py-3">Loja</th>
+                    <th scope="col" className="px-6 py-3">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => {
+                    let estoqueClass = '';
+                    let estoqueLabel = '';
+                    if (product.quantity >= 30) {
+                      estoqueLabel = 'Alto';
+                      estoqueClass = 'bg-green-500 text-green-100';
+                    } else if (product.quantity >= 16) {
+                      estoqueLabel = 'Médio';
+                      estoqueClass = 'bg-blue-600 text-blue-100';
+                    } else if (product.quantity > 0) {
+                      estoqueLabel = 'Baixo';
+                      estoqueClass = 'bg-yellow-600 text-yellow-100';
+                    } else {
+                      estoqueLabel = 'Esgotado';
+                      estoqueClass = 'bg-red-600 text-red-100';
+                    }
+
+                    return (
+                      <tr
+                        key={product._id}
+                        className="border-b border-[#333c46] hover:bg-[#333c46] transition"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">{product.name}</div>
+                          <div className="text-xs text-gray-400">SKU: {product.sku}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">
+                            R$ {product.priceBRL.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {product.priceBCH.toFixed(6)} BCH
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${estoqueClass}`}>
+                            {product.quantity} un. - {estoqueLabel}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            product.isActive
+                              ? 'bg-green-500 text-green-100'
+                              : 'bg-red-600 text-red-100'
+                          }`}>
+                            {product.isActive ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-300">
+                            {categories.find(c => c.value === product.category)?.label || 'Outros'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-300">{product.store}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-teal-700 transition"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(product._id)}
+                              className="ease-in-out hover:-translate-y-1 hover:scale-110 bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-red-700 transition"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {viewMode === 'grid' && (
+        <div className="w-full max-w-7xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {products.map((product) => {
+              let estoqueClass = '';
+              let estoqueLabel = '';
+              if (product.quantity >= 30) {
+                estoqueLabel = 'Alto';
+                estoqueClass = 'bg-green-500 text-green-100';
+              } else if (product.quantity >= 16) {
+                estoqueLabel = 'Médio';
+                estoqueClass = 'bg-blue-600 text-blue-100';
+              } else if (product.quantity > 0) {
+                estoqueLabel = 'Baixo';
+                estoqueClass = 'bg-yellow-600 text-yellow-100';
+              } else {
+                estoqueLabel = 'Esgotado';
+                estoqueClass = 'bg-red-600 text-red-100';
+              }
+
+              return (
+                <div
+                  key={product._id}
+                  className="bg-[#2F363E] rounded-2xl p-6 shadow-2xl border border-[#333c46] hover:bg-[#3a424c] transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold text-white truncate">{product.name}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      product.isActive ? 'bg-green-500 text-green-100' : 'bg-red-600 text-red-100'
+                    }`}>
+                      {product.isActive ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="text-xl font-bold text-white">R$ {product.priceBRL.toFixed(2)}</div>
+                    <div className="text-sm text-gray-400">{product.priceBCH.toFixed(6)} BCH</div>
+                  </div>
+
+                  <div className="mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${estoqueClass}`}>
+                      {product.quantity} un. - {estoqueLabel}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-gray-400 mb-4">
+                    <div>SKU: {product.sku}</div>
+                    <div>Categoria: {categories.find(c => c.value === product.category)?.label || 'Outros'}</div>
+                    <div>Loja: {product.store}</div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="flex-1 ease-in-out hover:-translate-y-1 hover:scale-105 bg-teal-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition flex items-center justify-center gap-1"
+                    >
+                      <Edit size={14} /> Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product._id)}
+                      className="ease-in-out hover:-translate-y-1 hover:scale-105 bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Product Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[var(--color-bg-secondary)] rounded-2xl p-8 w-full max-w-3xl shadow-xl border border-[var(--color-border)]">
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-6">
-              {currentProduct ? 'Editar Produto' : 'Adicionar Produto'}
-            </h3>
-            <form onSubmit={handleSubmit}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#24292D] rounded-2xl p-0 w-full max-w-4xl shadow-2xl relative border border-[#333c46]">
+            <button
+              className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl z-10"
+              onClick={resetForm}
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+            
+            <div className="border-b border-[#3a424c] px-8 pt-8 pb-4">
+              <h2 className="text-2xl font-semibold text-white">
+                {currentProduct ? 'Editar Produto' : 'Novo Produto'}
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="px-8 py-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Nome do Produto */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Nome*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Nome *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
 
                 {/* Descrição */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Descrição
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Descrição</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
                 {/* Preço em BRL */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Preço (BRL)*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Preço (BRL) *</label>
                   <input
                     type="number"
                     name="priceBRL"
@@ -377,16 +590,14 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.01"
                     step="0.01"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
 
                 {/* Preço em BCH */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Preço (BCH)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Preço (BCH)</label>
                   <input
                     type="number"
                     name="priceBCH"
@@ -394,52 +605,46 @@ export function ProdutosTab() {
                     onChange={handleInputChange}
                     min="0.000001"
                     step="0.000001"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     disabled
                   />
                 </div>
 
                 {/* Quantidade */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Quantidade*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Quantidade *</label>
                   <input
                     type="number"
                     name="quantity"
                     value={formData.quantity}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
 
                 {/* SKU */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    SKU*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">SKU *</label>
                   <input
-                    type="number"
+                    type="text"
                     name="sku"
                     value={formData.sku}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
 
                 {/* Categoria */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Categoria*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Categoria *</label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     {categories.map((cat) => (
                       <option key={cat.value} value={cat.value}>
@@ -451,14 +656,12 @@ export function ProdutosTab() {
 
                 {/* Loja */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Loja*
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Loja *</label>
                   <select
                     name="store"
                     value={formData.store}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-primary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 rounded-lg bg-[#2F363E] border border-[#333c46] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   >
                     <option value="">Selecione uma loja</option>
@@ -476,10 +679,10 @@ export function ProdutosTab() {
                     name="isActive"
                     checked={formData.isActive}
                     onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 rounded bg-[var(--color-bg-primary)] border-[var(--color-border)] focus:ring-blue-500"
+                    className="h-4 w-4 text-teal-600 rounded bg-[#2F363E] border-[#333c46] focus:ring-teal-500"
                   />
-                  <label htmlFor="isActive" className="ml-2 text-sm text-[var(--color-text-secondary)]">
-                    Ativo
+                  <label htmlFor="isActive" className="ml-2 text-sm text-gray-300">
+                    Produto Ativo
                   </label>
                 </div>
               </div>
@@ -489,13 +692,13 @@ export function ProdutosTab() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                  className="ease-in-out hover:-translate-y-1 hover:scale-110 px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                  className="ease-in-out hover:-translate-y-1 hover:scale-110 px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition"
                 >
                   {currentProduct ? 'Atualizar' : 'Salvar'}
                 </button>
@@ -504,197 +707,6 @@ export function ProdutosTab() {
           </div>
         </div>
       )}
-
-      {/* Tabela de produtos */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-2xl overflow-hidden border border-[var(--color-border)] shadow">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4">Carregando produtos...</p>
-          </div>
-        ) : error ? (
-          <div className="p-8 text-center text-red-400">
-            <p>{error}</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
-            <p>Nenhum produto encontrado</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                <thead className="bg-gray-750">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Nome</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Preço (BRL/BCH)</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Estoque</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Nível Estoque</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Loja</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-right text-xs font-bold text-gray-300 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {products.map((product) => {
-                    let estoqueLabel = '';
-                    let estoqueClass = '';
-                    if (product.quantity >= 30) {
-                      estoqueLabel = 'Alto';
-                      estoqueClass = 'bg-green-100 text-green-800';
-                    } else if (product.quantity >= 16) {
-                      estoqueLabel = 'Médio';
-                      estoqueClass = 'bg-blue-100 text-blue-800';
-                    } else if (product.quantity > 0) {
-                      estoqueLabel = 'Baixo';
-                      estoqueClass = 'bg-yellow-100 text-yellow-800';
-                    } else {
-                      estoqueLabel = 'Esgotado';
-                      estoqueClass = 'bg-red-100 text-red-800';
-                    }
-                    return (
-                      <tr key={product._id} className="hover:bg-gray-750 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-semibold">{product.name}</div>
-                          <div className="text-xs text-gray-400">{product.sku}</div>
-                          <div className="text-xs text-gray-500">Criado em: {formatDate(product.createdAt)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm">{formatCurrency(product.priceBRL)}</div>
-                          <div className="text-xs text-gray-400">{formatBCH(product.priceBCH)}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-800 text-gray-100">
-                            {product.quantity} unidades
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${estoqueClass}`}>
-                            {estoqueLabel}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {categories.find(c => c.value === product.category)?.label || 'Outros'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-400">{product.store}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                            }`}>
-                            {product.isActive ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-3">
-                            <button
-                              onClick={() => handleEdit(product)}
-                              className="text-blue-400 hover:text-blue-300 transition-colors"
-                              title="Editar"
-                            >
-                              <FiEdit size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(product._id)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
-                              title="Excluir"
-                            >
-                              <FiTrash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-primary)] text-gray-300 hover:bg-[var(--color-bg-secondary)] disabled:opacity-50"
-                >
-                  Próxima
-                </button>
-              </div>
-
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">
-                    Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a{' '}
-                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> de{' '}
-                    <span className="font-medium">{products.length}</span> resultados
-                  </p>
-                </div>
-
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
-                    >
-                      <span className="sr-only">Anterior</span>
-                      <FiChevronLeft size={20} />
-                    </button>
-
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
-                            ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                            : 'bg-[var(--color-bg-primary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-secondary)]'
-                            }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-tertiary)] disabled:opacity-50"
-                    >
-                      <span className="sr-only">Próxima</span>
-                      <FiChevronRight size={20} />
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }
