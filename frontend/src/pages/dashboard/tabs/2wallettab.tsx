@@ -1,13 +1,12 @@
-// src/pages/dashboard/tabs/2wallettab.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import bitcore from 'bitcore-lib-cash';
-import { Bitcoin, SearchIcon } from 'lucide-react';
-import { FiArrowUp, FiArrowDown, FiRepeat, FiRefreshCw} from 'react-icons/fi';
-import { SiEthereum } from 'react-icons/si'; // This import is not used, consider removing if not needed elsewhere
+import { Bitcoin, SearchIcon, TrendingUp, ArrowUpRight, ArrowDownLeft, RotateCcw, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { FiArrowUp, FiArrowDown, FiRepeat, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
+import { SiEthereum } from 'react-icons/si';
 import QRCode from 'react-qr-code';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 import { useNotification } from '../../../context/NotificationContext';
 
@@ -43,7 +42,7 @@ type WalletBalance = {
   currentRateBRL?: number;
 };
 
-// Simulação de dados para o gráfico de atividade
+// Mock data for activity charts
 const activityDataToday = [
   { hour: '08h', received: 0.002, sent: 0.001 },
   { hour: '10h', received: 0.001, sent: 0.000 },
@@ -69,7 +68,6 @@ const activityDataMonth = [
   { week: '4ª', received: 0.07, sent: 0.06 },
 ];
 
-// --- WalletTab Component ---
 export function WalletTab() {
   const { addNotification } = useNotification();
   const [balance, setBalance] = useState<WalletBalance>({ totalBCH: 0, availableBCH: 0, pendingBCH: 0, totalBRL: 0, totalSatoshis: 0 });
@@ -85,15 +83,16 @@ export function WalletTab() {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [lastSent, setLastSent] = useState<{ amount: string; amountBRL: string } | null>(null);
+  const [lastSent, setLastSent] = useState<{ address: string; amount: string; amountBRL: string } | null>(null);
+  const [balanceVisible, setBalanceVisible] = useState(true);
 
-  // Novo estado para controlar a aba ativa
+  // UI state
   const [activeTab, setActiveTab] = useState<'tokens' | 'nft' | 'activity'>('tokens');
-  // Estados para os novos filtros (apenas UI por enquanto)
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [activityPeriod, setActivityPeriod] = useState<'today' | 'week' | 'month'>('week');
+  const [viewMode, setViewMode] = useState<'transactions' | 'analysis'>('transactions');
 
   const fetchWalletData = useCallback(async () => {
     if (!isInitialized) {
@@ -215,7 +214,6 @@ export function WalletTab() {
     setIsSending(true);
     setError(null);
 
-    // Simulação apenas frontend
     if (amountToSendNum <= 0) {
       setError('Quantidade inválida.');
       setIsSending(false);
@@ -223,7 +221,7 @@ export function WalletTab() {
     }
 
     setTimeout(() => {
-      setLastSent({ amount: sendForm.amountBCH, amountBRL: sendForm.amountBRL });
+      setLastSent({ address: sendForm.address, amount: sendForm.amountBCH, amountBRL: sendForm.amountBRL });
       setSendModalOpen(false);
       setShowSuccessModal(true);
       setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' });
@@ -245,513 +243,579 @@ export function WalletTab() {
   }
 
   return (
-    <div className="bg-[#24292D] min-h-screen flex flex-col items-center">
-      <div
-  className="p-10 w-full text-white text-center mb-8 rounded-2xl shadow-2xl relative"
-  style={{
-    backgroundImage: `url('/src/assets/bchsvg.svg'), radial-gradient(ellipse at center, rgba(26, 194, 166, 0.25) 0%, transparent 70%), linear-gradient(to bottom, rgba(36, 41, 45, 0) 70%, #24292D), linear-gradient(to bottom right, #1ac2a6, #065546)`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center right, center right, center, center',
-    backgroundSize: '300px, 350px, cover, cover',
-  }}
->
-
-        <p className="text-md text-2xl">Seu Saldo Total Disponível</p>
-         <div className="flex items-center justify-center gap-2 mt-4 mb-2">
-        <Bitcoin size={40} />
-        <p className="text-4xl font-bold">0.1827 <span className='text-teal-'>BCH</span></p>
-        
-      </div>
-        <p className="text-2xl">$ 215.45 BRL</p>
-
-
-      {/* Action Buttons */}
-      <div className="flex justify-center gap-6 mt-10">
-        <div className="flex flex-col items-center">
-          <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
-            onClick={() => setSendModalOpen(true)}
-          >
-            <FiArrowUp size={24} />
-          </button>
-          <span className="text-xs mt-2 text-white">Enviar</span>
+    <div className="min-h-screen bg-gradient-to-b from-[#24292D] to-[#1E2328] p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Carteira BCH</h1>
+          
         </div>
-        <div className="flex flex-col items-center">
-          <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white  transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
-            onClick={() => setReceiveModalOpen(true)}
-          >
-            <FiArrowDown size={24} />
-          </button>
-          <span className="text-xs mt-2 text-white">Receber</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
 
-          >
-            <FiRepeat size={24} />
-          </button>
-          <span className="text-xs mt-2 text-white">Trocar</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 flex items-center justify-center w-14 h-14 bg-[#1E1E1E] rounded-full text-white transition border-2 border-[#14B498] shadow-[0_0_20px_#14B498] hover:shadow-[0_0_15px_#14B498]"
-
-          >
-            <FiRefreshCw size={24} />
-          </button>
-          <span className="text-xs mt-2 text-white">Converter</span>
-        </div>
-      </div>
-      </div>
-      <h3 className="text-xl font-semibold text-white mb-6">Atividade da Carteira</h3>
-      {/* Gráfico de Atividade - fora do container de histórico de transação */}
-      <div className="bg-[#2f3741] p-6 rounded-2xl w-full max-w-7xl mx-auto mb-8">
-        <div className="w-full bg-[#363f4b] max-w-7xl rounded-4xl p-4 mb-6 shadow-2xl ">
-  <div className="flex justify-between items-center">
-    <div className="flex gap-4">
-      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#2b3035] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
-        Recebidas
-      </button>
-      <button className="ease-in-out hover:-translate-y-1 hover:scale-110 px-4 py-2 bg-[#2b3035] text-white rounded-lg font-medium hover:bg-[#3d4855] transition">
-        Enviadas
-      </button>
-    </div>
-    <div className="flex gap-4">
-      <button
-        className={`px-4 py-2 rounded-lg font-medium transition ${
-          activityPeriod === 'today'
-            ? 'bg-teal-600 text-white'
-            : 'text-gray-400 hover:bg-[#3d4855]'
-        }`}
-        onClick={() => setActivityPeriod('today')}
-      >
-        Hoje
-      </button>
-      <button
-        className={`px-4 py-2 rounded-lg font-medium transition ${
-          activityPeriod === 'week'
-            ? 'bg-teal-600 text-white'
-            : 'text-gray-400 hover:bg-[#3d4855]'
-        }`}
-        onClick={() => setActivityPeriod('week')}
-      >
-        Semanal
-      </button>
-      <button
-        className={`px-4 py-2 rounded-lg font-medium transition ${
-          activityPeriod === 'month'
-            ? 'bg-teal-600 text-white'
-            : 'text-gray-400 hover:bg-[#3d4855]'
-        }`}
-        onClick={() => setActivityPeriod('month')}
-      >
-        Mensal
-      </button>
-    </div>
-  </div>
-</div>
-        <ResponsiveContainer width="100%" height={140}>
-          <LineChart data={chartData}>
-            <XAxis dataKey={xKey} stroke="#aaa" />
-            <YAxis hide />
-            <Tooltip
-              contentStyle={{ background: "#23272B", border: "none", color: "#fff" }}
-              labelStyle={{ color: "#14B498" }}
-              formatter={(value: number, name: string) =>
-                [`${value} BCH`, name === "received" ? "Recebido" : "Enviado"]
-              }
-            />
-            <Line type="monotone" dataKey="received" stroke="#14B498" strokeWidth={2} dot={{ r: 4 }} name="Recebido" />
-            <Line type="monotone" dataKey="sent" stroke="#F87171" strokeWidth={2} dot={{ r: 4 }} name="Enviado" />
-          </LineChart>
-        </ResponsiveContainer>
-        <div className="flex justify-between text-xs text-gray-400 mt-2">
-          <span>
-            +{chartData.reduce((acc, d) => acc + (d.received > 0 ? 1 : 0), 0)} recebimentos
-          </span>
-          <span>
-            -{chartData.reduce((acc, d) => acc + (d.sent > 0 ? 1 : 0), 0)} envios
-          </span>
-        </div>
-      </div>
-<h3 className="text-xl font-semibold text-white mb-6">Histórico de Transações</h3>
-      {/* Histórico de transações */}
-      <div className="w-full max-w-7xl bg-[#2f3741] rounded-2xl p-10 md:p-10 mb-8 shadow-2xl">
-        {/* Barra de Filtros e Pesquisa */}
-        <div className="flex flex-col bg-[#3f4a57] p-4 rounded-full md:flex-row justify-between items-center gap-4 mb-6">
-          <div className="relative w-full md:w-1/2 lg:w-2/5">
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Pesquisar por ID, endereço ou valor..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {/* Balance Card */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 p-8 mb-8 shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 opacity-10">
+            <Bitcoin size={256} className="text-white" />
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="text-emerald-100 text-sm font-medium mb-1">Saldo Total Disponível</p>
+                <div className="flex items-center">
+                  
+                  <div className="flex items-center gap-2">
+                    {balanceVisible ? (
+                      <h2 className="text-4xl font-bold text-white">0.1827 BCH</h2>
+                    ) : (
+                      <h2 className="text-4xl font-bold text-white">••••••••</h2>
+                    )}
+                    <button
+                      onClick={() => setBalanceVisible(!balanceVisible)}
+                      className="text-white/80 hover:text-white transition-colors"
+                    >
+                      {balanceVisible ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                  </div>
+                </div>
+                {balanceVisible ? (
+                  <p className="text-emerald-100 text-xl font-semibold">R$ 215.45</p>
+                ) : (
+                  <p className="text-emerald-100 text-xl font-semibold">R$ ••••••</p>
+                )}
+              </div>
+              
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-emerald-100 mb-2">
+                  <TrendingUp size={16} />
+                  <span className="text-sm">+2.3% hoje</span>
+                </div>
+                <p className="text-emerald-200 text-xs">Última atualização: agora</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-6">
+              <div className="flex flex-col items-center group">
+                <button
+                  className="flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl text-white transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg border border-white/20"
+                  onClick={() => setSendModalOpen(true)}
+                >
+                  <ArrowUpRight size={24} />
+                </button>
+                <span className="text-sm mt-2 text-emerald-100 group-hover:text-white transition-colors">Enviar</span>
+              </div>
+              
+              <div className="flex flex-col items-center group">
+                <button
+                  className="flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl text-white transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg border border-white/20"
+                  onClick={() => setReceiveModalOpen(true)}
+                >
+                  <ArrowDownLeft size={24} />
+                </button>
+                <span className="text-sm mt-2 text-emerald-100 group-hover:text-white transition-colors">Receber</span>
+              </div>
+              
+              <div className="flex flex-col items-center group">
+                <button className="flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl text-white transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg border border-white/20">
+                  <RotateCcw size={24} />
+                </button>
+                <span className="text-sm mt-2 text-emerald-100 group-hover:text-white transition-colors">Trocar</span>
+              </div>
+              
+              <div className="flex flex-col items-center group">
+                <button className="flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl text-white transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg border border-white/20">
+                  <RefreshCw size={24} />
+                </button>
+                <span className="text-sm mt-2 text-emerald-100 group-hover:text-white transition-colors">Converter</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex bg-[#2F363E]/60 backdrop-blur-sm rounded-2xl p-1.5 border border-[#3A414A]/50">
+            <button
+              onClick={() => setViewMode('transactions')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                viewMode === 'transactions' 
+                  ? 'bg-teal-600 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+              }`}
             >
-              <option value="all">Todos Status</option>
-              <option value="confirmed">Confirmadas</option>
-              <option value="pending">Pendentes</option>
-              <option value="cancelled">Canceladas</option>
-            </select>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-4 py-2.5 rounded-lg bg-[#2f3741] border border-[#313e4b] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+              Transações
+            </button>
+            <button
+              onClick={() => setViewMode('analysis')}
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                viewMode === 'analysis' 
+                  ? 'bg-teal-600 text-white shadow-lg' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+              }`}
             >
-              <option value="all">Todas Categorias</option>
-              <option value="sent">Enviadas</option>
-              <option value="received">Recebidas</option>
-            </select>
+              Análise
+            </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-400  ">
-            <thead className="bg-[#23272B] border-2 border-[#313e4b] text-xs uppercase text-gray-500 ">
-        <tr>
-          <th scope="col" className="px-6 py-3">Descrição</th>
-          <th scope="col" className="px-6 py-3">Data</th>
-          <th scope="col" className="px-6 py-3">Quantidade</th>
-          <th scope="col" className="px-6 py-3">Status</th>
-          <th scope="col" className="px-6 py-3">Ação</th>
-        </tr>
-      </thead>
-      <tbody>
-  {transactions.length === 0 ? (
-    <tr>
-      <td colSpan={5} className="text-center py-8 text-gray-400">
-        Nenhuma transação encontrada.
-      </td>
-    </tr>
-  ) : (
-    transactions.map((tx) => (
-      <tr
-        key={tx.txid}
-        className="border-b border-[#313e4b] hover:bg-[#272c31] transition "
-      >
-        <td className="px-6 py-4 flex items-center gap-2">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center
-              ${tx.type === 'received' ? 'bg-green-500 border-2 border-green-700' : tx.type === 'sent' ? 'bg-red-700 border-2 border-red-500' : 'bg-blue-600 border-2 border-blue-800'}`}
-            title={tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
-          >
-            {tx.type === 'received' ? (
-              <FiArrowDown size={18} className="text-white" />
-            ) : tx.type === 'sent' ? (
-              <FiArrowUp size={18} className="text-white" />
-            ) : (
-              <FiRepeat size={18} className="text-white" />
-            )}
-          </div>
-          <span className="text-white font-medium">
-            {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Para si'}
-          </span>
-        </td>
-        <td className="px-6 py-4">
-          {new Date(tx.timestamp).toLocaleDateString('pt-BR')}
-        </td>
-        <td className="px-6 py-4">
-          <div className="text-white font-medium">
-            {tx.amountBCH.toFixed(8)} BCH
-          </div>
-          <div className="text-xs text-gray-400">
-            R$ {tx.amountBRL.toFixed(2)}
-          </div>
-        </td>
-        <td className="px-6 py-4">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              tx.status === 'confirmed'
-                ? 'bg-green-500 text-green-100'
-                : tx.status === 'pending'
-                ? 'bg-yellow-700 text-yellow-200'
-                : 'bg-red-700 text-red-200'
-            }`}
-            title={
-              tx.status === 'confirmed'
-                ? 'Transação confirmada'
-                : tx.status === 'pending'
-                ? 'Transação pendente'
-                : 'Erro na transação'
-            }
-          >
-            {tx.status === 'confirmed'
-              ? `Confirmado`
-              : tx.status === 'pending'
-              ? 'Pendente'
-              : 'Erro'}
-          </span>
-        </td>
-        <td className="px-6 py-4">
-          <button
-            className="ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-teal-700 transition"
-            onClick={() => console.log(`Repetir transação ${tx.txid}`)}
-          >
-            Detalhes
-          </button>
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
-    </table>
-  </div>
-</div>
+        {/* Content */}
+        {viewMode === 'transactions' && (
+          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-3xl border border-[#3A414A]/50 overflow-hidden shadow-xl">
+            {/* Filters */}
+            <div className="p-6 border-b border-[#3A414A]/50">
+              <div className="flex flex-col lg:flex-row gap-4 items-center">
+                <div className="relative flex-1 max-w-md">
+                  <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar transações..."
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="all">Todos Status</option>
+                    <option value="confirmed">Confirmadas</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="cancelled">Canceladas</option>
+                  </select>
+                  
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="all">Todas Categorias</option>
+                    <option value="sent">Enviadas</option>
+                    <option value="received">Recebidas</option>
+                  </select>
+                </div>
+              </div>
+            </div>
 
-{/* Modal de envio de transação */}
-{sendModalOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm bg-opacity-60">
-    <div className="bg-[#24292D] rounded-xl p-0 w-full max-w-md shadow-2xl relative">
-      <button
-        className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
-        onClick={() => setSendModalOpen(false)}
-        aria-label="Fechar"
-      >
-        ×
-      </button>
-      <div className="border-b border-[#333a41] px-8 pt-8 pb-2">
-        <h2 className="text-xl font-semibold text-white mb-1">Send BCH</h2>
-        <div className="flex border-b border-[#333a41] mb-2">
-          <button className="px-2 pb-2 border-b-2 border-teal-400 text-teal-300 font-medium focus:outline-none bg-transparent">
-            Wallet Address
-          </button>
-        </div>
+            {/* Transactions Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#24292D]/50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Transação</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Data</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Quantidade</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-12 text-gray-400">
+                        <div className="flex flex-col items-center gap-2">
+                          <Bitcoin size={48} className="opacity-50" />
+                          <p>Nenhuma transação encontrada</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.map((tx, index) => (
+                      <tr
+                        key={tx.txid}
+                        className="border-b border-[#3A414A]/50 hover:bg-[#3A414A]/30 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                tx.type === 'received' 
+                                  ? 'bg-green-500/20 text-green-400' 
+                                  : tx.type === 'sent' 
+                                  ? 'bg-red-500/20 text-red-400' 
+                                  : 'bg-blue-500/20 text-blue-400'
+                              }`}
+                            >
+                              {tx.type === 'received' ? (
+                                <ArrowDownLeft size={20} />
+                              ) : tx.type === 'sent' ? (
+                                <ArrowUpRight size={20} />
+                              ) : (
+                                <RotateCcw size={20} />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">
+                                {tx.type === 'received' ? 'Recebido' : tx.type === 'sent' ? 'Enviado' : 'Transferência'}
+                              </p>
+                              <p className="text-gray-400 text-sm">
+                                {tx.address.slice(0, 6)}...{tx.address.slice(-6)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 text-gray-300">
+                          {new Date(tx.timestamp).toLocaleDateString('pt-BR')}
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <div className="text-white font-medium">
+                            {tx.amountBCH.toFixed(8)} BCH
+                          </div>
+                          <div className="text-gray-400 text-sm">
+                            R$ {tx.amountBRL.toFixed(2)}
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              tx.status === 'confirmed'
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : tx.status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            }`}
+                          >
+                            {tx.status === 'confirmed' ? 'Confirmado' : tx.status === 'pending' ? 'Pendente' : 'Erro'}
+                          </span>
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <a
+                            href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-teal-600/20 text-teal-400 rounded-lg font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
+                          >
+                            Detalhes
+                          </a>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'analysis' && (
+          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-3xl border border-[#3A414A]/50 p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Análise de Atividade</h3>
+              
+              <div className="flex gap-2 bg-[#24292D]/70 rounded-xl p-1">
+                {(['today', 'week', 'month'] as const).map((period) => (
+                  <button
+                    key={period}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      activityPeriod === period
+                        ? 'bg-teal-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+                    }`}
+                    onClick={() => setActivityPeriod(period)}
+                  >
+                    {period === 'today' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mês'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="h-80 mb-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="receivedGradientArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#14B8A6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="sentGradientArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey={xKey} 
+                    stroke="#4A5568" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    contentStyle={{ 
+                      background: "#24292D", 
+                      border: "1px solid #3A414A", 
+                      borderRadius: "12px",
+                      color: "#e5e7eb" 
+                    }}
+                    labelStyle={{ color: "#14B8A6", fontWeight: "bold" }}
+                    formatter={(value: number, name: string) =>
+                      [`${value} BCH`, name === "received" ? "Recebido" : "Enviado"]
+                    }
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="received" 
+                    stroke="#14B8A6" 
+                    strokeWidth={2}
+                    fill="url(#receivedGradientArea)"
+                    name="Recebido" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="sent" 
+                    stroke="#F43F5E" 
+                    strokeWidth={2}
+                    fill="url(#sentGradientArea)"
+                    name="Enviado" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#24292D]/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ArrowDownLeft className="text-green-400" size={20} />
+                  <span className="text-gray-300 text-sm">Total Recebido</span>
+                </div>
+                <p className="text-2xl font-bold text-white">0.0456 BCH</p>
+                <p className="text-green-400 text-sm">+12.5% vs período anterior</p>
+              </div>
+              
+              <div className="bg-[#24292D]/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ArrowUpRight className="text-red-400" size={20} />
+                  <span className="text-gray-300 text-sm">Total Enviado</span>
+                </div>
+                <p className="text-2xl font-bold text-white">0.0123 BCH</p>
+                <p className="text-red-400 text-sm">-5.3% vs período anterior</p>
+              </div>
+              
+              <div className="bg-[#24292D]/50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="text-blue-400" size={20} />
+                  <span className="text-gray-300 text-sm">Saldo Líquido</span>
+                </div>
+                <p className="text-2xl font-bold text-white">+0.0333 BCH</p>
+                <p className="text-blue-400 text-sm">+18.2% vs período anterior</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Send Modal */}
+        {sendModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => setSendModalOpen(false)}
+              >
+                ×
+              </button>
+              
+              <div className="p-6 border-b border-[#3A414A]/70">
+                <h2 className="text-xl font-semibold text-white mb-2">Enviar BCH</h2>
+                <p className="text-gray-400 text-sm">Transfira Bitcoin Cash para outro endereço</p>
+              </div>
+              
+              <form onSubmit={handleSendSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Destinatário</label>
+                  <input
+                    type="text"
+                    placeholder="Digite o endereço BCH"
+                    className="w-full px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                    value={sendForm.address}
+                    onChange={e => setSendForm(f => ({ ...f, address: e.target.value }))}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Quantidade</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                      value={sendForm.amountBRL}
+                      onChange={e => setSendForm(f => ({ ...f, amountBRL: e.target.value }))}
+                      min="0"
+                      step="any"
+                    />
+                    <input
+                      type="number"
+                      placeholder="0.00000000"
+                      className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400"
+                      value={sendForm.amountBCH}
+                      onChange={e => setSendForm(f => ({ ...f, amountBCH: e.target.value }))}
+                      min="0"
+                      step="any"
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>BRL</span>
+                    <span>BCH</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Taxa de Rede</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    value={sendForm.fee}
+                    onChange={e => setSendForm(f => ({ ...f, fee: e.target.value as 'low' | 'medium' | 'high' }))}
+                  >
+                    <option value="low">Baixa (mais lenta)</option>
+                    <option value="medium">Média (recomendada)</option>
+                    <option value="high">Alta (mais rápida)</option>
+                  </select>
+                </div>
+                
+                <div className="bg-[#24292D]/50 rounded-xl p-4 space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-300">
+                    <span>Taxa de Rede</span>
+                    <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-white font-medium">
+                    <span>Total</span>
+                    <span>{(parseFloat(sendForm.amountBCH || '0') + estimatedFeeClientSide).toFixed(8)} BCH</span>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full bg-teal-600 text-white rounded-xl py-3 font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSending}
+                >
+                  {isSending ? 'Enviando...' : 'Enviar Transação'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Receive Modal */}
+        {receiveModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => setReceiveModalOpen(false)}
+              >
+                ×
+              </button>
+              
+              <div className="p-6 border-b border-[#3A414A]/70">
+                <h2 className="text-xl font-semibold text-white mb-2">Receber BCH</h2>
+                <p className="text-gray-400 text-sm">Compartilhe este endereço para receber Bitcoin Cash</p>
+              </div>
+              
+              <div className="p-6 text-center space-y-6">
+                <div className="bg-white p-4 rounded-2xl inline-block">
+                  <QRCode value={walletAddress || ''} size={200} />
+                </div>
+                
+                <div>
+                  <p className="text-teal-400 font-medium mb-2">Seu Endereço BCH</p>
+                  <div className="bg-[#24292D]/70 rounded-xl p-4 border border-[#3A414A]/70">
+                    <p className="text-white text-sm font-mono break-all mb-3">
+                      {walletAddress}
+                    </p>
+                    <button
+                      className="w-full bg-teal-600 text-white rounded-lg py-2 font-medium hover:bg-teal-700 transition-colors"
+                      onClick={() => {
+                        navigator.clipboard.writeText(walletAddress);
+                        setIsCopied(true);
+                        toast.success("Endereço copiado!");
+                        setTimeout(() => setIsCopied(false), 1500);
+                      }}
+                    >
+                      {isCopied ? 'Copiado!' : 'Copiar Endereço'}
+                    </button>
+                  </div>
+                </div>
+                
+                <button
+                  className="w-full bg-[#3A414A] text-white rounded-xl py-3 font-medium hover:bg-[#4A5568] transition-colors border border-[#4A5568]/70"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: 'Meu Endereço BCH', text: walletAddress }).catch(err => toast.error("Não foi possível compartilhar."));
+                    }
+                  }}
+                >
+                  Compartilhar Endereço
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && lastSent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-lg shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                ×
+              </button>
+              
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-teal-600/20 border-2 border-teal-500/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FiCheckCircle className="w-10 h-10 text-teal-400" />
+                </div>
+                
+                <h3 className="text-2xl font-bold text-white mb-2">Transação Enviada!</h3>
+                <p className="text-gray-400 mb-6">
+                  Você enviou <span className="font-medium text-teal-400">{parseFloat(lastSent.amount).toFixed(4)} BCH</span> com sucesso.
+                </p>
+                
+                <div className="bg-[#24292D]/50 rounded-xl p-4 mb-6 space-y-2 text-sm border border-[#3A414A]/50">
+                  <div className="flex justify-between text-gray-300">
+                    <span>Valor Enviado</span>
+                    <span>{lastSent.amount} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-gray-300">
+                    <span>Taxa de Rede</span>
+                    <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-white font-medium border-t border-[#3A414A]/70 pt-2">
+                    <span>Total</span>
+                    <span>{(parseFloat(lastSent.amount) + estimatedFeeClientSide).toFixed(8)} BCH</span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 bg-teal-600 text-white rounded-xl py-3 font-medium hover:bg-teal-700 transition-colors"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    Continuar
+                  </button>
+                  <button
+                    onClick={() => { /* Logic to open explorer */ toast.info("Explorer link would open here.");}}
+                    className="flex-1 bg-[#3A414A] text-white rounded-xl py-3 font-medium hover:bg-[#4A5568] transition-colors border border-[#4A5568]/70"
+                  >
+                    Ver Detalhes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <form onSubmit={handleSendSubmit} className="flex flex-col gap-4 px-8 py-6">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Recipient</label>
-          <input
-            type="text"
-            placeholder="Enter a BCH address"
-            className="w-full border border-[#333a41] rounded-lg px-3 py-2 text-white bg-[#23272B] focus:outline-none focus:ring-2 focus:ring-teal-400 placeholder-white"
-            value={sendForm.address}
-            onChange={e => setSendForm(f => ({ ...f, address: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Withdraw From</label>
-          <div className="flex items-center border border-[#333a41] rounded-lg px-3 py-2 bg-[#23272B]">
-            <span className="bg-[#F7931A] rounded-full w-7 h-7 flex items-center justify-center mr-2">
-              <Bitcoin size={18} color="white" />
-            </span>
-            <span className="font-medium text-white mr-2">BCH Wallet</span>
-            <span className="ml-auto text-xs text-gray-400">
-              {balance.totalBCH?.toFixed(8) ?? '0.00000000'} BCH
-              <span className="ml-2 text-gray-500">
-                ≈ R$ {balance.totalBRL?.toFixed(2) ?? '0.00'}
-              </span>
-            </span>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Amount</label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              placeholder="0.00"
-              className="w-1/2 border border-[#333a41] rounded-lg px-3 py-2 text-white bg-[#23272B] focus:outline-none placeholder-white"
-              value={sendForm.amountBRL}
-              onChange={e => setSendForm(f => ({ ...f, amountBRL: e.target.value }))}
-              min="0"
-              step="any"
-            />
-            <span className="flex items-center text-gray-500 font-bold text-lg">⇄</span>
-            <input
-              type="number"
-              placeholder="0.00"
-              className="w-1/2 border border-[#333a41] rounded-lg px-3 py-2 text-white bg-[#23272B] focus:outline-none placeholder-white"
-              value={sendForm.amountBCH}
-              onChange={e => setSendForm(f => ({ ...f, amountBCH: e.target.value }))}
-              min="0"
-              step="any"
-              required
-            />
-          </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>BRL</span>
-            <span>BCH</span>
-          </div>
-        </div>
-        {/* Fee select */}
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Fee</label>
-          <select
-            className="w-full border border-[#333a41] rounded-lg px-3 py-2 text-white bg-[#23272B] focus:outline-none"
-            value={sendForm.fee}
-            onChange={e => setSendForm(f => ({ ...f, fee: e.target.value as 'low' | 'medium' | 'high' }))}
-            required
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-1 text-xs text-gray-400 mt-2">
-          <div className="flex justify-between">
-            <span>Network Fee</span>
-            <span>
-              0.00000220 BCH (R$ {(0.00000220 * (balance.currentRateBRL ?? 0)).toFixed(4)})
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Total</span>
-            <span>
-              {(parseFloat(sendForm.amountBCH || '0') + 0.00000220).toFixed(8)} BCH (R$ {(((parseFloat(sendForm.amountBCH || '0') + 0.00000220) * (balance.currentRateBRL ?? 0)).toFixed(2))})
-            </span>
-          </div>
-        </div>
-        <button
-          type="submit"
-          className="w-full ease-in-out hover:-translate-y-1 hover:scale-110 bg-teal-600 text-white rounded-lg py-2 font-semibold mt-2 hover:bg-teal-700 transition"
-          disabled={isSending}
-        >
-          {isSending ? 'Enviando...' : 'Continue'}
-        </button>
-
-      </form>
     </div>
-  </div>
-)}
-
-{/* Modal de sucesso */}
-{showSuccessModal && lastSent && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm bg-opacity-60">
-    <div className="bg-[#24292D] border-2 border-zinc-700 rounded-2xl w-full max-w-lg shadow-2xl relative flex flex-col items-center px-0 py-0">
-      {/* Header */}
-      <div className="w-full flex items-center justify-center px-8 pt-8 pb-2">
-        <h2 className="text-lg font-semibold text-gray-200">Complete</h2>
-      </div>
-      <button
-        className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
-        onClick={() => setShowSuccessModal(false)}
-        aria-label="Fechar"
-      >
-        ×
-      </button>
-      {/* Check icon */}
-      <div className="flex flex-col items-center w-full px-8">
-        <div className="rounded-full border-8 border-teal-600 flex items-center justify-center mb-6 mt-4" style={{ width: 180, height: 180 }}>
-  <svg width="130" height="130" viewBox="0 0 100 100" fill="none">
-
-    <path d="M32 54l15 15 25-25" stroke="#14B498" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-</div>
-        <p className="text-xl font-semibold text-white mb-2 text-center">
-          You sent {parseFloat(lastSent.amount).toFixed(4)} BCH
-          {lastSent.amountBRL && ` (R$ ${parseFloat(lastSent.amountBRL).toFixed(2)})`}!
-        </p>
-        <p className="text-gray-400 mb-6 text-center">
-          Transaction sent to external address.
-        </p>
-        <button
-          className="bg-teal-600 hover:bg-teal-700 ease-in-out hover:-translate-y-1 hover:scale-110 text-white font-semibold px-8 py-3 rounded-2xl mb-4 transition"
-          onClick={() => setShowSuccessModal(false)}
-        >
-          Back to home
-        </button>
-        <div className="flex gap-6 mb-6">
-          <a
-            href="#"
-            className="text-teal-600 hover:underline text-sm flex items-center gap-1"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Bitcoin transaction <span>↗</span>
-          </a>
-
-        </div>
-      </div>
-      {/* Details */}
-      <div className="w-full bg-[#23272B] rounded-b-2xl px-8 py-6 mt-2">
-        <div className="flex flex-col gap-2 text-sm text-gray-300">
-          <div className="flex justify-between">
-            <span>Network Fee <span className="text-gray-500 ml-1" title="Taxa da rede">ⓘ</span></span>
-            <span>0.00000220 BCH (R$ {(0.00000220 * (balance.currentRateBRL ?? 0)).toFixed(4)})</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Total <span className="text-gray-500 ml-1" title="Total com taxa">ⓘ</span></span>
-            <span>
-              {(parseFloat(lastSent.amount || '0') + 0.00000220).toFixed(8)} BCH (R$ {(((parseFloat(lastSent.amount || '0') + 0.00000220) * (balance.currentRateBRL ?? 0)).toFixed(2))})
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Recipient Address <span className="text-gray-500 ml-1" title="Endereço de destino">ⓘ</span></span>
-            <span className="truncate max-w-[180px] text-right">{sendForm.address || '0.00000220 BCH'}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-{/* Modal de recebimento */}
-{receiveModalOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm bg-opacity-60">
-    <div className="bg-[#24292D] rounded-xl p-0 w-full max-w-md shadow-2xl relative">
-      <button
-        className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl"
-        onClick={() => setReceiveModalOpen(false)}
-        aria-label="Fechar"
-      >
-        ×
-      </button>
-      <div className="border-b border-[#333a41] px-8 pt-8 pb-2">
-        <div className="flex items-center justify-center w-full">
-          <h2 className="text-xl font-semibold text-white mb-1 text-center w-full">Receive BCH</h2>
-        </div>
-      </div>
-      <div className="flex flex-col items-center gap-4 px-8 py-6">
-        <div className="bg-white p-3 rounded-lg border border-gray-200">
-          <QRCode value={walletAddress || ''} size={160} />
-        </div>
-        <span className="text-base font-semibold text-white">BCH-Bitcoin Cash</span>
-        <div className="flex items-center w-full justify-between bg-[#23272B] rounded-lg px-3 py-2 mt-2">
-          <span className="text-xs text-gray-400 truncate max-w-[180px]">
-            {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
-          </span>
-          <button
-            className="ml-2 px-3 py-1 bg-[#1E1E1E] rounded-full text-xs font-medium text-white border border-[#333a41] hover:bg-[#333333]"
-            onClick={() => {
-              navigator.clipboard.writeText(walletAddress);
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 1200);
-            }}
-          >
-            {isCopied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <button
-          className="w-full mt-4 bg-teal-600 text-white rounded-lg py-3 font-semibold text-base hover:bg-teal-700 transition"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({ title: 'My BCH Address', text: walletAddress });
-            } else {
-              navigator.clipboard.writeText(walletAddress);
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 1200);
-            }
-          }}
-        >
-          Share address
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
-
-      </div>
-
   );
 }
