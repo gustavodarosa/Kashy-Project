@@ -733,16 +733,35 @@ export function WalletTab() {
                       {walletAddress}
                     </p>
                     <button
-                      className="w-full bg-teal-600 text-white rounded-lg py-2 font-medium hover:bg-teal-700 transition-colors"
-                      onClick={() => {
-                        navigator.clipboard.writeText(walletAddress);
-                        setIsCopied(true);
-                        toast.success("Endereço copiado!");
-                        setTimeout(() => setIsCopied(false), 1500);
-                      }}
-                    >
-                      {isCopied ? 'Copiado!' : 'Copiar Endereço'}
-                    </button>
+                     className={`w-full rounded-lg py-2 font-medium transition-colors ${
+                      isCopied
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-teal-600 text-white hover:bg-teal-700'
+                  }`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(walletAddress);
+                    setIsCopied(true);
+                    toast.success("Copiado com Sucesso!", {
+                      position: "top-center",
+                      autoClose: 2000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: false,
+                      draggable: true,
+                      progress: undefined,
+                      icon: <FiCheckCircle color="#14B8A6" />,
+                    });
+                    setTimeout(() => setIsCopied(false), 1500);
+                  }}
+                >
+                  {isCopied ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <FiCheckCircle className="inline-block" /> Copiado!
+                    </span>
+                  ) : (
+                    'Copiar Endereço'
+                  )}
+                </button>
                   </div>
                 </div>
                 
