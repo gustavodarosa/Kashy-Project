@@ -8,10 +8,12 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  ChartNoAxesCombined,
   AlertCircle,
   TrendingUp, // Para o resumo
   FileText,   // Para o cabeçalho
 } from 'lucide-react';
+import { Listbox } from '@headlessui/react';
 
 type Transaction = {
   _id: string;
@@ -39,7 +41,6 @@ export function TransacoesTab() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -179,6 +180,21 @@ export function TransacoesTab() {
     }
   };
 
+  const statusOptions = [
+    { value: 'all', label: 'Todos os Status' },
+    { value: 'confirmed', label: 'Confirmadas' },
+    { value: 'pending', label: 'Pendentes' },
+    { value: 'failed', label: 'Falhas' },
+    { value: 'expired', label: 'Expiradas' },
+  ];
+
+  const dateOptions = [
+    { value: 'all', label: 'Todos os Períodos' },
+    { value: 'today', label: 'Hoje' },
+    { value: 'week', label: 'Últimos 7 dias' },
+    { value: 'month', label: 'Últimos 30 dias' },
+  ];
+
 
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
@@ -200,7 +216,7 @@ export function TransacoesTab() {
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-indigo-700/20 rounded-xl backdrop-blur-sm border border-indigo-400/30">
-                  <FileText size={36} className="text-indigo-300" />
+                  <ChartNoAxesCombined size={36} className="text-indigo-300" />
                 </div>
                 <div className="text-left">
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
@@ -227,7 +243,7 @@ export function TransacoesTab() {
 
         {/* Filters Section */}
         <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full lg:max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -244,13 +260,53 @@ export function TransacoesTab() {
                   }}
                 />
               </div>
-              <button
-                onClick={() => setIsFilterModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-xl border border-indigo-500/30 hover:border-indigo-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
-              >
-                <ListFilter size={18} />
-                Filtros Avançados
-              </button>
+              <div className="flex gap-3 w-full lg:w-auto">
+                {/* Status Listbox */}
+                <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos os status'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      {statusOptions.map((opt, idx) => (
+                        <Listbox.Option
+                          key={opt.value}
+                          value={opt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === 0 ? 'rounded-t-xl' : ''}
+                            ${idx === statusOptions.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {opt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+
+                {/* Date Listbox */}
+                <Listbox value={dateFilter} onChange={(value) => { setDateFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {dateOptions.find(d => d.value === dateFilter)?.label || 'Todo período'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      {dateOptions.map((opt, idx) => (
+                        <Listbox.Option
+                          key={opt.value}
+                          value={opt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === 0 ? 'rounded-t-xl' : ''}
+                            ${idx === dateOptions.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {opt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+              </div>
             </div>
           </div>
         </div>
@@ -274,73 +330,6 @@ export function TransacoesTab() {
             <div className="text-xs text-sky-200/80 font-medium">Total de Transações</div>
           </div>
         </div>
-
-        {/* Advanced Filters Modal */}
-        {isFilterModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="relative w-full max-w-lg bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col">
-              <button
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
-                onClick={() => setIsFilterModalOpen(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-              <div className="p-6 border-b border-white/10 flex-shrink-0">
-                <h2 className="text-xl font-bold text-white">Filtros Avançados</h2>
-                <p className="text-gray-400 mt-1 text-sm">Refine sua busca de transações.</p>
-              </div>
-              <div className="p-6 flex-grow overflow-y-auto space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Status</label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm"
-                  >
-                    <option value="all">Todos os status</option>
-                    <option value="confirmed">Confirmadas</option>
-                    <option value="pending">Pendentes</option>
-                    <option value="failed">Falhas</option>
-                    <option value="expired">Expiradas</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Período</label>
-                  <select
-                    value={dateFilter}
-                    onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm"
-                  >
-                    <option value="all">Todo período</option>
-                    <option value="today">Hoje</option>
-                    <option value="week">Últimos 7 dias</option>
-                    <option value="month">Últimos 30 dias</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
-                <button
-                  onClick={() => {
-                    setStatusFilter('all');
-                    setDateFilter('all');
-                    setCurrentPage(1);
-                    setIsFilterModalOpen(false);
-                  }}
-                  className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
-                >
-                  Limpar Filtros
-                </button>
-                <button
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
-                >
-                  Aplicar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Transactions Table */}
         <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
@@ -432,7 +421,7 @@ export function TransacoesTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
                       <ChevronLeft size={16} />
                       Anterior
@@ -440,7 +429,7 @@ export function TransacoesTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages || totalPages === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
                       Próximo
                       <ChevronRight size={16} />

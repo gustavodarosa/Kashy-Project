@@ -3,7 +3,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ShoppingCart,
+  ShoppingBasket,
   Edit2, // Or Edit, depending on preference
   Trash2,
   Copy,
@@ -14,7 +14,9 @@ import {
   Plus,
   CreditCard,
   ListFilter,
+  ShoppingCart,
 } from 'lucide-react';
+import { Listbox } from '@headlessui/react';
 import QRCode from 'react-qr-code';
 
 type OrderItem = {
@@ -482,6 +484,21 @@ export function PedidosTab() {
     }
   };
 
+  const statusOptions = [
+    { value: 'all', label: 'Todos os Status' },
+    { value: 'pending', label: 'Pendentes' },
+    { value: 'paid', label: 'Pagos' },
+    { value: 'cancelled', label: 'Cancelados' },
+    { value: 'expired', label: 'Expirados' },
+    { value: 'refunded', label: 'Reembolsados' },
+  ];
+
+  const paymentOptions = [
+    { value: 'all', label: 'Todos os Métodos' },
+    { value: 'bch', label: 'Bitcoin Cash' },
+    { value: 'pix', label: 'PIX' },
+    { value: 'card', label: 'Cartão' },
+  ];
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
       <div className="container mx-auto px-4 py-6">
@@ -501,7 +518,7 @@ export function PedidosTab() {
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-blue-500/20 to-blue-700/20 rounded-xl backdrop-blur-sm border border-blue-400/30">
-                  <ShoppingCart size={36} className="text-blue-300" />
+                  <ShoppingBasket size={36} className="text-blue-300" />
                 </div>
                 <div className="text-left">
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
@@ -530,7 +547,7 @@ export function PedidosTab() {
 
         {/* Enhanced Filters Section */}
         <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full lg:max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -549,35 +566,60 @@ export function PedidosTab() {
               </div>
               
               <div className="flex gap-3 w-full lg:w-auto">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all min-w-[150px] text-sm"
-                >
-                  <option value="all">Todos status</option>
-                  <option value="pending">Pendentes</option>
-                  <option value="paid">Pagos</option>
-                  <option value="cancelled">Cancelados</option>
-                  <option value="expired">Expirados</option>
-                  <option value="refunded">Reembolsados</option>
-                </select>
-
-                <select
-                  value={paymentFilter}
-                  onChange={(e) => {
-                    setPaymentFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all min-w-[150px] text-sm"
-                >
-                  <option value="all">Todos métodos</option>
-                  <option value="bch">Bitcoin Cash</option>
-                  <option value="pix">PIX</option>
-                  <option value="card">Cartão</option>
-                </select>
+                {/* Status Listbox */}
+                <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos os Status'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      <Listbox.Option
+                        value="all"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                      >
+                        Todos os Status
+                      </Listbox.Option>
+                      {statusOptions.filter(opt => opt.value !== 'all').map((statusOpt, idx, arr) => (
+                        <Listbox.Option
+                          key={statusOpt.value}
+                          value={statusOpt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {statusOpt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+                {/* Payment Method Listbox */}
+                <Listbox value={paymentFilter} onChange={(value) => { setPaymentFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {paymentOptions.find(p => p.value === paymentFilter)?.label || 'Todos os Métodos'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      <Listbox.Option
+                        value="all"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                      >
+                        Todos os Métodos
+                      </Listbox.Option>
+                      {paymentOptions.filter(opt => opt.value !== 'all').map((paymentOpt, idx, arr) => (
+                        <Listbox.Option
+                          key={paymentOpt.value}
+                          value={paymentOpt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {paymentOpt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
               </div>
             </div>
           </div>
@@ -754,7 +796,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
                       <ChevronLeft size={16} />
                       Anterior
@@ -762,7 +804,7 @@ export function PedidosTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages || totalPages === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
                       Próximo
                       <ChevronRight size={16} />

@@ -6,6 +6,7 @@ import { Bitcoin, SearchIcon, TrendingUp, ArrowUpRight, ArrowDownLeft, RotateCcw
 import { FiCheckCircle } from 'react-icons/fi';
 import QRCode from 'react-qr-code';
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Listbox } from '@headlessui/react';
 
 import { useNotification } from '../../../context/NotificationContext';
 
@@ -68,7 +69,7 @@ const activityDataMonth = [
 ];
 
 export function WalletTab() {
-  const { addNotification } = useNotification();
+  const {addNotification } = useNotification();
   const [balance, setBalance] = useState<WalletBalance>({ totalBCH: 0, availableBCH: 0, pendingBCH: 0, totalBRL: 0, totalSatoshis: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -331,68 +332,78 @@ export function WalletTab() {
 
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-[#2F363E]/60 backdrop-blur-sm rounded-2xl p-1.5 border border-[#3A414A]/50">
+          <div className="inline-flex bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-xl">
             <button
               onClick={() => setViewMode('transactions')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                viewMode === 'transactions' 
-                  ? 'bg-teal-600 text-white shadow-lg' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 text-sm ${
+                viewMode === 'transactions'
+                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white/5'
               }`}
             >
               Transações
             </button>
             <button
               onClick={() => setViewMode('analysis')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                viewMode === 'analysis' 
-                  ? 'bg-teal-600 text-white shadow-lg' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 text-sm ${
+                viewMode === 'analysis'
+                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white/5'
               }`}
             >
-              Análise
+              Análises
             </button>
           </div>
         </div>
 
         {/* Content */}
         {viewMode === 'transactions' && (
-          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-3xl border border-[#3A414A]/50 overflow-hidden shadow-xl">
+          <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
             {/* Filters */}
-            <div className="p-6 border-b border-[#3A414A]/50">
+            <div className="p-6 border-b border-white/10">
               <div className="flex flex-col lg:flex-row gap-4 items-center">
-                <div className="relative flex-1 max-w-md">
+                <div className="relative flex-1 w-full lg:max-w-md">
                   <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                   <input
                     type="text"
                     placeholder="Pesquisar transações..."
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D]/80 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 transition-all text-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                
-                <div className="flex gap-3">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="all">Todos Status</option>
-                    <option value="confirmed">Confirmadas</option>
-                    <option value="pending">Pendentes</option>
-                    <option value="cancelled">Canceladas</option>
-                  </select>
-                  
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="all">Todas Categorias</option>
-                    <option value="sent">Enviadas</option>
-                    <option value="received">Recebidas</option>
-                  </select>
+                <div className="flex gap-3 w-full lg:w-auto">
+                  {/* Status Listbox */}
+                  <Listbox value={statusFilter} onChange={setStatusFilter}>
+                    <div className="relative min-w-[180px]">
+                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                        {statusFilter === 'all' ? 'Todos Status' : statusFilter === 'confirmed' ? 'Confirmadas' : statusFilter === 'pending' ? 'Pendentes' : 'Canceladas'}
+                      </Listbox.Button>
+                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                        <Listbox.Option value="all" className="px-4 py-2 hover:bg-[#2d3338] rounded-t-xl cursor-pointer">Todos Status</Listbox.Option>
+                        <Listbox.Option value="confirmed" className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer">Confirmadas</Listbox.Option>
+                        <Listbox.Option value="pending" className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer">Pendentes</Listbox.Option>
+                        <Listbox.Option value="cancelled" className="px-4 py-2 hover:bg-[#2d3338] rounded-b-xl cursor-pointer">Canceladas</Listbox.Option>
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  {/* Categoria Listbox */}
+                  <Listbox value={categoryFilter} onChange={setCategoryFilter}>
+                    <div className="relative min-w-[180px]">
+                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                        {categoryFilter === 'all'
+                          ? 'Todas Categorias'
+                          : categoryFilter === 'sent'
+                          ? 'Enviadas'
+                          : 'Recebidas'}
+                      </Listbox.Button>
+                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                        <Listbox.Option value="all" className="px-4 py-2 hover:bg-[#2d3338] rounded-t-xl cursor-pointer">Todas Categorias</Listbox.Option>
+                        <Listbox.Option value="sent" className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer">Enviadas</Listbox.Option>
+                        <Listbox.Option value="received" className="px-4 py-2 hover:bg-[#2d3338] rounded-b-xl cursor-pointer">Recebidas</Listbox.Option>
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
                 </div>
               </div>
             </div>
@@ -400,13 +411,13 @@ export function WalletTab() {
             {/* Transactions Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-[#24292D]/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Transação</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Data</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Quantidade</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Ação</th>
+                <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                  <tr className="text-xs">
+                    <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Transação</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Quantidade</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -502,7 +513,7 @@ export function WalletTab() {
         )}
 
         {viewMode === 'analysis' && (
-          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-3xl border border-[#3A414A]/50 p-6 shadow-xl">
+          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-2xl border border-white/10 p-6 shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-white">Análise de Atividade</h3>
               

@@ -9,7 +9,8 @@ import {
   Plus,
   AlertTriangle,
   FileText, // For standard reports in modal
-  Sparkles, // For AI reports in modal
+  Sparkles,
+  NotepadText, // For AI reports in modal
 } from 'lucide-react';
 import jsPDF from 'jspdf';
  
@@ -450,7 +451,7 @@ export function RelatoriosTab() {
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-xl backdrop-blur-sm border border-blue-400/30">
-                  <BarChart3 size={36} className="text-blue-300" />
+                  <NotepadText size={36} className="text-blue-300" />
                 </div>
                 <div className="text-left">
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">

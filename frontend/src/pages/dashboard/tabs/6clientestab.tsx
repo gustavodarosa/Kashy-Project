@@ -185,22 +185,6 @@ export function ClientesTab() {
                 </div>
               </div>
               
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                <div className="group p-4 bg-gradient-to-br from-sky-500/10 to-sky-600/5 rounded-xl backdrop-blur-sm border border-sky-400/20 hover:border-sky-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-sky-300 mb-1">{totalClientes}</div>
-                  <div className="text-xs text-sky-200/80 font-medium">Total de Clientes</div>
-                </div>
-                <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-emerald-300 mb-1">{clientesAtivosClube}</div>
-                  <div className="text-xs text-emerald-200/80 font-medium">Ativos no Clube</div>
-                </div>
-                <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-amber-300 mb-1">{formatCurrency(mediaGasto)}</div>
-                  <div className="text-xs text-amber-200/80 font-medium">Gasto Médio</div>
-                </div>
-              </div>
-
               <div className="mt-8">
                 <button
                   onClick={() => setIsNewClientModalOpen(true)}
@@ -242,6 +226,23 @@ export function ClientesTab() {
             </div>
           </div>
         </div>
+
+        {/* Stats Grid - Moved here, similar to ProdutosTab */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="group p-4 bg-gradient-to-br from-sky-500/10 to-sky-600/5 rounded-xl backdrop-blur-sm border border-sky-400/20 hover:border-sky-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-sky-300 mb-1">{totalClientes}</div>
+            <div className="text-xs text-sky-200/80 font-medium">Total de Clientes</div>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-emerald-300 mb-1">{clientesAtivosClube}</div>
+            <div className="text-xs text-emerald-200/80 font-medium">Ativos no Clube</div>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-amber-300 mb-1">{formatCurrency(mediaGasto)}</div>
+            <div className="text-xs text-amber-200/80 font-medium">Gasto Médio</div>
+          </div>
+        </div>
+
 
         {/* Insights IA */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">

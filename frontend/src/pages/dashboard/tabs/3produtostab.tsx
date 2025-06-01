@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify'; // Import toast
-import { Edit, Trash2, Plus, Search, ChevronLeft, ChevronRight, ShoppingCart, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, ChevronLeft, ChevronRight, Package, ShoppingCart, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { Listbox } from '@headlessui/react';
 
 export type Product = {
   _id: string;
@@ -61,6 +62,14 @@ export function ProdutosTab() {
     { value: 'eletronicos', label: 'Eletrônicos' },
     { value: 'vestuario', label: 'Vestuário' },
     { value: 'servicos', label: 'Serviços' },
+  ];
+
+  // Adicione este array para as lojas, se quiser centralizar:
+  const stores = [
+    { value: 'all', label: 'Todas as Lojas' },
+    { value: 'Loja A', label: 'Loja A' },
+    { value: 'Loja B', label: 'Loja B' },
+    { value: 'Loja C', label: 'Loja C' },
   ];
 
   // ... keep existing code (useEffect for fetchProducts)
@@ -287,63 +296,26 @@ export function ProdutosTab() {
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
-            
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="p-2 bg-gradient-to-br from-teal-400/20 to-teal-600/20 rounded-xl backdrop-blur-sm border border-teal-400/30">
-                  <ShoppingCart size={36} className="text-teal-300" />
+                  <Package size={36} className="text-teal-300" />
                 </div>
                 <div className="text-left">
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-teal-200 bg-clip-text text-transparent">
-                    Dashboard de Produtos
+                    Estoque de Produtos
                   </h1>
                   <p className="text-base text-teal-100/80">Gestão inteligente do seu inventário</p>
                 </div>
               </div>
-
-              {/* Enhanced Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-                <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-emerald-300 mb-1">
-                    {products.filter(p => p.quantity >= 30).length}
-                  </div>
-                  <div className="text-xs text-emerald-200/80 font-medium">Alto Estoque</div>
-                  <div className="text-[11px] text-emerald-100/60 mt-0.5">30+ unidades</div>
-                </div>
-                
-                <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-blue-300 mb-1">
-                    {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
-                  </div>
-                  <div className="text-xs text-blue-200/80 font-medium">Médio Estoque</div>
-                  <div className="text-[11px] text-blue-100/60 mt-0.5">16-29 unidades</div>
-                </div>
-                
-                <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-amber-300 mb-1">
-                    {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
-                  </div>
-                  <div className="text-xs text-amber-200/80 font-medium">Baixo Estoque</div>
-                  <div className="text-[11px] text-amber-100/60 mt-0.5">1-15 unidades</div>
-                </div>
-                
-                <div className="group p-4 bg-gradient-to-br from-red-500/30 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
-                  <div className="text-2xl font-bold text-red-300 mb-1">
-                    {products.filter(p => p.quantity === 0).length}
-                  </div>
-                  <div className="text-xs text-red-200/80 font-medium">Esgotados</div>
-                  <div className="text-[11px] text-red-100/60 mt-0.5">0 unidades</div>
-                </div>
-              </div>
-
               {/* Enhanced Action Button */}
               <div className="mt-8">
                 <button
                   onClick={() => setIsFormOpen(true)}
-                  className="group relative px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-teal-400/30 text-sm"
+                  className="group relative px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-teal-400 text-sm"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md">
+                    <div className="rounded-md">
                       <Plus size={18} />
                     </div>
                     <span>Novo Produto</span>
@@ -367,7 +339,7 @@ export function ProdutosTab() {
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Tabela
+                Tabelas
               </button>
               <button
                 onClick={() => setViewMode('grid')}
@@ -385,7 +357,7 @@ export function ProdutosTab() {
 
         {/* Enhanced Filters Section */}
         <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -404,35 +376,91 @@ export function ProdutosTab() {
               </div>
               
               <div className="flex gap-4">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => {
-                    setSelectedCategory(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all min-w-[150px] text-sm"
-                >
-                  <option value="all">Todas categorias</option>
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
-                
-                <select
-                  value={selectedStore}
-                  onChange={(e) => {
-                    setSelectedStore(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all min-w-[150px] text-sm"
-                >
-                  <option value="all">Todas as lojas</option>
-                  <option value="Loja A">Loja A</option>
-                  <option value="Loja B">Loja B</option>
-                  <option value="Loja C">Loja C</option>
-                </select>
+                {/* Categoria Listbox */}
+                <Listbox value={selectedCategory} onChange={(value) => { setSelectedCategory(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white transition-all text-sm w-full text-left whitespace-nowrap truncate"> {/* Adicionado truncate */}
+                      {selectedCategory === 'all'
+                        ? 'Todas Categorias' // Mantido como estava no seu código original
+                        : categories.find(c => c.value === selectedCategory)?.label || 'Outros'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      <Listbox.Option
+                        value="all"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                      >
+                        Todas Categorias {/* Mantido como estava no seu código original */}
+                      </Listbox.Option>
+                      {categories.map((cat, idx) => (
+                        <Listbox.Option
+                          key={cat.value}
+                          value={cat.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === categories.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {cat.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+
+                {/* Loja Listbox */}
+                <Listbox value={selectedStore} onChange={(value) => { setSelectedStore(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-sm w-full text-left whitespace-nowrap truncate"> {/* Adicionado truncate */}
+                      {stores.find(s => s.value === selectedStore)?.label || 'Todas Lojas'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      {stores.map((store, idx) => (
+                        <Listbox.Option
+                          key={store.value}
+                          value={store.value}
+                          className={`px-4 py-2 hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === stores.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {store.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Estoque Stats Cards - igual PedidosTab */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="group p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-green-300 mb-1">
+              {products.filter(p => p.quantity >= 30).length}
+            </div>
+            <div className="text-xs text-green-200/80 font-medium">Alto Estoque</div>
+            
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-blue-300 mb-1">
+              {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
+            </div>
+            <div className="text-xs text-blue-200/80 font-medium">Médio Estoque</div>
+
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-yellow-300 mb-1">
+              {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
+            </div>
+            <div className="text-xs text-yellow-200/80 font-medium">Baixo Estoque</div>
+
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-red-300 mb-1">
+              {products.filter(p => p.quantity === 0).length}
+            </div>
+            <div className="text-xs text-red-200/80 font-medium">Esgotados</div>
+ 
           </div>
         </div>
 
