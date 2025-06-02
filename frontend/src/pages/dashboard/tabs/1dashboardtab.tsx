@@ -13,7 +13,7 @@ import { DashboardRevenueChart } from "../../../components/dashboard/DashboardRe
 export function DashboardTab() {
   return (
     <div className="min-h-screen bg-[#141414] text-white p-10 space-y-12">
-      <style jsx global>{`
+      <style>{`
         .resumo-financeiro-card {
           position: relative;
         }

@@ -57,7 +57,6 @@ export function LowStockAlert({ produtos }: LowStockAlertProps) {
         <Info
           size={14}
           className="text-gray-400 cursor-pointer"
-          title="Produtos abaixo do nível mínimo definido"
         />
       </div>
 

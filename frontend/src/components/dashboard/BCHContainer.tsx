@@ -311,7 +311,6 @@ const BitcoinCashCard = () => {
             <ComposedChart
               data={chartData}
               margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
-              isAnimationActive={false} // Desabilita animações para o gráfico principal
             >
               <defs>
                 <linearGradient id="chartLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">

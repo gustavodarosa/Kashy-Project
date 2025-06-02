@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { TrendingUp, TrendingDown, BarChart3, Minus } from "lucide-react"
 
 interface DadosVenda {
-  [key: string]: string | number
+  [key: string]: string | number | undefined
   vendas: number
   vendasAnterior?: number
 }

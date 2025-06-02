@@ -147,7 +147,7 @@ export function DashboardRevenueChart() {
         <div className="bg-gray-800/50 rounded-lg p-3">
           <div className="text-gray-400 text-sm mb-1">Média Diária</div>
           <div className="text-xl font-bold text-[#14B498]">
-            R$ {mediaFaturamento.toFixed(0).toLocaleString("pt-BR")}
+            R$ {mediaFaturamento.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
           </div>
         </div>
         <div className="bg-gray-800/50 rounded-lg p-3">
