@@ -1,17 +1,31 @@
 import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
-    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil
+    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
+    Sun, Moon, Globe
 } from 'lucide-react';
 import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
-import { useSidebar } from '../../hooks/usersidebar';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
 
 
 export function Dashboard() {
-    const { isOpen, toggleSidebar } = useSidebar();
+    const isOpen = true;
+
+    // Tipos e constantes para categorias de notificação
+    type NotificationCategory = "todas" | "transacoes" | "produtos" | "pedidos" | "relatorios";
+
+    const notificationCategoryTabs: Array<{ id: NotificationCategory; label: string }> = [
+        { id: "todas", label: "Todas" },
+        { id: "transacoes", label: "Transações" },
+        { id: "produtos", label: "Produtos" },
+        { id: "pedidos", label: "Pedidos" },
+        { id: "relatorios", label: "Relatórios" },
+    ];
+
+    const [activeNotificationTab, setActiveNotificationTab] = useState<NotificationCategory>("todas");
+
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -33,6 +47,8 @@ export function Dashboard() {
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
+    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+    const [language, setLanguage] = useState<'pt-BR' | 'en-US'>('pt-BR');
 
     const navigate = useNavigate();
 
@@ -314,6 +330,21 @@ export function Dashboard() {
         setHasUnreadNotifications(false);
     };
 
+    // Filtra as notificações com base na aba ativa
+    // IMPORTANTE: Isso assume que seus objetos de 'notification' (do useNotification hook)
+    // possuem uma propriedade 'category' do tipo NotificationCategory.
+    // Ex: { id: '1', message: '...', timestamp: '...', category: 'transacoes' }
+    // Se não, apenas a aba "Todas" funcionará corretamente, e as outras ficarão vazias.
+    // Você precisará adaptar seu NotificationContext para incluir essa propriedade.
+    const filteredNotifications = useMemo(() => {
+        return notifications.filter(notification => {
+            if (activeNotificationTab === "todas") {
+                return true;
+            }
+            // @ts-ignore A propriedade 'category' pode não estar definida no tipo Notification do contexto.
+            return notification.category === activeNotificationTab;
+        });
+    }, [notifications, activeNotificationTab]);
     const handleSendMessage = async () => {
         if (!chatInput.trim()) return;
 
@@ -379,7 +410,7 @@ export function Dashboard() {
 
     const tabs = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
-        { id: 'carteira', label: 'Wallet', icon: <Wallet /> },
+        { id: 'carteira', label: 'Carteira', icon: <Wallet /> },
         { id: 'produtos', label: 'Produtos', icon: <Package /> },
         { id: 'pedidos', label: 'Pedidos', icon: <ShoppingBasket /> },
         { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
@@ -402,33 +433,34 @@ export function Dashboard() {
         }
     };
 
+    // Troca tema
+    const toggleTheme = () => {
+        setTheme((prev) => {
+            const next = prev === 'dark' ? 'light' : 'dark';
+            document.documentElement.classList.toggle('dark', next === 'dark');
+            return next;
+        });
+    };
+
+    // Troca idioma
+    const toggleLanguage = () => {
+        setLanguage((prev) => (prev === 'pt-BR' ? 'en-US' : 'pt-BR'));
+    };
+
     return (
         <div className="flex min-h-screen">
-            {/* Sidebar */}
-            <div className={`${isOpen ? 'w-36 sm:w-72' : 'w-20 sm:w-24'} bg-[var(--color-bg-primary)] shadow-sm text-white transition-all duration-300 flex-shrink-0 flex flex-col`}>
+            {/* Sidebar Desktop */}
+            <div className="fixed top-0 left-0 h-screen z-30 border-r border-[var(--color-border)] hidden sm:flex w-72 bg-[var(--color-bg-primary)] shadow-sm text-white transition-all duration-300 flex-shrink-0 flex-col">
 
-                <div className="flex items-center gap-4 justify-center h-16 px-2 flex-shrink-0">
-                    {isOpen ? (
-                        <>
-                            <div className="text-lg ml- sm:ml-17 sm:text-xl font-bold">
+                <div className="flex items-center gap-4 justify-center h-20 px-2  flex-shrink-0">
+
+                    <div>
                         <img
                             src="/logokashy.svg"
                             alt="Kashy Logo Header"
-                            className="h-14 w-36"
-                        /></div>
-                            <button onClick={toggleSidebar} className="sm:ml-auto flex-shrink-0">
-                                <ChevronLeft className="text-white h-7 w-7 sm:h-8 sm:w-8" />
-                            </button>
-                        </>
-                    ) : (
-                        <div className="flex justify-center w-full">
-
-
-                            <button onClick={toggleSidebar} className="flex-shrink-0">
-                                <ChevronRight className="text-white h-7 w-7 sm:h-8 sm:w-8" />
-                            </button>
-                        </div>
-                    )}
+                            className="h-24 w-auto max-w-[9rem] sm:max-w-[12rem]" // Ajustado para melhor responsividade do logo na sidebar
+                        />
+                    </div>
                 </div>
 
                 {/* Sidebar Navigation */}
@@ -437,20 +469,20 @@ export function Dashboard() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            title={isOpen ? '' : tab.label}
-                            className={`py-3 px-2 sm:px-4 hover:bg-[var(--color-bg-tertiary)] rounded-md flex items-center text-sm ${isOpen ? 'justify-start gap-3' : 'justify-center'} ${activeTab === tab.id ? 'bg-[var(--color-bg-tertiary)] font-semibold' : ''} transition-colors duration-200`}
+                            title={tab.label}
+                            className={`py-5 px-2 sm:px-4 hover:bg-[var(--color-bg-tertiary)] rounded-2xl flex items-center justify-start gap-6 ${activeTab === tab.id ? 'bg-[var(--color-bg-tertiary)] font-semibold' : ''} transition-colors duration-200`}
                         >
                             <div className="w-5 h-5 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
-                            {isOpen && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>}
+                            <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>
                         </button>
                     ))}
                 </nav>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            {/* Navbar Area */}
+            <div className="flex-1 flex flex-col min-w-0 pb-16 sm:pb-0 sm:ml-72">
 
-                <header className="bg-[var(--color-bg-primary)] py-3 px-4 sm:px-6 text-white shadow-sm flex items-center justify-between sticky top-0 z-20 gap-4">
+                <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-primary)] py-3 px-4 sm:px-6 text-white shadow-sm flex items-center justify-between sticky top-0 z-20 gap-4">
 
                     <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-sm md:max-w-xl">
                         <input
@@ -462,9 +494,17 @@ export function Dashboard() {
                         <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
 
-                      
-                      
+
+
                     <div className="flex items-center gap-4">
+                         {/* Chatbot Button */}
+                        <button
+                            onClick={() => setIsChatbotOpen(true)}
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] text-white transition-colors shadow"
+                            title="Abrir Chatbot"
+                        >
+                            <FiMessageCircle size={22} />
+                        </button>
                         {/* Ícone de Notificações */}
                         <button
                             onClick={handleOpenNotificationModal}
@@ -477,114 +517,134 @@ export function Dashboard() {
                             )}
                         </button>
 
-                        {/* User Menu */}
-                        <div className="relative text-white flex-shrink-0">
-                            <button
-                                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                                className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
-                            >
-                                {savedImage ? (
-                                    <img
-                                        src={savedImage}
-                                        alt="User"
-                                        className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-white transition-colors"
-                                    />
-                                ) : (
-                                    <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-white transition-colors" />
-                                )}
-                            </button>
-
-                            {showUserDropdown && (
-                                <div
-                                    className="fixed inset-0 z-40"
-                                    onClick={() => setShowUserDropdown(false)} // Fecha o dropdown ao clicar fora
+                           <div className="flex items-center gap-2">
+                            {/* User Icon/Button */}
+                            <div className="relative text-white flex-shrink-0">
+                                <button
+                                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                                    className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
                                 >
+                                    {savedImage ? (
+                                        <img
+                                            src={savedImage}
+                                            alt="User"
+                                            className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-white transition-colors"
+                                        />
+                                    ) : (
+                                        <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-white transition-colors" />
+                                    )}
+                                </button>
+                                {showUserDropdown && (
                                     <div
-                                        className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]"
-                                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do dropdown de fechá-lo
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setShowUserDropdown(false)} // Fecha o dropdown ao clicar fora
                                     >
-                                        <div className="flex justify-end px-2 pt-2">
+                                        <div
+                                            className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]"
+                                            onClick={(e) => e.stopPropagation()} // Impede o clique dentro do dropdown de fechá-lo
+                                        >
+                                            <div className="flex justify-end px-2 pt-2">
+                                                <button
+                                                    onClick={() => setShowUserDropdown(false)}
+                                                    className="text-white border-transparent border-2 hover:border-zinc-600 hover:bg-zinc-700 rounded-full p-2 transition-colors"
+                                                >
+                                                    <X className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
+                                                <div
+                                                    className="relative group"
+                                                    onClick={() => {
+                                                        setShowProfileModal(true);
+                                                        setShowUserDropdown(false);
+                                                    }}
+                                                >
+                                                    {savedImage ? (
+                                                        <img
+                                                            src={savedImage}
+                                                            alt="User Preview"
+                                                            className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-white hover:opacity-50"
+                                                        />
+                                                    ) : (
+                                                        <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
+                                                    )}
+                                                    <Pencil
+                                                        className="absolute inset-0 m-auto h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                                                    />
+                                                </div>
+                                                <span className="font-medium text-center">{username || "Usuário"}</span>
+                                                <span className="text-xs text-gray-400">{email || "Conta padrão"}</span>
+                                            </div>
                                             <button
-                                                onClick={() => setShowUserDropdown(false)}
-                                                className="text-white border-transparent border-2 hover:border-zinc-600 hover:bg-zinc-700 rounded-full p-2 transition-colors"
-                                            >
-                                                <X className="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                        <div className="flex flex-col items-center px-4 py-3 border-b border-[var(--color-border)]">
-                                            <div
-                                                className="relative group"
                                                 onClick={() => {
                                                     setShowProfileModal(true);
                                                     setShowUserDropdown(false);
                                                 }}
+                                                className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
                                             >
-                                                {savedImage ? (
-                                                    <img
-                                                        src={savedImage}
-                                                        alt="User Preview"
-                                                        className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-white hover:opacity-50"
-                                                    />
-                                                ) : (
-                                                    <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
-                                                )}
-                                                <Pencil
-                                                    className="absolute inset-0 m-auto h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
-                                                />
-                                            </div>
-                                            <span className="font-medium text-center">{username || "Usuário"}</span>
-                                            <span className="text-xs text-gray-400">{email || "Conta padrão"}</span>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Editar Perfil
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setActiveTab('settings');
+                                                    setShowUserDropdown(false);
+                                                }}
+                                                className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                            >
+                                                <Settings className="mr-2 h-4 w-4" />
+                                                Configurações
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setNotificationModalOpen(true);
+                                                    setShowUserDropdown(false);
+                                                }}
+                                                className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                            >
+                                                <Bell className="mr-2 h-4 w-4" />
+                                                Notificações
+                                            </button>
+
+                                            <button
+                                                onClick={handleLogout}
+                                                className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
+                                            >
+                                                <LogOut className="mr-2 h-4 w-4" />
+                                                Sair
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => {
-                                                setShowProfileModal(true);
-                                                setShowUserDropdown(false);
-                                            }}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                        >
-                                            <Edit className="mr-2 h-4 w-4" />
-                                            Editar Perfil
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setActiveTab('settings');
-                                                setShowUserDropdown(false);
-                                            }}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                        >
-                                            <Settings className="mr-2 h-4 w-4" />
-                                            Configurações
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setNotificationModalOpen(true);
-                                                setShowUserDropdown(false);
-                                            }}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                        >
-                                            <Bell className="mr-2 h-4 w-4" />
-                                            Notificações
-                                        </button>
-                                      
-                                        <button
-                                            onClick={handleLogout}
-                                            className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
-                                        >
-                                            <LogOut className="mr-2 h-4 w-4" />
-                                            Sair
-                                        </button>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 p-4 sm:p-6 bg-[var(--color-bg-secondary)] overflow-y-auto">
+                <main>
                     {renderTab()}
                 </main>
             </div>
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] shadow-lg">
+                <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent"
+                     style={{ WebkitOverflowScrolling: 'touch' }}>
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+
+                            className={`flex flex-col items-center justify-center px-4 py-5 flex-shrink-0 ${activeTab === tab.id ? 'text-gray-600' : 'text-white'} transition-colors`}
+                            style={{ minWidth: 64 }}
+                        >
+                            <span className="w-6 h-6 flex items-center justify-center">{tab.icon}</span>
+
+                        </button>
+                    ))}
+                </div>
+            </nav>
 
             {/* Profile Edit Modal */}
             {showProfileModal && (
@@ -737,7 +797,7 @@ export function Dashboard() {
                     onClick={() => setNotificationModalOpen(false)} // Fecha o modal ao clicar fora
                 >
                     <div
-                        className="bg-[var(--color-bg-primary)] bg-opacity-80 rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]"
+                        className="bg-[var(--color-bg-primary)] bg-opacity-80 rounded-lg p-6 w-full max-w-lg shadow-xl border border-[var(--color-border)]"
                         onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
                     >
                         <div className="flex justify-between items-center mb-4">
@@ -756,17 +816,37 @@ export function Dashboard() {
                             </button>
                         </div>
 
-                        <div className="space-y-4 max-h-80 overflow-y-auto">
-                            {notifications.length === 0 ? (
+                        {/* Abas de Categoria de Notificação */}
+                        <div className="flex border-b border-[var(--color-border)] mb-4">
+                            {notificationCategoryTabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveNotificationTab(tab.id)}
+                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
+                                        activeNotificationTab === tab.id
+                                            ? 'border-b-2 border-blue-500 text-blue-400'
+                                            : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+                            {filteredNotifications.length === 0 ? (
                                 <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
                             ) : (
-                                notifications.map((notification) => (
+                                filteredNotifications.map((notification) => (
                                     <div
                                         key={notification.id}
                                         className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md border border-[var(--color-border)]"
                                     >
                                         <p className="text-sm text-gray-300">{notification.message}</p>
                                         <p className="text-xs text-gray-400 mt-1">{notification.timestamp}</p>
+                                        {/* Opcional: Mostrar categoria para depuração */}
+                                        {/* @ts-ignore */}
+                                        {/* <p className="text-xs text-purple-400 mt-1">Cat: {notification.category || 'N/A'}</p> */}
                                     </div>
                                 ))
                             )}
@@ -774,15 +854,6 @@ export function Dashboard() {
                     </div>
                 </div>
             )}
-
-            {/* Chatbot Button */}
-            <button
-                onClick={() => setIsChatbotOpen(true)}
-                className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-50"
-                title="Abrir Chatbot"
-            >
-                <FiMessageCircle size={24} />
-            </button>
 
             {/* Chatbot Modal */}
             {isChatbotOpen && (

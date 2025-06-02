@@ -1,37 +1,29 @@
 // z:\Kashy-Project\backend\src\services\WebsocketService.js
 
 const { Server: SocketIOServer } = require('socket.io');
-const http = require('http');
 const jwt = require('jsonwebtoken');
-const config = require('../config');
 const logger = require('../utils/logger');
 // Import SPV service methods directly
 const spvService = require('./spvMonitorService'); // Import the SPV service instance
 // Import User model to get address on connect/disconnect
 const User = require('../models/user'); // Adjust path if needed
 
-/** @type {SocketIOServer | null} */
-let io = null; // This 'io' is local to this module if initializeWebsocketService is called
+let mainIoInstance = null; // Module-scoped variable to hold the main IO instance
 const userSockets = new Map(); // Map<userId, Set<socket.id>>
 
 /**
  * Initializes the WebSocket service.
- * Creates a Socket.IO server instance and attaches it to the provided HTTP server.
- * Sets up authentication middleware and connection handling.
+ * Configures the provided Socket.IO server instance with authentication middleware
+ * and connection handling logic.
  * IMPORTANT: This function should ideally only be called ONCE during server startup.
- * The main 'io' instance used by the application should be the one created in server.js.
- * @param {http.Server} httpServer - The Node.js HTTP server instance.
- * @returns {SocketIOServer} The created Socket.IO server instance.
+ * @param {SocketIOServer} ioInstance - The main Socket.IO server instance created in server.js.
  */
-function initializeWebsocketService(httpServer) {
-  // Ensure CORS and transports are configured if needed
-  io = new SocketIOServer(httpServer, { // Creates a potentially separate 'io' instance
-      cors: {
-          origin: "*", // Or specify your frontend URL (e.g., config.frontendUrl)
-          methods: ["GET", "POST"]
-      },
-      transports: ['websocket'] // Ensure websocket is preferred
-  });
+function initializeWebsocketService(ioInstance) {
+  if (mainIoInstance) {
+    logger.warn('WebSocketService already initialized. Skipping re-initialization.');
+    return;
+  }
+  mainIoInstance = ioInstance; // Store the passed io instance
 
   // --- REMOVED REDUNDANT BLOCK ---
   // The main io instance is created and passed to spvService in server.js
@@ -40,7 +32,7 @@ function initializeWebsocketService(httpServer) {
 
 
   // Auth Middleware (no changes needed)
-  io.use(async (socket, next) => { // Added async for User.findById
+  mainIoInstance.use(async (socket, next) => { // Added async for User.findById
     const token = socket.handshake.auth.token;
     if (!token) {
         logger.warn(`Socket Auth: Connection attempt without token from ${socket.handshake.address}`);
@@ -66,6 +58,7 @@ function initializeWebsocketService(httpServer) {
       }
       socket.data.userId = decoded.id;
       socket.data.userAddress = user.bchAddress; // Store address for later use
+      socket.join(decoded.id.toString()); // Join user-specific room
       // --- End storing data ---
 
       next();
@@ -75,7 +68,7 @@ function initializeWebsocketService(httpServer) {
     }
   });
 
-  io.on('connection', (socket) => {
+  mainIoInstance.on('connection', (socket) => {
     const userId = socket.data.userId;
     const userAddress = socket.data.userAddress; // Get address from socket data
 
@@ -96,8 +89,8 @@ function initializeWebsocketService(httpServer) {
     if (userAddress) { // Only subscribe if user has an address
         try {
             // Call spvService directly
-            // No need to await, let it run async. SPV service handles potential errors.
-            spvService.addSubscription(userId, userAddress);
+            // Pass null for orderId to indicate subscription for the main user address
+            spvService.addSubscription(userId, userAddress, null);
             logger.info(`SPV subscription initiated via WebSocket connect for user ${userId} (${userAddress})`);
         } catch (subError) {
             // This catch block might not be hit if addSubscription is fire-and-forget
@@ -124,9 +117,8 @@ function initializeWebsocketService(httpServer) {
           // --- Call SPV Service to Remove Subscription ---
           if (userAddress) { // Only attempt unsubscribe if user had an address
               try {
-                  // spvService.removeSubscription(userId, userAddress); // No need to await
-                  // logger.info(`SPV unsubscription initiated via WebSocket disconnect for user ${userId} (${userAddress})`);
-                  logger.info(`User ${userId} disconnected fully. SPV service should handle cleanup if needed.`);
+                  spvService.removeSubscription(userId, userAddress, null); // Pass null for orderId
+                  logger.info(`SPV unsubscription for main address initiated via WebSocket disconnect for user ${userId} (${userAddress})`);
 
               } catch (unsubError) {
                   logger.error(`Failed SPV unsubscription initiation for user ${userId}: ${unsubError.message}`);
@@ -147,53 +139,27 @@ function initializeWebsocketService(httpServer) {
   });
 
   logger.info('WebSocket service initialization complete.');
-  return io; // Returns the 'io' instance created *within this function*
 }
 
 /**
- * Gets the initialized Socket.IO server instance and a helper function to notify users.
- * NOTE: This relies on the 'io' instance created within initializeWebsocketService.
- * If initializeWebsocketService is not called, or called multiple times, this might
- * return an incorrect or outdated 'io' instance.
- * It's generally safer to use the main 'io' instance created in server.js directly.
- * @returns {{io: SocketIOServer|null, notifyUser: Function}}
+ * Emits an event to all sockets connected for a specific user ID.
+ * Relies on `initializeWebsocketService` having been called with the main Socket.IO instance.
+ * @param {string|ObjectId} userId - The ID of the user to notify.
+ * @param {string} event - The name of the event to emit.
+ * @param {any} data - The data payload for the event.
  */
-function getWebsocketService() {
-    // This 'io' refers to the one created within initializeWebsocketService
-    if (!io) {
-        logger.error('WebSocket service (via getWebsocketService) not initialized!');
-        return {
-            io: null,
-            notifyUser: (userId, event, data) => logger.warn(`Attempted to notify user ${userId} via uninitialized WS service (getWebsocketService).`)
-        };
+function notifyUser(userId, event, data) {
+    if (!mainIoInstance) {
+         logger.error(`Attempted to notify user ${userId}, but Socket.IO instance (mainIoInstance) is not initialized in WebsocketService.`);
+         return;
     }
-
-    /**
-     * Emits an event to all sockets connected for a specific user ID.
-     * @param {string|ObjectId} userId - The ID of the user to notify.
-     * @param {string} event - The name of the event to emit.
-     * @param {any} data - The data payload for the event.
-     */
-    const notifyUser = (userId, event, data) => {
-        // Use the 'io' instance available in this module's scope
-        if (!io) {
-             logger.error(`Attempted to notify user ${userId}, but Socket.IO instance (via getWebsocketService) is missing.`);
-             return;
-        }
-        // Ensure userId is a string for room emission
-        const userIdString = userId.toString();
-        const sockets = userSockets.get(userIdString); // Check if user is tracked
-        if (sockets && sockets.size > 0) {
-            // Emit to the room associated with the userId
-            logger.debug(`Emitting '${event}' to user room ${userIdString} (Sockets: ${sockets.size}) via getWebsocketService`);
-            io.to(userIdString).emit(event, data);
-        } else {
-            logger.debug(`Attempted to notify user ${userIdString} with event '${event}', but no active sockets found (getWebsocketService).`);
-        }
-    };
-
-    return { io, notifyUser };
+    // Ensure userId is a string for room emission
+    const userIdString = userId.toString();
+    // Emitting to the room. Socket.IO handles delivery if the room exists and has members.
+    // The userSockets map is primarily for managing add/remove subscription logic for the main address.
+    logger.debug(`Emitting '${event}' to user room ${userIdString}`);
+    mainIoInstance.to(userIdString).emit(event, data);
 }
 
 // Export the functions
-module.exports = { initializeWebsocketService, getWebsocketService };
+module.exports = { initializeWebsocketService, notifyUser };
