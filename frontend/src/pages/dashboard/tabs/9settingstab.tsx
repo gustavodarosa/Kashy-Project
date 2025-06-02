@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FiSun, FiBell, FiLock, FiGlobe, FiHardDrive, FiDownload, FiTrash2 } from 'react-icons/fi';
+import React from 'react'; 
+import { Bell, Lock, Globe, HardDrive, Download, Trash2, Settings, Palette } from 'lucide-react';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { t, LanguageKey, translations } from '../../../utils/languages';
 import { ThemeKey, themes } from '../../../utils/themes';
@@ -7,11 +8,11 @@ import { ThemeKey, themes } from '../../../utils/themes';
 type ThemeColorKey = keyof typeof themes.default.colors;
 
 const TABS = [
-  { key: 'appearance', label: 'Aparência', icon: <FiSun /> },
-  { key: 'notifications', label: 'Notificações', icon: <FiBell /> },
-  { key: 'language', label: 'Idioma & Região', icon: <FiGlobe /> },
-  { key: 'security', label: 'Segurança', icon: <FiLock /> },
-  { key: 'data', label: 'Dados & Privacidade', icon: <FiHardDrive /> },
+  { key: 'appearance', label: 'Aparência', icon: Palette },
+  { key: 'notifications', label: 'Notificações', icon: Bell },
+  { key: 'language', label: 'Idioma & Região', icon: Globe },
+  { key: 'security', label: 'Segurança', icon: Lock },
+  { key: 'data', label: 'Dados & Privacidade', icon: HardDrive },
 ];
 
 export function SettingsTab() {
@@ -102,32 +103,57 @@ export function SettingsTab() {
   }, [activeTab]);
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-primary)]">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] text-white">
       {/* Sidebar */}
-      <aside className="w-64 bg-[var(--color-bg-secondary)] border-r border-[var(--color-border)] py-8 px-4 flex flex-col gap-2">
-        <h2 className="text-xl font-bold mb-6 text-[var(--color-text-primary)]">Configurações</h2>
+      <aside className="w-72 bg-[#24292D]/70 backdrop-blur-lg border-r border-white/10 py-8 px-5 flex flex-col gap-2 shadow-2xl">
+        <div className="flex items-center gap-3 mb-8 px-2">
+          <div className="p-2 bg-gradient-to-br from-slate-500/20 to-slate-700/20 rounded-xl backdrop-blur-sm border border-slate-400/30">
+            <Settings size={24} className="text-slate-300" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-100">Configurações</h2>
+        </div>
         {TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors font-medium
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 font-medium text-sm
               ${activeTab === tab.key
-                ? 'bg-[var(--color-accent)] text-white shadow'
-                : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-tertiary)]'}`}
+                ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg scale-105'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
           >
-            {tab.icon}
+            <tab.icon size={18} className={activeTab === tab.key ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'} />
             {tab.label}
           </button>
         ))}
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+        {/* Hero Section for the active tab */}
+        <div className="mb-8">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+            <div className="flex items-center gap-3">
+              {TABS.find(t => t.key === activeTab)?.icon && (
+                React.createElement(TABS.find(t => t.key === activeTab)!.icon, { size: 28, className: "text-slate-300" })
+              )}
+              <h1 className="text-3xl font-bold text-slate-100">
+                {TABS.find(t => t.key === activeTab)?.label}
+              </h1>
+            </div>
+            <p className="text-slate-400 mt-1 text-sm">
+              {activeTab === 'appearance' && t('appearance.description', language)}
+              {activeTab === 'notifications' && "Gerencie suas preferências de notificação."}
+              {activeTab === 'language' && "Ajuste o idioma e fuso horário da plataforma."}
+              {activeTab === 'security' && "Configure as opções de segurança da sua conta."}
+              {activeTab === 'data' && "Gerencie seus dados e preferências de privacidade."}
+            </p>
+          </div>
+        </div>
+
         {activeTab === 'appearance' && (
-          <section>
-            <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiSun /> Aparência</h3>
-            <p className="mb-2 text-[var(--color-text-secondary)]">{t('appearance.description', language)}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+            <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
                 const theme = themes[key];
                 const isActive = activeTheme === key;
@@ -135,18 +161,18 @@ export function SettingsTab() {
                   <div
                     key={key}
                     onClick={() => handleThemeChange(key)}
-                    className={`p-4 rounded-lg cursor-pointer border-2 transition-all duration-200
-                      ${isActive ? 'border-[var(--color-accent)] scale-105 shadow-md' : 'border-transparent hover:border-[var(--color-accent)] hover:scale-105'}`}
+                    className={`p-5 rounded-xl cursor-pointer border-2 transition-all duration-300 transform hover:scale-105
+                      ${isActive ? `border-slate-400 scale-105 shadow-2xl bg-opacity-80` : 'border-transparent hover:border-slate-500/70 bg-opacity-60'}`}
                     style={{ backgroundColor: theme.colors['--color-bg-secondary'] }}
                   >
-                    <p className="font-medium mb-3 text-center" style={{ color: theme.colors['--color-text-primary'] }}>
+                    <p className="font-semibold mb-4 text-center text-sm" style={{ color: theme.colors['--color-text-primary'] }}>
                       {t(`appearance.themes.${key}`, language)}
                     </p>
                     <div className="flex justify-center space-x-2">
                       {themeColorKeys.map((colorKey) => (
                         <div
                           key={colorKey}
-                          className="w-6 h-6 rounded-full border border-[var(--color-border)]"
+                          className="w-5 h-5 rounded-full border border-white/20"
                           style={{ backgroundColor: theme.colors[colorKey] }}
                         />
                       ))}
@@ -159,30 +185,30 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'notifications' && (
-          <section>
-            <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiBell /> Notificações</h3>
-            <div className="space-y-4">
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+            <h3 className="text-xl font-semibold mb-6 text-slate-200">Preferências de Notificação</h3>
+            <div className="space-y-5">
               {[
                 { key: 'email', label: t('notificationsSection.email', language), desc: t('notificationsSection.emailDesc', language) },
                 { key: 'push', label: t('notificationsSection.push', language), desc: t('notificationsSection.pushDesc', language) },
                 { key: 'promotions', label: t('notificationsSection.promotions', language), desc: t('notificationsSection.promotionsDesc', language) }
               ].map((item) => (
-                <div key={item.key} className="flex items-center justify-between py-2">
+                <div key={item.key} className="flex items-center justify-between p-4 bg-[#24292D]/50 rounded-lg border border-white/10">
                   <div>
-                    <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
-                    <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
+                    <p className="font-medium text-slate-200">{item.label}</p>
+                    <p className="text-xs text-slate-400 max-w-md">{item.desc}</p>
                   </div>
                   <button
                     onClick={() => handleNotificationChange(item.key as keyof typeof notifications)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200
+                    className={`relative inline-flex h-5 w-10 flex-shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none
                       ${notifications[item.key as keyof typeof notifications]
-                        ? 'bg-[var(--color-accent)]'
-                        : 'bg-gray-400 dark:bg-gray-600'}`}
+                        ? 'bg-slate-500'
+                        : 'bg-slate-700'}`}
                   >
                     <span
                       aria-hidden="true"
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200
-                        ${notifications[item.key as keyof typeof notifications] ? 'translate-x-6' : 'translate-x-1'}`}
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out
+                        ${notifications[item.key as keyof typeof notifications] ? 'translate-x-[1.1rem]' : 'translate-x-1'}`}
                     />
                   </button>
                 </div>
@@ -192,31 +218,32 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'language' && (
-          <section>
-            <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiGlobe /> Idioma & Região</h3>
-            <div className="space-y-4">
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+            <h3 className="text-xl font-semibold mb-6 text-slate-200">Configurações Regionais</h3>
+            <div className="space-y-5">
               <div>
-                <label htmlFor="language" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                <label htmlFor="language" className="block text-xs font-medium text-slate-300 mb-1.5">
                   {t('language.language', language)}
                 </label>
                 <select
                   id="language"
                   value={language}
                   onChange={(e) => changeLanguage(e.target.value as LanguageKey)}
-                  className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] block w-full p-2.5"
+                  className="w-full px-3 py-2.5 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
                 >
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="es-ES">Español</option>
                   <option value="en-US">English</option>
                 </select>
               </div>
+              
               <div>
-                <label htmlFor="timezone" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                <label htmlFor="timezone" className="block text-xs font-medium text-slate-300 mb-1.5">
                   {t('language.timezone', language)}
                 </label>
                 <select
                   id="timezone"
-                  className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] block w-full p-2.5"
+                  className="w-full px-3 py-2.5 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
                 >
                   {Object.entries(timezonesForCurrentLanguage).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -228,14 +255,14 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'security' && (
-          <section>
-            <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiLock /> Segurança</h3>
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
+            <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança</h3>
 
             {/* 2FA Switch */}
-            <div className="flex items-center justify-between py-2 mb-6">
+            <div className="flex items-center justify-between p-4 bg-[#24292D]/50 rounded-lg border border-white/10">
               <div>
-                <p className="font-medium text-[var(--color-text-primary)]">Autenticação em Dois Fatores (2FA)</p>
-                <p className="text-sm text-[var(--color-text-secondary)] max-w-md">
+                <p className="font-medium text-slate-200">Autenticação em Dois Fatores (2FA)</p>
+                <p className="text-xs text-slate-400 max-w-md">
                   Adicione uma camada extra de segurança à sua conta.
                 </p>
               </div>
@@ -262,15 +289,15 @@ export function SettingsTab() {
                     alert('Erro ao conectar ao servidor.');
                   }
                 }}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200
+                className={`relative inline-flex h-5 w-10 flex-shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none
                   ${twoFactorEnabled
-                    ? 'bg-[var(--color-accent)]'
-                    : 'bg-gray-400 dark:bg-gray-600'}`}
+                    ? 'bg-slate-500'
+                    : 'bg-slate-700'}`}
               >
                 <span
                   aria-hidden="true"
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200
-                    ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out
+                    ${twoFactorEnabled ? 'translate-x-[1.1rem]' : 'translate-x-1'}`}
                 />
               </button>
             </div>
@@ -298,24 +325,21 @@ export function SettingsTab() {
                   console.error('Erro ao conectar ao servidor:', error);
                 }
               }}
-              className="space-y-4"
+              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10"
             >
-              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-                {t('security.newUsername', language)}
-              </label>
-              <input
-                type="text"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder={t('security.enterNewUsername', language)}
-              />
-              <button
-                type="submit"
-                className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)]"
-              >
-                {t('security.updateUsername', language)}
-              </button>
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newUsername', language)}</label>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  className="flex-grow px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder={t('security.enterNewUsername', language)}
+                />
+                <button type="submit" className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm">
+                  {t('security.updateUsername', language)}
+                </button>
+              </div>
             </form>
 
             {/* Email */}
@@ -351,40 +375,40 @@ export function SettingsTab() {
                   setEmailError('Erro ao conectar ao servidor.');
                 }
               }}
-              className="space-y-4 mt-6"
+              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
             >
-              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-                Novo Email
-              </label>
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder="Digite seu novo email..."
-              />
-              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-                Senha Atual
-              </label>
-              <input
-                type="password"
-                value={currentPasswordForEmail}
-                onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder="Digite sua senha atual..."
-              />
-              {emailMessage && (
-                <div className="text-green-500 text-sm">{emailMessage}</div>
-              )}
-              {emailError && (
-                <div className="text-red-500 text-sm">{emailError}</div>
-              )}
-              <button
-                type="submit"
-                className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)]"
-              >
-                Atualizar Email
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Novo Email</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder="Digite seu novo email..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Senha Atual</label>
+                <input
+                  type="password"
+                  value={currentPasswordForEmail}
+                  onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder="Digite sua senha atual..."
+                />
+              </div>
+              
+              {emailMessage && <div className="text-sm text-emerald-400">{emailMessage}</div>}
+              {emailError && <div className="text-sm text-red-400">{emailError}</div>}
+              
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
+                  Atualizar Email
+                </button>
+              </div>
             </form>
 
             {/* Password */}
@@ -415,40 +439,40 @@ export function SettingsTab() {
                   console.error('Erro ao conectar ao servidor:', error);
                 }
               }}
-              className="space-y-4 mt-6"
+              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
             >
-              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-                {t('security.currentPassword', language)}
-              </label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder={t('security.enterCurrentPassword', language)}
-              />
-              <label className="block text-sm font-medium text-[var(--color-text-primary)] mt-4">
-                {t('security.newPassword', language)}
-              </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder={t('security.enterNewPassword', language)}
-              />
-              {passwordMessage && (
-                <div className="text-green-500 text-sm">{passwordMessage}</div>
-              )}
-              {passwordError && (
-                <div className="text-red-500 text-sm">{passwordError}</div>
-              )}
-              <button
-                type="submit"
-                className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)] mt-4"
-              >
-                {t('security.updatePassword', language)}
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.currentPassword', language)}</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder={t('security.enterCurrentPassword', language)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newPassword', language)}</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder={t('security.enterNewPassword', language)}
+                />
+              </div>
+
+              {passwordMessage && <div className="text-sm text-emerald-400">{passwordMessage}</div>}
+              {passwordError && <div className="text-sm text-red-400">{passwordError}</div>}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
+                  {t('security.updatePassword', language)}
+                </button>
+              </div>
             </form>
             {/* Phone */}
             <form
@@ -475,76 +499,74 @@ export function SettingsTab() {
                   setPhoneError('Erro ao conectar ao servidor.');
                 }
               }}
-              className="space-y-4 mt-6"
+              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
             >
-              <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-                Telefone (celular)
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => {
-                  // Permite apenas números, +, e limita o tamanho
-                  const raw = e.target.value.replace(/[^\d+]/g, '');
-                  setPhone(raw);
-                }}
-                pattern="^\+[1-9]\d{1,14}$"
-                className="bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm rounded-lg block w-full p-2.5"
-                placeholder="+5511912345678"
-                maxLength={16}
-              />
-              {phoneMessage && (
-                <div className="text-green-500 text-sm">{phoneMessage}</div>
-              )}
-              {phoneError && (
-                <div className="text-red-500 text-sm">{phoneError}</div>
-              )}
-              <button
-                type="submit"
-                className="bg-[var(--color-accent)] text-white py-2 px-4 rounded-lg hover:bg-[var(--color-accent-hover)] mt-4"
-              >
-                Atualizar Telefone
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">Telefone (celular)</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^\d+]/g, '');
+                    setPhone(raw);
+                  }}
+                  pattern="^\+[1-9]\d{1,14}$"
+                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  placeholder="+5511912345678"
+                  maxLength={16}
+                />
+              </div>
+
+              {phoneMessage && <div className="text-sm text-emerald-400">{phoneMessage}</div>}
+              {phoneError && <div className="text-sm text-red-400">{phoneError}</div>}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
+                  Atualizar Telefone
+                </button>
+              </div>
             </form>
-
-
           </section>
         )}
 
         {activeTab === 'data' && (
-          <section>
-            <h3 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-[var(--color-text-primary)]"><FiHardDrive /> Dados & Privacidade</h3>
-            <div className="space-y-4">
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+            <h3 className="text-xl font-semibold mb-6 text-slate-200">Gerenciamento de Dados</h3>
+            <div className="space-y-5">
               {[
                 { key: 'autoBackup', label: t('data.backup', language), desc: t('data.backupDesc', language) },
                 { key: 'analytics', label: t('data.analytics', language), desc: t('data.analyticsDesc', language) }
               ].map((item) => (
-                <div key={item.key} className="flex items-center justify-between py-2">
+                <div key={item.key} className="flex items-center justify-between p-4 bg-[#24292D]/50 rounded-lg border border-white/10">
                   <div>
-                    <p className="font-medium text-[var(--color-text-primary)]">{item.label}</p>
-                    <p className="text-sm text-[var(--color-text-secondary)] max-w-md">{item.desc}</p>
+                    <p className="font-medium text-slate-200">{item.label}</p>
+                    <p className="text-xs text-slate-400 max-w-md">{item.desc}</p>
                   </div>
                   <button
                     onClick={() => handleDataPreferenceChange(item.key as keyof typeof dataPreferences)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200
+                    className={`relative inline-flex h-5 w-10 flex-shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none
                       ${dataPreferences[item.key as keyof typeof dataPreferences]
-                        ? 'bg-[var(--color-accent)]'
-                        : 'bg-gray-400 dark:bg-gray-600'}`}
+                        ? 'bg-slate-500' // Active color
+                        : 'bg-slate-700' // Inactive color
+                      }`}
                   >
                     <span
                       aria-hidden="true"
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200
-                        ${dataPreferences[item.key as keyof typeof dataPreferences] ? 'translate-x-6' : 'translate-x-1'}`}
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out
+                        ${dataPreferences[item.key as keyof typeof dataPreferences] ? 'translate-x-[1.1rem]' : 'translate-x-1'}`}
                     />
                   </button>
                 </div>
               ))}
-              <div className="pt-4 space-y-3 border-t border-[var(--color-border)] mt-4">
-                <button className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors flex items-center gap-2">
-                  <FiDownload /> {t('data.export', language)}
+              <div className="pt-6 space-y-3 border-t border-white/10 mt-6">
+                <button className="flex items-center gap-2 px-4 py-2 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 rounded-lg border border-sky-500/30 text-sm font-medium transition-colors">
+                  <Download size={16} /> {t('data.export', language)}
                 </button>
-                <button className="text-red-500 hover:text-red-400 transition-colors flex items-center gap-2">
-                  <FiTrash2 /> {t('data.delete', language)}
+                <button className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg border border-red-500/30 text-sm font-medium transition-colors">
+                  <Trash2 size={16} /> {t('data.delete', language)}
                 </button>
               </div>
             </div>

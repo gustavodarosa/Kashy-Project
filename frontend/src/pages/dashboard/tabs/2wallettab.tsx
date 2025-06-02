@@ -1,50 +1,68 @@
 // src/pages/dashboard/tabs/2wallettab.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-// Removed FiAlertCircle as it's not used
-import { FiArrowUp, FiArrowDown, FiCopy, FiDollarSign, FiCode, FiClock, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
-import QRCode from 'react-qr-code';
 import bitcore from 'bitcore-lib-cash';
+import { Bitcoin, SearchIcon, TrendingUp, ArrowUpRight, ArrowDownLeft, RotateCcw, RefreshCw as RefreshCwLucide, Eye, EyeOff, Copy as CopyLucide, Code as CodeLucide, Clock as ClockLucide, CheckCircle as CheckCircleLucide } from 'lucide-react';
+import { FiCheckCircle } from 'react-icons/fi'; // Kept for success modal, can be replaced
+import QRCode from 'react-qr-code';
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Listbox } from '@headlessui/react';
 
 import { useNotification } from '../../../context/NotificationContext';
 
 // --- Configuration ---
 const API_BASE_URL = 'http://localhost:3000/api';
 const WEBSOCKET_URL = 'http://localhost:3000';
-const BCH_EXPLORER_TX_URL = 'https://explorer.bitcoinabc.org/tx/'; // Example explorer URL
+const BCH_EXPLORER_TX_URL = 'https://explorer.bitcoinabc.org/tx/';
 const SATOSHIS_PER_BCH = 1e8;
-const estimatedFeeClientSide = 0.00000220; // Approx 220 sats (Used for optimistic UI only)
+const estimatedFeeClientSide = 0.00000220; // Approx 220 sats (Used for optimistic UI and display)
 
 // --- Types ---
 type Transaction = {
   _id: string;
-  type: 'received' | 'sent' | 'unknown' | 'self'; // Added 'self'
+  type: 'received' | 'sent' | 'unknown' | 'self';
   amountBCH: number;
   amountBRL: number;
   address: string;
   txid: string;
   timestamp: string;
-  status: 'pending' | 'confirmed' | 'error'; // Added 'error'
+  status: 'pending' | 'confirmed' | 'error';
   confirmations: number;
   blockHeight?: number;
-  fee?: number; // Keep fee potentially for other uses, but won't display it for sent/self
-  errorMessage?: string; // For error type
+  fee?: number;
+  errorMessage?: string;
 };
 
 type WalletBalance = {
   totalBCH: number;
-  availableBCH: number; // Confirmed balance
-  pendingBCH: number;   // Unconfirmed balance change (can be negative)
+  availableBCH: number;
+  pendingBCH: number;
   totalBRL: number;
   totalSatoshis: number;
   currentRateBRL?: number;
 };
 
-// --- WalletTab Component ---
+// Mock data for activity charts
+const activityDataToday = [
+  { hour: '08h', received: 0.002, sent: 0.001 }, { hour: '10h', received: 0.001, sent: 0.000 },
+  { hour: '12h', received: 0.0015, sent: 0.0005 }, { hour: '14h', received: 0.003, sent: 0.002 },
+  { hour: '16h', received: 0.0025, sent: 0.0015 }, { hour: '18h', received: 0.001, sent: 0.001 },
+  { hour: '20h', received: 0.0005, sent: 0.0025 },
+];
+const activityDataWeek = [
+  { day: 'Seg', received: 0.02, sent: 0.01 }, { day: 'Ter', received: 0.01, sent: 0.00 },
+  { day: 'Qua', received: 0.015, sent: 0.005 }, { day: 'Qui', received: 0.03, sent: 0.02 },
+  { day: 'Sex', received: 0.025, sent: 0.015 }, { day: 'Sáb', received: 0.01, sent: 0.01 },
+  { day: 'Dom', received: 0.005, sent: 0.025 },
+];
+const activityDataMonth = [
+  { week: '1ª', received: 0.08, sent: 0.04 }, { week: '2ª', received: 0.06, sent: 0.03 },
+  { week: '3ª', received: 0.09, sent: 0.05 }, { week: '4ª', received: 0.07, sent: 0.06 },
+];
+
 export function WalletTab() {
   const { addNotification } = useNotification();
-  // --- States ---
   const [balance, setBalance] = useState<WalletBalance>({ totalBCH: 0, availableBCH: 0, pendingBCH: 0, totalBRL: 0, totalSatoshis: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,6 +75,16 @@ export function WalletTab() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastSent, setLastSent] = useState<{ address: string; amount: string; amountBRL: string; txid?: string } | null>(null);
+  const [balanceVisible, setBalanceVisible] = useState(true);
+
+  // UI state
+  const [viewMode, setViewMode] = useState<'transactions' | 'analysis'>('transactions');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'confirmed', 'pending', 'error'
+  const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'sent', 'received'
+  const [activityPeriod, setActivityPeriod] = useState<'today' | 'week' | 'month'>('week');
 
   // --- Formatting Functions ---
   const formatCurrency = (value: number | undefined) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -64,15 +92,21 @@ export function WalletTab() {
   const formatDate = (dateString: string | undefined) => { if (!dateString) return 'N/A'; try { const d = new Date(dateString); return isNaN(d.getTime()) ? 'Inválida' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return 'Inválida'; } };
   const formatAddress = (address: string | undefined, length: number = 6): string => { if (!address || typeof address !== 'string' || address.length < length * 2 + 3) return address || 'N/A'; const clean = address.includes(':') ? address.split(':')[1] : address; if (!clean || clean.length < length * 2 + 3) return clean || address; return `${clean.substring(0, length)}...${clean.substring(clean.length - length)}`; };
 
-  // --- fetchWalletData ---
   const fetchWalletData = useCallback(async () => {
-    // Removed check for walletAddress here, let it proceed if initialized
-    if (!isInitialized) { setLoading(false); return; } // Only proceed if initialized
+    if (!isInitialized) {
+      setLoading(false);
+      return;
+    }
 
     console.log(`[WalletTab] fetchWalletData called`);
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     const token = localStorage.getItem('token');
-    if (!token) { setError("Usuário não autenticado."); setLoading(false); return; }
+    if (!token) {
+      setError("Usuário não autenticado.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const [balRes, txRes] = await Promise.all([
@@ -80,69 +114,65 @@ export function WalletTab() {
         fetch(`${API_BASE_URL}/wallet/transactions`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
-      // Process Balance Response
       if (!balRes.ok) {
         const d = await balRes.json().catch(() => ({}));
         console.error(`[WalletTab] Balance fetch failed: ${balRes.status}`, d);
         throw new Error(`Erro ao buscar saldo: ${d.message || balRes.statusText}`);
       }
       const fetchedBalance: WalletBalance = await balRes.json();
-      console.log("[WalletTab] Balance fetched:", fetchedBalance); // Log fetched balance
       setBalance(fetchedBalance);
 
-      // Process Transactions Response
       if (!txRes.ok) {
         const d = await txRes.json().catch(() => ({}));
         console.error(`[WalletTab] Transactions fetch failed: ${txRes.status}`, d);
         throw new Error(`Erro ao buscar transações: ${d.message || txRes.statusText}`);
       }
       const fetchedTxs: Transaction[] = await txRes.json();
-      // Sort transactions by date descending
-      fetchedTxs.sort((a, b) => (new Date(b.timestamp).getTime()) - (new Date(a.timestamp).getTime()));
+      fetchedTxs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setTransactions(fetchedTxs);
-      console.log(`[WalletTab] Transactions fetched (${fetchedTxs.length}).`);
 
     } catch (err: any) {
       console.error('[WalletTab] Error fetchWalletData:', err);
-      setError(prev => prev === err.message ? prev : err.message); // Avoid duplicate error messages
-      // Optionally reset balance on error? Or keep potentially stale data?
-      // setBalance({ totalBCH: 0, availableBCH: 0, pendingBCH: 0, totalBRL: 0, totalSatoshis: 0 });
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [isInitialized]); // Removed walletAddress dependency, rely on isInitialized
+  }, [isInitialized]);
 
-  // --- Effects ---
-  useEffect(() => { /* Initialize Wallet Address */
+  useEffect(() => {
     const init = async () => {
-      console.log('[WalletTab] Initializing wallet address...'); setLoading(true); setError(null);
+      console.log('[WalletTab] Initializing wallet address...');
+      setLoading(true);
+      setError(null);
       try {
-        const token = localStorage.getItem('token'); if (!token) throw new Error('Token não encontrado.');
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Token não encontrado.');
         const res = await fetch(`${API_BASE_URL}/wallet/address`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.message || 'Falha ao buscar endereço.'); }
-        const d = await res.json(); if (!d.address) throw new Error('Endereço não retornado.');
+        const d = await res.json();
+        if (!d.address) throw new Error('Endereço não retornado.');
         setWalletAddress(d.address);
         console.log("[WalletTab] Wallet Address Initialized:", d.address);
       } catch (err: any) {
         console.error("[WalletTab] Init error:", err);
         setError(err.message);
       } finally {
-        setIsInitialized(true); // Mark as initialized even on error
-        // Don't set loading false here, let the data fetch effect handle it
+        setIsInitialized(true);
       }
     };
     init();
   }, []);
 
-  useEffect(() => { /* Fetch Data on Init */
+  useEffect(() => {
     if (isInitialized) {
-      fetchWalletData(); // Fetch data once initialized (address might still be fetching but fetchWalletData handles it)
+      fetchWalletData();
     }
   }, [isInitialized, fetchWalletData]);
 
-  useEffect(() => { /* Setup WebSocket */
-    if (!isInitialized) return; // Only setup WS after initialization attempt
-    const token = localStorage.getItem('token'); if (!token) return;
+  useEffect(() => {
+    if (!isInitialized) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
     console.log('[WalletTab] Setting up WebSocket...');
     let newSocket: Socket | null = null;
@@ -151,19 +181,18 @@ export function WalletTab() {
       newSocket = io(WEBSOCKET_URL, {
         auth: { token },
         reconnectionAttempts: 5,
-        transports: ['websocket'] // Prefer websocket
+        transports: ['websocket']
       });
 
       newSocket.on('connect', () => {
         console.log('[WalletTab] WebSocket connected:', newSocket?.id);
         setSocket(newSocket);
-        setError(p => p?.includes('conexão') || p?.includes('Desconectado') ? null : p); // Clear connection errors
+        setError(p => p?.includes('conexão') || p?.includes('Desconectado') ? null : p);
       });
 
       newSocket.on('disconnect', (reason) => {
         console.log('[WalletTab] WebSocket disconnected:', reason);
         setSocket(null);
-        // Only set error for unexpected disconnects
         if (reason !== 'io client disconnect' && reason !== 'io server disconnect') {
           setError("Desconectado do servidor de atualizações.");
         }
@@ -176,25 +205,21 @@ export function WalletTab() {
       });
 
       const handleUpdate = (data: { balance: WalletBalance, transactions: Transaction[] }) => {
-        console.log('[WalletTab] WS Received walletDataUpdate. Raw Data:', data); // Log raw data
+        console.log('[WalletTab] WS Received walletDataUpdate. Raw Data:', data);
         if (data && data.balance && Array.isArray(data.transactions)) {
-          toast.info("Carteira atualizada.");
-          console.log("[WalletTab] Updating state via WS. Balance:", data.balance, "Txs:", data.transactions.length);
+          toast.info("Carteira atualizada via WebSocket.");
           setBalance(data.balance);
-          const sorted = [...data.transactions].sort((a, b) => (new Date(b.timestamp).getTime()) - (new Date(a.timestamp).getTime()));
+          const sorted = [...data.transactions].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setTransactions(sorted);
-          setLoading(false); // Ensure loading is off after WS update
-          setError(null); // Clear previous errors on successful update
+          setLoading(false);
+          setError(null);
         } else {
           console.warn('[WalletTab] WS received unexpected data format. Re-fetching.', data);
           toast.warn("Dados da carteira recebidos em formato inesperado. Rebuscando...");
-          fetchWalletData(); // Fallback to fetching via API
+          fetchWalletData();
         }
       };
-
       newSocket.on('walletDataUpdate', handleUpdate);
-
-      // Store the socket instance
       setSocket(newSocket);
 
     } catch (err) {
@@ -202,7 +227,6 @@ export function WalletTab() {
       setError("Falha ao iniciar conexão para atualizações.");
     }
 
-    // Cleanup function
     return () => {
       if (newSocket) {
         console.log('[WalletTab] Cleaning up WebSocket...');
@@ -214,17 +238,15 @@ export function WalletTab() {
       }
       setSocket(null);
     };
-  }, [isInitialized, fetchWalletData]); // Rerun if isInitialized changes or fetchWalletData reference changes
-  // --- End Effects ---
+  }, [isInitialized, fetchWalletData]);
 
-  // --- Function to handle sending BCH ---
   const handleSendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amountToSendNum = parseFloat(sendForm.amountBCH || '0');
 
     console.log('[WalletTab] handleSendSubmit started.');
     setIsSending(true);
-    setError(null); // Clear previous modal errors
+    setError(null);
 
     try {
       const token = localStorage.getItem('token');
@@ -232,7 +254,6 @@ export function WalletTab() {
       if (amountToSendNum <= 0) throw new Error('Quantidade inválida.');
       let isValidAddress = false;
       try {
-        // Basic validation - backend does the real check
         new bitcore.Address(sendForm.address.trim());
         isValidAddress = true;
       } catch {
@@ -247,7 +268,7 @@ export function WalletTab() {
         body: JSON.stringify({ address: sendForm.address.trim(), amount: sendForm.amountBCH, fee: sendForm.fee })
       });
 
-      const responseBody = await response.text(); // Read body once
+      const responseBody = await response.text();
 
       if (!response.ok) {
         let errorMsg = `Erro ${response.status}: Falha ao enviar.`;
@@ -260,31 +281,28 @@ export function WalletTab() {
       console.log('[WalletTab] Send successful:', result);
       toast.success(`Transação enviada! Hash: ${formatAddress(result.txid)}`);
 
-      if (result.txid) { // Optimistic UI Update
+      setLastSent({ address: sendForm.address.trim(), amount: sendForm.amountBCH, amountBRL: sendForm.amountBRL, txid: result.txid });
+      setShowSuccessModal(true);
+
+      if (result.txid) {
         const currentRate = balance.currentRateBRL || 0;
-        // Optimistic amount should include the estimated fee now
         const optimisticAmountBCH = amountToSendNum + estimatedFeeClientSide;
         const optimisticAmountBRL = optimisticAmountBCH * currentRate;
 
         const newTx: Transaction = {
           _id: result.txid, type: 'sent',
-          amountBCH: optimisticAmountBCH, // Include fee here
+          amountBCH: optimisticAmountBCH,
           amountBRL: optimisticAmountBRL,
           address: sendForm.address.trim(), txid: result.txid, timestamp: new Date().toISOString(),
           status: 'pending', confirmations: 0,
-          fee: undefined // Fee is now part of amountBCH
         };
-        // Add to transactions list
         setTransactions(prev => [newTx, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
 
-        // Optimistically update balance (approximate)
         const approxRequiredSatoshis = Math.round((amountToSendNum + estimatedFeeClientSide) * SATOSHIS_PER_BCH);
         setBalance(prev => {
-          // Reduce available immediately, pending reflects the outgoing amount until confirmed
           const newAvailable = Math.max(0, prev.availableBCH - (amountToSendNum + estimatedFeeClientSide));
-          // Pending might already be negative, add the new negative amount
           const newPending = prev.pendingBCH - (amountToSendNum + estimatedFeeClientSide);
-          const newTotal = newAvailable + newPending; // Total reflects pending changes
+          const newTotal = newAvailable + newPending;
           return {
             ...prev,
             availableBCH: newAvailable,
@@ -295,10 +313,9 @@ export function WalletTab() {
           };
         });
 
-        // Add notification
         addNotification({
           id: result.txid, message: `Enviado ${amountToSendNum.toFixed(8)} BCH para ${formatAddress(sendForm.address.trim())}`,
-          amountBCH: amountToSendNum, // Notification might still show just the sent amount
+          amountBCH: amountToSendNum,
           amountBRL: amountToSendNum * currentRate,
           timestamp: new Date().toISOString(),
           receivedAt: new Date().toLocaleTimeString('pt-BR'),
@@ -307,20 +324,19 @@ export function WalletTab() {
       }
 
       console.log('[WalletTab] Scheduling data refresh after send...');
-      setTimeout(fetchWalletData, 8000); // Refresh after a delay
+      setTimeout(fetchWalletData, 8000);
 
-      setSendModalOpen(false);
+      setSendModalOpen(false); // Success modal will be shown
       setSendForm({ address: '', amountBCH: '', amountBRL: '', fee: 'medium' });
 
     } catch (err: any) {
       console.error('[WalletTab] Error handleSendSubmit:', err);
-      setError(err.message || 'Erro inesperado ao tentar enviar.'); // Set error state for modal display
+      setError(err.message || 'Erro inesperado ao tentar enviar.');
     } finally {
       setIsSending(false);
     }
   };
 
-  // --- Copy to Clipboard ---
   const copyToClipboard = () => {
     if (!walletAddress) return;
     navigator.clipboard.writeText(walletAddress).then(() => {
@@ -333,7 +349,6 @@ export function WalletTab() {
     });
   };
 
-  // --- Handle Amount Change ---
   const handleAmountChange = (value: string, type: 'BCH' | 'BRL') => {
     const cleanValue = value.replace(',', '.');
     const currentRate = balance.currentRateBRL || 0;
@@ -342,369 +357,676 @@ export function WalletTab() {
       setSendForm({ ...sendForm, amountBCH: '', amountBRL: '' });
       return;
     }
-
-    // Allow only numbers and one decimal point
-    if (!/^\d*\.?\d*$/.test(cleanValue)) {
-      return; // Ignore invalid input
-    }
+    if (!/^\d*\.?\d*$/.test(cleanValue)) return;
 
     const numericValue = parseFloat(cleanValue);
 
     if (isNaN(numericValue) && cleanValue !== '.') {
-      // Handle cases like "0." or "." which parseFloat turns into 0 or NaN
       if (type === 'BCH') setSendForm({ ...sendForm, amountBCH: cleanValue, amountBRL: '' });
       else setSendForm({ ...sendForm, amountBRL: cleanValue, amountBCH: '' });
       return;
     }
 
     if (type === 'BCH') {
-      const bchAmountStr = cleanValue; // Keep user input format
-      // Calculate BRL only if BCH is a valid number and rate exists
+      const bchAmountStr = cleanValue;
       const brlAmountStr = !isNaN(numericValue) && currentRate > 0 ? (numericValue * currentRate).toFixed(2) : '';
-      setSendForm({ ...sendForm, amountBCH: bchAmountStr, amountBRL: brlAmountStr });
+      setSendForm(f => ({ ...f, amountBCH: bchAmountStr, amountBRL: brlAmountStr }));
     } else { // type === 'BRL'
-      const brlAmountStr = cleanValue; // Keep user input format
-      // Calculate BCH only if BRL is a valid number and rate exists
+      const brlAmountStr = cleanValue;
       const bchAmountNum = !isNaN(numericValue) && currentRate > 0 ? (numericValue / currentRate) : 0;
-      // Format BCH to 8 decimal places if calculation is valid
       const bchAmountStr = bchAmountNum > 0 ? bchAmountNum.toFixed(8) : '';
-      setSendForm({ ...sendForm, amountBRL: brlAmountStr, amountBCH: bchAmountStr });
+      setSendForm(f => ({ ...f, amountBRL: brlAmountStr, amountBCH: bchAmountStr }));
     }
   };
 
+  const filteredTransactions = transactions.filter(tx => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      tx.txid.toLowerCase().includes(searchTermLower) ||
+      tx.address.toLowerCase().includes(searchTermLower) ||
+      tx.amountBCH.toString().includes(searchTermLower) ||
+      (tx.type === 'received' ? 'recebido' : tx.type === 'sent' ? 'enviado' : 'transferência').includes(searchTermLower);
+
+    const matchesStatus = statusFilter === 'all' || tx.status === statusFilter;
+    
+    const matchesCategory = 
+      categoryFilter === 'all' ||
+      (categoryFilter === 'sent' && (tx.type === 'sent' || tx.type === 'self')) || // 'self' can be considered 'sent' for filtering
+      (categoryFilter === 'received' && tx.type === 'received');
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  let chartData: any[] = [];
+  let xKey = '';
+  if (activityPeriod === 'today') {
+    chartData = activityDataToday;
+    xKey = 'hour';
+  } else if (activityPeriod === 'week') {
+    chartData = activityDataWeek;
+    xKey = 'day';
+  } else { // month
+    chartData = activityDataMonth;
+    xKey = 'week';
+  }
+
+  const statusOptions = [
+    { value: 'all', label: 'Todos Status' },
+    { value: 'confirmed', label: 'Confirmadas' },
+    { value: 'pending', label: 'Pendentes' },
+    { value: 'error', label: 'Com Erro' },
+  ];
+
+  const categoryOptions = [
+    { value: 'all', label: 'Todas Categorias' },
+    { value: 'sent', label: 'Enviadas' },
+    { value: 'received', label: 'Recebidas' },
+  ];
+
+
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] min-h-screen">
-    <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-      <div>
-        <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
-          <FiDollarSign className="text-green-400" /> Minha Carteira Bitcoin Cash
-        </h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          Gerencie seu saldo, envie e receba BCH com segurança.
-        </p>
-      </div>
-      
-      </div>
-      {/* Global Error (outside modals) */}
-      {error && !sendModalOpen && !receiveModalOpen && (
-        <div className="bg-red-800 border border-red-600 text-white px-4 py-3 rounded relative mb-6 shadow-md" role="alert">
-          <strong>Erro: </strong> <span className="block sm:inline">{error}</span>
-          <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
-        </div>
-      )}
-      {!isInitialized ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-pulse">
-          <div className="bg-[var(--color-bg-secondary)] h-32 rounded-lg p-6 shadow-md"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-green-500 to-blue-900 rounded-lg p-6 shadow-lg text-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-white text-xl font-medium">Saldo Disponível</h3>
-                {loading || !isInitialized ? (
-                  <div className="mt-2 space-y-2 animate-pulse">
-                    <div className="h-6 bg-gradient-to-br from-green-500 to-blue-900 rounded w-3/4"></div>
-                    <div className="h-4 bg-gradient-to-br from-green-500 to-blue-900 rounded w-1/2"></div>
-                  </div>
-                ) : (
-                  <React.Fragment>
-                    <p className="text-2xl font-bold mt-2">{formatBCH(balance.totalBCH)}</p>
-                    <p className="text-white mt-1">{formatCurrency(balance.totalBRL)}</p>
-                  </React.Fragment>
-                )}
-              </div>
-              <div className="bg-gradient-to-br from-green-400 to-blue-600 p-3 rounded-full">
-                <FiDollarSign size={24} /> </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-4 mb-8">
-        <button onClick={() => {
-          if (!isInitialized || loading) {
-            toast.warn("Aguarde inicialização.");
-            return;
-          } if (!walletAddress) {
-            toast.error("Endereço indisponível.");
-            return;
-          } setSendModalOpen(true); setError(null);
-        }} disabled={!isInitialized || loading}
-          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
-          <FiArrowUp /> Enviar BCH </button>
-        <button onClick={() => {
-          if (!isInitialized || !walletAddress) {
-            toast.error("Endereço indisponível.");
-            return;
-          } setReceiveModalOpen(true); setError(null);
-        }} disabled={!isInitialized || !walletAddress}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
-          <FiArrowDown /> Receber BCH </button>
-        <button disabled title="Em breve"
-          className="flex items-center gap-2 bg-amber-600 text-amber-200 px-6 py-3 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed shadow-md">
-          <FiDollarSign /> Converter </button>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 shadow-lg">
-        <h3 className="text-xl font-semibold mb-4 text-[var(--color-text-primary)]">Transações Recentes</h3>
-        {/* Conditional rendering structure */}
-        {!isInitialized ? (
-          <div className="space-y-4 animate-pulse">{[...Array(3)].map((_, i) => (<div key={i}
-            className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-gray-700 h-12 w-12">
-              </div>
-              <div>
-                <div className="h-4 bg-gray-700 rounded w-48 mb-2">
-                </div>
-                <div className="h-3 bg-gray-700 rounded w-32">
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="h-4 bg-gray-700 rounded w-24 mb-2">
-              </div>
-              <div className="h-3 bg-gray-700 rounded w-20">
-              </div>
-            </div>
-          </div>
-          ))}
-          </div>
-        ) : loading && transactions.length === 0 ? (
-          <div className="space-y-4 animate-pulse">{[...Array(3)].map((_, i) => (<div key={i}
-            className="flex justify-between items-center p-4 rounded-lg bg-[var(--color-bg-tertiary)]">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-gray-700 h-12 w-12">
-              </div>
-              <div>
-                <div className="h-4 bg-gray-700 rounded w-48 mb-2">
-                </div>
-                <div className="h-3 bg-gray-700 rounded w-32">
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="h-4 bg-gray-700 rounded w-24 mb-2">
-              </div>
-              <div className="h-3 bg-gray-700 rounded w-20">
-              </div>
-            </div>
-          </div>
-          ))}
-          </div>
-        ) : !loading && transactions.length === 0 ? (
-          <div className="text-center py-8 text-[var(--color-text-secondary)]"> Nenhuma transação encontrada. </div>
-        ) : (
-          <div className="space-y-4">
-            {transactions.map((tx) => (
-              <div key={tx._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-[var(--color-bg-tertiary)] rounded-lg border-b border-[var(--color-border)] last:border-b-0">
-                <div className="flex items-center gap-4 mb-2 sm:mb-0 w-full sm:w-auto">
-                  <div className={`flex-shrink-0 p-3 rounded-full 
-                    ${tx.type === 'received' ? 'bg-green-900 text-green-400' :
-                      tx.type === 'sent' ? 'bg-red-900 text-red-400' :
-                        tx.type === 'self' ? 'bg-blue-900 text-blue-400' : 'bg-gray-700 text-gray-400'}`}>
-                    {tx.type === 'received' ?
-                      <FiArrowDown size={20} /> :
-                      tx.type === 'sent' ?
-                        <FiArrowUp size={20} /> :
-                        tx.type === 'self' ?
-                          <FiRefreshCw size={20} /> :
-                          <FiClock size={20} />}
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <p className="font-medium text-sm sm:text-base truncate text-[var(--color-text-primary)]">
-                      {tx.type === 'received' ? 'Recebido' :
-                        tx.type === 'sent' ? 'Enviado' :
-                          tx.type === 'self' ? 'Para si' : 'Desconhecido'}
-                    </p>
-                    <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">{formatDate(tx.timestamp)}</p>
-                    <a href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:text-blue-300 break-all block mt-1"
-                      title={tx.txid}>
-                      Hash: {formatAddress(tx.txid, 8)}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end ml-auto sm:ml-0 pl-16 sm:pl-0 flex-shrink-0">
-                  <p className={`font-bold text-sm sm:text-base whitespace-nowrap 
-                    ${tx.type === 'received' ? 'text-green-400' :
-                      tx.type === 'sent' ? 'text-red-400' : 'text-gray-400'}`}>
-                    {tx.type === 'received' ? '+' :
-                      tx.type === 'sent' ? '-' : ''} {formatBCH(tx.amountBCH)}
-                  </p>
-                  <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] whitespace-nowrap">
-                    {formatCurrency(tx.amountBRL)}</p>
-                  <div className="mt-1">
-                    {tx.status === 'confirmed' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium   bg-green-900 text-green-200">
-                        Confirmado ({tx.confirmations > 99 ? '99+' : tx.confirmations} conf.)
-                      </span>
-                    ) : tx.status === 'pending' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
-                        Pendente ({tx.confirmations} conf.)
-                      </span>
-                    ) : tx.status === 'error' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-900 text-red-200" title={tx.errorMessage}>
-                        Erro
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-200">
-                        Desconhecido
-                      </span>
-                    )}
-                  </div>
-
-                </div>
-              </div>
-            ))}
+    <div className="min-h-screen bg-gradient-to-b from-[#24292D] to-[#1E2328] p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Global Error */}
+        {error && !sendModalOpen && !receiveModalOpen && !showSuccessModal && (
+          <div className="bg-red-700/20 border border-red-600/30 text-red-300 px-4 py-3 rounded-xl relative mb-6 shadow-md" role="alert">
+            <strong>Erro: </strong> <span className="block sm:inline">{error}</span>
+            <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3 text-red-300 hover:text-white">✕</button>
           </div>
         )}
-      </div>
-
-      {/* --- Send Modal --- */}
-      {sendModalOpen && (
-        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-md shadow-xl border border-[var(--color-border)]">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Enviar Bitcoin Cash</h3>
-              <button onClick={() => !isSending && setSendModalOpen(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-50" disabled={isSending}> ✕ </button>
-            </div>
-            {/* Modal-specific error display */}
-            {error && (
-              <div className="bg-red-800 border border-red-600 text-white px-4 py-2 rounded relative mb-4 text-sm" role="alert">
-                {error}
-                <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-3 py-2 text-red-300 hover:text-white">✕</button>
-              </div>
-            )}
-            <form onSubmit={handleSendSubmit}>
-              <div className="space-y-4">
-                {/* Address */}
-                <div>
-                  <label htmlFor="send-address" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Endereço</label>
-                  <div className="relative">
-                    <input id="send-address" type="text" value={sendForm.address} onChange={(e) => setSendForm({ ...sendForm, address: e.target.value })} placeholder="bitcoincash:q..." className="w-full px-3 py-2 rounded bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] font-mono text-sm" required disabled={isSending} />
-                    <button type="button" disabled title="Scan QR (Em breve)" className="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-500 hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"> <FiCode /> </button>
-                  </div>
-                </div>
-                {/* Amounts */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="send-amount-bch" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Qtd (BCH)</label>
-                    <input id="send-amount-bch" type="text" inputMode="decimal" value={sendForm.amountBCH} onChange={(e) => handleAmountChange(e.target.value, 'BCH')} className="w-full px-3 py-2 rounded bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] text-sm" required disabled={isSending} placeholder="0.00000000" />
-                  </div>
-                  <div>
-                    <label htmlFor="send-amount-brl" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Valor (BRL)</label>
-                    <input id="send-amount-brl" type="text" inputMode="decimal" value={sendForm.amountBRL} onChange={(e) => handleAmountChange(e.target.value, 'BRL')} className="w-full px-3 py-2 rounded bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] text-sm" required disabled={isSending} placeholder="0,00" />
-                  </div>
-                </div>
-
-                {/* Use Available Balance Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const available = balance.availableBCH;
-
-                    const usableAmount = Math.max(0, available - (estimatedFeeClientSide * 1.1));
-                    if (usableAmount > 0) {
-                      handleAmountChange(usableAmount.toFixed(8), 'BCH');
-                    } else {
-                      handleAmountChange('0', 'BCH');
-                      toast.warn("Saldo disponível insuficiente para cobrir taxa estimada.");
-                    }
-                  }}
-                  disabled={isSending || balance.availableBCH <= (estimatedFeeClientSide * 1.1)}
-                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Usar saldo disponível (aprox.)
-                </button>
-                {/* Fee Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Taxa</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['low', 'medium', 'high'] as const).map((feeLevel) =>
-                    (<button key={feeLevel}
-                      type="button" onClick={() => !isSending && setSendForm({ ...sendForm, fee: feeLevel })}
-                      disabled={isSending}
-                      className={`py-2 rounded border-2 text-sm transition-colors disabled:opacity-50 
-                      ${sendForm.fee === feeLevel ? 'border-red-500 bg-red-600 text-white font-semibold' : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:border-gray-500 hover:text-[var(--color-text-primary)]'}`}>
-                      {feeLevel === 'low' ? 'Lenta' : feeLevel === 'medium' ? 'Normal' : 'Rápida'} </button>))}
-                  </div>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                    Taxa de rede estimada: ~{estimatedFeeClientSide.toFixed(8)} BCH. A taxa real será calculada pelo servidor.
-                  </p>
-                </div>
-              </div>
-              {/* Actions */}
-              <div className="mt-8 flex justify-end gap-3">
-                <button type="button" onClick={() => setSendModalOpen(false)} 
-                disabled={isSending} 
-                className="px-4 py-2 rounded-lg text-whit bg-red-700 hover:bg-red-600 "> Cancelar </button>
-                <button
-                  type="submit"
-                  disabled={
-                    isSending ||
-                    !sendForm.address ||
-                    !sendForm.amountBCH ||
-                    parseFloat(sendForm.amountBCH) <= 0
-                  }
-                  className={`px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px] 
-                    ${isSending ? 'animate-pulse' : ''}`}
-                >
-                  {isSending ? (
-                    <>
-                      <FiClock className="animate-spin h-5 w-5 mr-2" /> Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <FiArrowUp className="h-5 w-5 mr-1" /> Enviar
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+      
+        {/* Balance Card */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700 p-6 md:p-8 mb-8 shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 opacity-10">
+            <Bitcoin size="100%" className="text-white" />
           </div>
-        </div>
-      )}
-
-      {/* --- Receive Modal --- */}
-      {receiveModalOpen && (
-        <div className="fixed inset-0 bg-opacity-75 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[var(--color-bg-secondary)] rounded-lg p-6 shadow-xl border border-[var(--color-border)]">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[var(--color-text-primary)]">Receber Bitcoin Cash</h3>
-              <button onClick={() => setReceiveModalOpen(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"> ✕ </button>
-            </div>
-            <div className="text-center">
-              <div className="bg-white p-4 rounded-lg inline-block mb-6 shadow-md">
-                {walletAddress ? (
-                  <QRCode value={walletAddress} size={192} level="M" bgColor="#FFFFFF" fgColor="#000000" />
+          
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+              <div>
+                <p className="text-emerald-100 text-sm font-medium mb-1">Saldo Total Disponível</p>
+                {loading && !isInitialized ? (
+                  <div className="mt-1 space-y-1 animate-pulse">
+                    <div className="h-10 bg-white/20 rounded w-48"></div>
+                    <div className="h-6 bg-white/20 rounded w-32"></div>
+                  </div>
                 ) : (
-                  <div className="w-48 h-48 bg-gray-200 flex items-center justify-center text-gray-500 animate-pulse"> Carregando... </div>
+                  <>
+                    <div className="flex items-center gap-2">
+                      {balanceVisible ? (
+                        <h2 className="text-3xl md:text-4xl font-bold text-white">{formatBCH(balance.totalBCH)}</h2>
+                      ) : (
+                        <h2 className="text-3xl md:text-4xl font-bold text-white">•••••••• BCH</h2>
+                      )}
+                      <button
+                        onClick={() => setBalanceVisible(!balanceVisible)}
+                        className="text-white/80 hover:text-white transition-colors"
+                        title={balanceVisible ? "Ocultar saldo" : "Mostrar saldo"}
+                      >
+                        {balanceVisible ? <Eye size={20} /> : <EyeOff size={20} />}
+                      </button>
+                    </div>
+                    {balanceVisible ? (
+                      <p className="text-emerald-100 text-lg md:text-xl font-semibold">{formatCurrency(balance.totalBRL)}</p>
+                    ) : (
+                      <p className="text-emerald-100 text-lg md:text-xl font-semibold">R$ ••••••</p>
+                    )}
+                  </>
                 )}
               </div>
-              <div className="mb-6">
-                <p className="text-sm text-[var(--color-text-secondary)] mb-2">Seu endereço</p>
-                <div className="flex items-center justify-between bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] p-3 rounded-lg">
-                  <span className="font-mono text-blue-400 overflow-x-auto text-sm break-all mr-2">
-                    {walletAddress || 'Carregando...'}
-                  </span>
-                  <button onClick={copyToClipboard} disabled={!walletAddress || isCopied}
-                    className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex-shrink-0 disabled:opacity-50"
-                    title={isCopied ? "Copiado!" : "Copiar"}>
-                    {isCopied ? <FiCheckCircle className="text-green-500" /> : <FiCopy />}
+              
+              <div className="text-right mt-4 sm:mt-0">
+                <div className="flex items-center justify-end gap-2 text-emerald-100 mb-2">
+                  <TrendingUp size={16} />
+                  <span className="text-sm">BCH/BRL: {formatCurrency(balance.currentRateBRL)}</span>
+                </div>
+                <p className="text-emerald-200 text-xs">Última atualização: {loading ? '...' : 'agora'}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 mt-4">
+              {[
+                { label: 'Enviar', icon: ArrowUpRight, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setSendModalOpen(true); setError(null); } },
+                { label: 'Receber', icon: ArrowDownLeft, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setReceiveModalOpen(true); setError(null); } },
+                { label: 'Trocar', icon: RotateCcw, action: () => toast.info("Funcionalidade de Troca em breve!") },
+                { label: 'Converter', icon: RefreshCwLucide, action: () => toast.info("Funcionalidade de Conversão em breve!") },
+              ].map(item => (
+                <div key={item.label} className="flex flex-col items-center group">
+                  <button
+                    className="flex items-center justify-center w-14 h-14 md:w-16 md:h-16 bg-white/10 backdrop-blur-sm rounded-2xl text-white transition-all duration-300 hover:bg-white/20 hover:scale-110 hover:shadow-lg border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={item.action}
+                    disabled={(!isInitialized && (item.label === 'Enviar' || item.label === 'Receber')) || (loading && (item.label === 'Enviar' || item.label === 'Receber'))}
+                    title={item.label}
+                  >
+                    <item.icon size={20} />
+                  </button>
+                  <span className="text-xs md:text-sm mt-2 text-emerald-100 group-hover:text-white transition-colors">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10 shadow-xl">
+            <button
+              onClick={() => setViewMode('transactions')}
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-medium transition-all duration-300 text-sm ${
+                viewMode === 'transactions'
+                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Transações
+            </button>
+            <button
+              onClick={() => setViewMode('analysis')}
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-medium transition-all duration-300 text-sm ${
+                viewMode === 'analysis'
+                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
+                  : 'text-gray-300 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Análises
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {viewMode === 'transactions' && (
+          <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+            {/* Filters */}
+            <div className="p-4 md:p-6 border-b border-white/10">
+              <div className="flex flex-col lg:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full lg:max-w-md">
+                  <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar transações..."
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D]/80 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 transition-all text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-3 w-full lg:w-auto">
+                  <Listbox value={statusFilter} onChange={setStatusFilter}>
+                    <div className="relative min-w-[160px]">
+                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                        {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos Status'}
+                      </Listbox.Button>
+                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
+                        {statusOptions.map(opt => (
+                          <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
+                            {opt.label}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  <Listbox value={categoryFilter} onChange={setCategoryFilter}>
+                    <div className="relative min-w-[160px]">
+                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                        {categoryOptions.find(c => c.value === categoryFilter)?.label || 'Todas Categorias'}
+                      </Listbox.Button>
+                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
+                         {categoryOptions.map(opt => (
+                          <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
+                            {opt.label}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="overflow-x-auto">
+              {loading && filteredTransactions.length === 0 ? (
+                 <div className="space-y-4 p-6 animate-pulse">{[...Array(3)].map((_, i) => (<div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[#24292D]/50"><div className="flex items-center gap-4"><div className="p-3 rounded-full bg-gray-700 h-12 w-12"></div><div><div className="h-4 bg-gray-700 rounded w-32 mb-2"></div><div className="h-3 bg-gray-700 rounded w-24"></div></div></div><div className="text-right"><div className="h-4 bg-gray-700 rounded w-20 mb-2"></div><div className="h-3 bg-gray-700 rounded w-16"></div></div></div>))}</div>
+              ) : !loading && filteredTransactions.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <Bitcoin size={48} className="opacity-50" />
+                    <p>Nenhuma transação encontrada{searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' ? ' com os filtros aplicados' : ''}.</p>
+                  </div>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                    <tr className="text-xs">
+                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Transação</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider hidden md:table-cell">Data</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Quantidade</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((tx) => (
+                      <tr
+                        key={tx._id}
+                        className="border-b border-[#3A414A]/50 hover:bg-[#3A414A]/30 transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                tx.type === 'received' 
+                                  ? 'bg-green-500/20 text-green-400' 
+                                  : (tx.type === 'sent' || tx.type === 'self')
+                                  ? 'bg-red-500/20 text-red-400' 
+                                  : 'bg-blue-500/20 text-blue-400' // unknown
+                              }`}
+                            >
+                              {tx.type === 'received' ? 
+                                <ArrowDownLeft size={18} /> : 
+                                (tx.type === 'sent' || tx.type === 'self') ? 
+                                <ArrowUpRight size={18} /> : 
+                                <RotateCcw size={18} /> // Or another icon for 'unknown'
+                              }
+
+                            </div>
+                            <div>
+                              <p className="text-white font-medium text-sm md:text-base">
+                                {tx.type === 'received' ? 'Recebido' : (tx.type === 'sent' || tx.type === 'self') ? 'Enviado' : 'Desconhecido'}
+                              </p>
+                              <p className="text-gray-300 text-xs md:text-sm truncate max-w-[100px] sm:max-w-[150px]" title={tx.address}>
+                                {formatAddress(tx.address)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 text-gray-200 text-sm hidden md:table-cell">
+                          {formatDate(tx.timestamp)}
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <div className={`text-sm md:text-base font-medium ${tx.type === 'received' ? 'text-green-400' : (tx.type === 'sent' || tx.type === 'self') ? 'text-red-400' : 'text-white'}`}>
+                            {tx.type === 'received' ? '+' : (tx.type === 'sent' || tx.type === 'self') ? '-' : ''}{tx.amountBCH.toFixed(8)} BCH
+                          </div>
+                          <div className="text-gray-300 text-xs md:text-sm">
+                            {formatCurrency(tx.amountBRL)}
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                              tx.status === 'confirmed'
+                                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                : tx.status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                : 'bg-red-500/20 text-red-300 border border-red-500/30' // error
+                            }`}
+                          >
+                            {tx.status === 'confirmed' ? `Confirmado (${tx.confirmations > 99 ? "99+" : tx.confirmations})` : tx.status === 'pending' ? `Pendente (${tx.confirmations})` : 'Erro'}
+                          </span>
+                        </td>
+                        
+                        <td className="px-6 py-4">
+                          <a
+                            href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 md:px-4 md:py-2 bg-teal-600/20 text-teal-300 rounded-lg text-xs md:text-sm font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
+                          >
+                            Detalhes
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'analysis' && (
+          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-2xl border border-white/10 p-4 md:p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-3 sm:mb-0">Análise de Atividade</h3>
+              
+              <div className="flex gap-1 bg-[#24292D]/70 rounded-xl p-1">
+                {(['today', 'week', 'month'] as const).map((period) => (
+                  <button
+                    key={period}
+                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium transition-all text-xs md:text-sm ${
+                      activityPeriod === period
+                        ? 'bg-teal-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
+                    }`}
+                    onClick={() => setActivityPeriod(period)}
+                  >
+                    {period === 'today' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mês'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="h-64 md:h-80 mb-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="receivedGradientArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#14B8A6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="sentGradientArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey={xKey} 
+                    stroke="#4A5568" 
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis hide />
+                  <Tooltip
+                    contentStyle={{ 
+                      background: "#24292D", 
+                      border: "1px solid #3A414A", 
+                      borderRadius: "12px",
+                      color: "#e5e7eb" 
+                    }}
+                    labelStyle={{ color: "#14B8A6", fontWeight: "bold" }}
+                    formatter={(value: number, name: string) =>
+                      [`${value.toFixed(8)} BCH`, name === "received" ? "Recebido" : "Enviado"]
+                    }
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="received" 
+                    stroke="#14B8A6" 
+                    strokeWidth={2}
+                    fill="url(#receivedGradientArea)"
+                    name="Recebido" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="sent" 
+                    stroke="#F43F5E" 
+                    strokeWidth={2}
+                    fill="url(#sentGradientArea)"
+                    name="Enviado" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { title: 'Total Recebido', value: '0.0456 BCH', change: '+12.5%', changeColor: 'text-green-400', icon: ArrowDownLeft, iconColor: 'text-green-400' },
+                { title: 'Total Enviado', value: '0.0123 BCH', change: '-5.3%', changeColor: 'text-red-400', icon: ArrowUpRight, iconColor: 'text-red-400' },
+                { title: 'Saldo Líquido', value: '+0.0333 BCH', change: '+18.2%', changeColor: 'text-blue-400', icon: TrendingUp, iconColor: 'text-blue-400' },
+              ].map(item => (
+                <div key={item.title} className="bg-[#24292D]/50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <item.icon className={item.iconColor} size={18} />
+                    <span className="text-gray-200 text-sm">{item.title}</span>
+                  </div>
+                  <p className="text-xl md:text-2xl font-bold text-white">{item.value}</p>
+                  <p className={`${item.changeColor} text-xs md:text-sm`}>{item.change} vs período anterior</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Send Modal */}
+        {sendModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-5 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => !isSending && setSendModalOpen(false)}
+                disabled={isSending}
+              >
+                ×
+              </button>
+              
+              <div className="p-6 border-b border-[#3A414A]/70">
+                <h2 className="text-xl font-semibold text-white mb-1">Enviar BCH</h2>
+                <p className="text-gray-300 text-sm">Transfira Bitcoin Cash para outro endereço.</p>
+              </div>
+              
+              {error && (
+                <div className="m-6 bg-red-700/20 border border-red-600/30 text-red-300 px-4 py-2 rounded-xl relative text-sm" role="alert">
+                  {error}
+                  <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-3 py-2 text-red-300 hover:text-white">✕</button>
+                </div>
+              )}
+
+              <form onSubmit={handleSendSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Destinatário</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Digite o endereço BCH (ex: bitcoincash:q...)"
+                      className="w-full pl-4 pr-10 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400 font-mono text-sm"
+                      value={sendForm.address}
+                      onChange={e => setSendForm(f => ({ ...f, address: e.target.value }))}
+                      required
+                      disabled={isSending}
+                    />
+                     <button type="button" title="Scan QR (Em breve)" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-teal-400 hover:text-teal-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled> <CodeLucide size={20}/> </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Quantidade</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text" inputMode="decimal"
+                      placeholder="0,00"
+                      className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400 text-sm"
+                      value={sendForm.amountBRL}
+                      onChange={e => handleAmountChange(e.target.value, 'BRL')}
+                      disabled={isSending}
+                    />
+                    <input
+                      type="text" inputMode="decimal"
+                      placeholder="0.00000000"
+                      className="px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400 text-sm"
+                      value={sendForm.amountBCH}
+                      onChange={e => handleAmountChange(e.target.value, 'BCH')}
+                      required
+                      disabled={isSending}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1 px-1">
+                    <span>BRL</span>
+                    <span>BCH</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const available = balance.availableBCH;
+                      const usableAmount = Math.max(0, available - (estimatedFeeClientSide * 1.05)); // Small buffer for fee fluctuation
+                      if (usableAmount > 0) {
+                        handleAmountChange(usableAmount.toFixed(8), 'BCH');
+                      } else {
+                        handleAmountChange('0', 'BCH');
+                        toast.warn("Saldo disponível insuficiente para cobrir taxa estimada.");
+                      }
+                    }}
+                    disabled={isSending || balance.availableBCH <= (estimatedFeeClientSide * 1.05)}
+                    className="text-xs text-teal-400 hover:text-teal-300 disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+                  >
+                    Usar saldo disponível (aprox.)
+                  </button>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Taxa de Rede</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-xl bg-[#24292D] border border-[#3A414A] text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    value={sendForm.fee}
+                    onChange={e => setSendForm(f => ({ ...f, fee: e.target.value as 'low' | 'medium' | 'high' }))}
+                    disabled={isSending}
+                  >
+                    <option value="low">Baixa (mais lenta)</option>
+                    <option value="medium">Média (recomendada)</option>
+                    <option value="high">Alta (mais rápida)</option>
+                  </select>
+                </div>
+                
+                <div className="bg-[#24292D]/50 rounded-xl p-3 space-y-1.5 text-sm border border-[#3A414A]/50">
+                  <div className="flex justify-between text-gray-300">
+                    <span>Taxa Estimada</span>
+                    <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-white font-medium">
+                    <span>Total</span>
+                    <span>{(parseFloat(sendForm.amountBCH || '0') + estimatedFeeClientSide).toFixed(8)} BCH</span>
+                  </div>
+                </div>
+                
+                <button
+                  type="submit"
+                  className={`w-full bg-teal-600 text-white rounded-xl py-3 font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${isSending ? 'animate-pulse' : ''}`}
+                  disabled={isSending || !sendForm.address || !sendForm.amountBCH || parseFloat(sendForm.amountBCH) <= 0}
+                >
+                  {isSending ? <><ClockLucide className="animate-spin h-5 w-5 mr-2" /> Enviando...</> : <><ArrowUpRight className="h-5 w-5 mr-1" /> Enviar Transação</>}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Receive Modal */}
+        {receiveModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-5 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => setReceiveModalOpen(false)}
+              >
+                ×
+              </button>
+              
+              <div className="p-6 border-b border-[#3A414A]/70">
+                <h2 className="text-xl font-semibold text-white mb-1">Receber BCH</h2>
+                <p className="text-gray-300 text-sm">Compartilhe este endereço para receber Bitcoin Cash.</p>
+              </div>
+              
+              <div className="p-6 text-center space-y-6">
+                <div className="bg-white p-3 md:p-4 rounded-2xl inline-block shadow-md">
+                  {walletAddress ? (
+                    <QRCode value={walletAddress} size={180} level="M" bgColor="#FFFFFF" fgColor="#000000" />
+                  ) : (
+                    <div className="w-48 h-48 md:w-52 md:h-52 bg-gray-200 flex items-center justify-center text-gray-500 animate-pulse">Carregando...</div>
+                  )}
+                </div>
+                
+                <div>
+                  <p className="text-teal-400 font-medium text-sm mb-1.5">Seu Endereço BCH</p>
+                  <div className="bg-[#24292D]/70 rounded-xl p-3 border border-[#3A414A]/70">
+                    <p className="text-white text-xs md:text-sm font-mono break-all mb-3">
+                      {walletAddress || 'Carregando...'}
+                    </p>
+                    <button
+                      className="w-full bg-teal-600 text-white rounded-lg py-2.5 font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                      onClick={copyToClipboard}
+                      disabled={!walletAddress || isCopied}
+                    >
+                      {isCopied ? <><CheckCircleLucide size={18}/>Copiado!</> : <><CopyLucide size={18}/>Copiar Endereço</>}
+                    </button>
+                  </div>
+                </div>
+                
+                <button
+                  className="w-full bg-[#3A414A] text-white rounded-xl py-3 font-medium hover:bg-[#4A5568] transition-colors border border-[#4A5568]/70"
+                  onClick={() => {
+                    if (navigator.share && walletAddress) {
+                      navigator.share({ title: 'Meu Endereço BCH', text: walletAddress }).catch(err => toast.error("Não foi possível compartilhar."));
+                    } else if (walletAddress) {
+                      toast.info("Compartilhamento não suportado. Copie o endereço manualmente.");
+                    } else {
+                       toast.warn("Endereço não disponível para compartilhar.");
+                    }
+                  }}
+                  disabled={!walletAddress}
+                >
+                  Compartilhar Endereço
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && lastSent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+              <button
+                className="absolute top-4 right-5 text-gray-400 hover:text-white text-2xl transition-colors"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                ×
+              </button>
+              
+              <div className="p-6 md:p-8 text-center">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-teal-600/20 border-2 border-teal-500/50 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <FiCheckCircle className="w-8 h-8 md:w-10 md:h-10 text-teal-400" /> {/* Or use CheckCircleLucide */}
+                </div>
+                
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Transação Enviada!</h3>
+                <p className="text-gray-300 mb-5 text-sm md:text-base">
+                  Você enviou <span className="font-medium text-teal-400">{parseFloat(lastSent.amount).toFixed(8)} BCH</span> com sucesso.
+                </p>
+                
+                <div className="bg-[#24292D]/50 rounded-xl p-4 mb-6 space-y-2 text-sm border border-[#3A414A]/50">
+                  <div className="flex justify-between text-gray-200">
+                    <span>Valor Enviado</span>
+                    <span>{lastSent.amount} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-gray-200">
+                    <span>Taxa de Rede</span>
+                    <span>{estimatedFeeClientSide.toFixed(8)} BCH</span>
+                  </div>
+                  <div className="flex justify-between text-white font-medium border-t border-[#3A414A]/70 pt-2 mt-1">
+                    <span>Total</span>
+                    <span>{(parseFloat(lastSent.amount) + estimatedFeeClientSide).toFixed(8)} BCH</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    className="flex-1 bg-teal-600 text-white rounded-xl py-2.5 md:py-3 font-medium hover:bg-teal-700 transition-colors"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    Continuar
+                  </button>
+                  <button
+                    onClick={() => { 
+                      if (lastSent.txid) {
+                        window.open(`${BCH_EXPLORER_TX_URL}${lastSent.txid}`, '_blank');
+                      } else {
+                        toast.info("Detalhes da transação estarão disponíveis em breve.");
+                      }
+                    }}
+                    className="flex-1 bg-[#3A414A] text-white rounded-xl py-2.5 md:py-3 font-medium hover:bg-[#4A5568] transition-colors border border-[#4A5568]/70"
+                    disabled={!lastSent.txid}
+                  >
+                    Ver Detalhes
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
-        </div>
-      )}
-
+        )}
+      </div>
     </div>
   );
-} 
+}

@@ -1,5 +1,22 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiChevronLeft, FiChevronRight, FiShoppingCart, FiEdit, FiTrash2, FiCopy, FiPrinter, FiClock, FiCheckCircle, FiXCircle, FiPlus, FiCreditCard } from 'react-icons/fi';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBasket,
+  Edit2, // Or Edit, depending on preference
+  Trash2,
+  Copy,
+  Printer,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Plus,
+  CreditCard,
+  ListFilter,
+  ShoppingCart,
+} from 'lucide-react';
+import { Listbox } from '@headlessui/react';
 import QRCode from 'react-qr-code';
 
 type OrderItem = {
@@ -438,15 +455,15 @@ export function PedidosTab() {
   const getStatusIconComponent = (status: Order['status']) => {
     switch (status) {
       case 'paid':
-        return <FiCheckCircle className="text-green-500" />;
+        return <CheckCircle size={14} />;
       case 'pending':
-        return <FiClock className="text-yellow-500" />;
+        return <Clock size={14} />;
       case 'cancelled':
       case 'refunded':
       case 'expired':
-        return <FiXCircle className="text-red-500" />;
+        return <XCircle size={14} />;
       default:
-        return <FiClock className="text-gray-500" />;
+        return <Clock size={14} className="text-gray-500" />;
     }
   };
   
@@ -467,158 +484,233 @@ export function PedidosTab() {
     }
   };
 
+  const statusOptions = [
+    { value: 'all', label: 'Todos os Status' },
+    { value: 'pending', label: 'Pendentes' },
+    { value: 'paid', label: 'Pagos' },
+    { value: 'cancelled', label: 'Cancelados' },
+    { value: 'expired', label: 'Expirados' },
+    { value: 'refunded', label: 'Reembolsados' },
+  ];
 
-  // Função para obter a cor e o rótulo do status da transação (se houver)
-  // const getTransactionStatusVisuals = (status?: Order['transaction']['status']) => {
-    // Similar a getOrderStatusVisuals, mas para status de transação
-    // return status ? { label: status, color: 'bg-blue-200 text-blue-800' } : null;
-  // };
+  const paymentOptions = [
+    { value: 'all', label: 'Todos os Métodos' },
+    { value: 'bch', label: 'Bitcoin Cash' },
+    { value: 'pix', label: 'PIX' },
+    { value: 'card', label: 'Cartão' },
+  ];
   return (
-    <div className="p-6 bg-[var(--color-bg-primary)] text-white min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <FiShoppingCart /> Gestão de Pedidos
-      </h2>
-
-      {/* Barra de ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="relative w-full md:w-96">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por ID, loja ou cliente..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
+    <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
+      <div className="container mx-auto px-4 py-6">
+        {/* Enhanced Hero Section */}
+        <div className="relative overflow-hidden mb-10">
+          <div
+            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            style={{
+              background: `
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.3) 0%, transparent 50%),
+                linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.15) 100%)
+              `,
             }}
-          />
-        </div>
-
-        <div className="flex gap-3 w-full md:w-auto">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Todos status</option>
-            <option value="pending">Pendentes</option>
-            <option value="paid">Pagos</option>
-            <option value="cancelled">Cancelados</option>
-            <option value="expired">Expirados</option>
-            <option value="refunded">Reembolsados</option>
-          </select>
-
-          <select
-            value={paymentFilter}
-            onChange={(e) => {
-              setPaymentFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todos métodos</option>
-            <option value="bch">Bitcoin Cash</option>
-            <option value="pix">PIX</option>
-            <option value="card">Cartão</option>
-          </select>
-
-          {/* Botão de Novo Pedido */}
-          <button
-            id="btn-novo-pedido"
-            onClick={() => setIsOrderModalOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white rounded-lg transition-colors font-semibold shadow"
-          >
-            <FiPlus className="inline mr-1" /> Novo Pedido
-          </button>
-        </div>
-      </div>
-
-      {/* Resumo rápido */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-900/80 to-green-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-green-300">Pagos</span>
-          <span className="text-xl font-bold text-green-200">{orders.filter(o => o.status === 'paid').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-900/80 to-yellow-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-yellow-300">Pendentes</span>
-          <span className="text-xl font-bold text-yellow-200">{orders.filter(o => o.status === 'pending').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-red-900/80 to-red-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-red-300">Cancelados/Expirados</span>
-          <span className="text-xl font-bold text-red-200">{orders.filter(o => o.status === 'cancelled' || o.status === 'expired').length}</span>
-        </div>
-        <div className="bg-gradient-to-br from-blue-900/80 to-blue-800/60 p-4 rounded-xl shadow flex flex-col items-center">
-          <span className="text-xs text-blue-300">Total</span>
-          <span className="text-xl font-bold text-blue-200">{orders.length}</span>
-        </div>
-      </div>
-
-      {/* Tabela de pedidos */}
-      <div className="bg-[var(--color-bg-secondary)] rounded-lg overflow-hidden border border-[var(--color-border)]">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4">Carregando pedidos...</p>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-blue-500/20 to-blue-700/20 rounded-xl backdrop-blur-sm border border-blue-400/30">
+                  <ShoppingBasket size={36} className="text-blue-300" />
+                </div>
+                <div className="text-left">
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                    Gestão de Pedidos
+                  </h1>
+                  <p className="text-base text-blue-100/80">Acompanhe e gerencie todos os seus pedidos</p>
+                </div>
+              </div>
+              {/* Action Button - Novo Pedido */}
+              <div className="mt-8">
+                <button
+                  id="btn-novo-pedido"
+                  onClick={() => setIsOrderModalOpen(true)}
+                  className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-blue-400/30 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Plus size={18} />
+                    <span>Novo Pedido</span>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                </button>
+              </div>
+            </div>
           </div>
-        ) : error && !qrOrder ? ( // Modificado para não mostrar erro global se qrOrder estiver ativo (modal de detalhes)
-          <div className="p-8 text-center text-red-400">
-            <p>{error}</p>
+        </div>
+
+        {/* Enhanced Filters Section */}
+        <div className="mb-6">
+          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full lg:max-w-md">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <Search size={18} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por ID, loja ou cliente..."
+                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+              
+              <div className="flex gap-3 w-full lg:w-auto">
+                {/* Status Listbox */}
+                <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos os Status'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      <Listbox.Option
+                        value="all"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                      >
+                        Todos os Status
+                      </Listbox.Option>
+                      {statusOptions.filter(opt => opt.value !== 'all').map((statusOpt, idx, arr) => (
+                        <Listbox.Option
+                          key={statusOpt.value}
+                          value={statusOpt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {statusOpt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+                {/* Payment Method Listbox */}
+                <Listbox value={paymentFilter} onChange={(value) => { setPaymentFilter(value); setCurrentPage(1); }}>
+                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
+                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                      {paymentOptions.find(p => p.value === paymentFilter)?.label || 'Todos os Métodos'}
+                    </Listbox.Button>
+                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
+                      <Listbox.Option
+                        value="all"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                      >
+                        Todos os Métodos
+                      </Listbox.Option>
+                      {paymentOptions.filter(opt => opt.value !== 'all').map((paymentOpt, idx, arr) => (
+                        <Listbox.Option
+                          key={paymentOpt.value}
+                          value={paymentOpt.value}
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                            ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
+                          `}
+                        >
+                          {paymentOpt.label}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
+                </Listbox>
+              </div>
+            </div>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                <thead className="bg-gray-750">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Loja</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pagamento</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Fatura</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                  {orders && orders.length > 0 ? (
-                    orders.map((order) => (
-                      <tr key={order._id} className="hover:bg-gray-750 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Quick Stats - Styled like ProdutosTab hero stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="group p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-green-300 mb-1">{orders.filter(o => o.status === 'paid').length}</div>
+            <div className="text-xs text-green-200/80 font-medium">Pagos</div>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-yellow-300 mb-1">{orders.filter(o => o.status === 'pending').length}</div>
+            <div className="text-xs text-yellow-200/80 font-medium">Pendentes</div>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-red-300 mb-1">{orders.filter(o => o.status === 'cancelled' || o.status === 'expired' || o.status === 'refunded').length}</div>
+            <div className="text-xs text-red-200/80 font-medium">Cancelados/Expirados</div>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
+            <div className="text-2xl font-bold text-blue-300 mb-1">{orders.length}</div>
+            <div className="text-xs text-blue-200/80 font-medium">Total de Pedidos</div>
+          </div>
+        </div>
+
+        {/* Tabela de pedidos */}
+        <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center gap-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+                <span className="text-white font-medium">Carregando pedidos...</span>
+              </div>
+            </div>
+          ) : error && !qrOrder ? (
+            <div className="p-8 text-center">
+              <div className="text-red-400 font-medium">{error}</div>
+            </div>
+          ) : orders.length === 0 && !loading ? (
+            <div className="p-8 text-center">
+              <div className="text-gray-400">Nenhum pedido encontrado.</div>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                    <tr className="text-xs">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Cliente</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Pagamento</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Fatura</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {orders.map((order) => (
+                      <tr key={order._id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
                             <span className="text-sm font-mono text-blue-400">
                               #{order._id.substring(order._id.length - 6)}
                             </span>
                             <button
                               onClick={() => navigator.clipboard.writeText(order._id)}
-                              className="text-gray-400 hover:text-blue-400"
+                              className="text-gray-400 hover:text-blue-300 transition-colors"
                               title="Copiar ID"
                             >
-                              <FiCopy size={14} />
+                              <Copy size={14} />
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium">{order.store}</div>
+                        <td className="px-4 py-3">
+                          <div className="text-sm text-white font-medium">{order.store}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm">
+                        <td className="px-4 py-3">
+                          <div className="text-sm text-gray-300">
                             {order.customerEmail || 'Anônimo'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium">{formatCurrency(order.totalAmount)}</div>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm text-white font-medium">{formatCurrency(order.totalAmount)}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm flex items-center gap-2">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-300 flex items-center gap-2">
                             {order.paymentMethod === 'bch' && (
-                              <span className="w-5 h-5 inline-block align-middle">
-                                {/* BCH SVG */}
+                              <span className="w-5 h-5 inline-block align-middle" title="Bitcoin Cash">
                                 <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
                                   <rect width="32" height="32" rx="8" fill="#0AC18E"/>
                                   <g>
@@ -629,442 +721,417 @@ export function PedidosTab() {
                               </span>
                             )}
                             {order.paymentMethod === 'pix' && (
-                              <span className="w-5 h-5 inline-block align-middle">
-                                {/* PIX SVG */}
+                              <span className="w-5 h-5 inline-block align-middle" title="PIX">
                                 <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
                                   <rect width="32" height="32" rx="8" fill="#00E1CC"/>
                                   <path d="M16 8.5c.5 0 1 .2 1.4.6l5.5 5.5c.8.8.8 2 0 2.8l-5.5 5.5c-.8.8-2 .8-2.8 0l-5.5-5.5c-.8-.8-.8-2 0-2.8l5.5-5.5c.4-.4.9-.6 1.4-.6z" fill="#fff"/>
                                 </svg>
                               </span>
                             )}
-                            {order.paymentMethod === 'card' && <FiCreditCard className="text-blue-400" />}
+                            {order.paymentMethod === 'card' && <CreditCard size={18} className="text-blue-400" />}
                             {getPaymentMethodLabel(order.paymentMethod)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
                           {formatDate(order.createdAt)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
+                            order.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                            order.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                            'bg-red-500/20 text-red-300 border-red-500/30'
+                          }`}>
                             {getStatusIconComponent(order.status)}
-                            <span>{getStatusLabelText(order.status)}</span>
-                          </div>
+                            {getStatusLabelText(order.status)}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-4 py-3 text-center">
                           <button
-                            className="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded-lg text-white text-xs"
+                            className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 text-xs font-medium transition-colors"
                             onClick={() => openQrModal(order._id)}
                           >
                             Detalhes
                           </button>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end gap-3">
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2 justify-center">
                             <button
-                              onClick={() => fetchOrderDetails(order._id)} // This could open an edit modal
-                              className="text-blue-400 hover:text-blue-300 transition-colors"
-                              title="Editar Pedido"
+                              onClick={() => fetchOrderDetails(order._id)}
+                              className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
+                              title="Editar Pedido (funcionalidade futura)"
                             >
-                              <FiEdit size={18} />
+                              <Edit2 size={14} />
                             </button>
                             <button
                               onClick={() => handlePrint(order)}
-                              className="text-green-400 hover:text-green-300 transition-colors"
+                              className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
                               title="Imprimir"
                             >
-                              <FiPrinter size={18} />
+                              <Printer size={14} />
                             </button>
                             <button
                               onClick={() => handleDeleteOrder(order._id)}
-                              className="text-red-400 hover:text-red-300 transition-colors"
+                              className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
                               title="Excluir"
                             >
-                              <FiTrash2 size={18} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={9} className="text-center py-4 text-gray-400">
-                        Nenhum pedido encontrado.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Paginação */}
-            <div className="px-6 py-4 flex items-center justify-between border-t border-[var(--color-border)]">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
-                >
-                  Anterior
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-[var(--color-border)] text-sm font-medium rounded-md bg-[var(--color-bg-tertiary)] text-gray-300 hover:bg-[var(--color-bg-terciary)] disabled:opacity-50"
-                >
-                  Próxima
-                </button>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">
-                    Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + (orders.length > 0 ? 1 : 0)}</span> a{' '}
-                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + orders.length)}</span> de{' '}
-                    <span className="font-medium">{totalPages * itemsPerPage}</span> resultados
-                  </p>
-                </div>
-
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              {/* Pagination Controls - Styled like ProdutosTab */}
+              {!loading && !error && orders.length > 0 && (
+                <div className="mt-0 flex items-center justify-between px-4 py-3 border-t border-white/10">
+                  <div>
+                    <p className="text-xs text-gray-300">
+                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
-                      <span className="sr-only">Anterior</span>
-                      <FiChevronLeft size={20} />
+                      <ChevronLeft size={16} />
+                      Anterior
                     </button>
-
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
-                            ? 'z-10 bg-blue-600 border-blue-600 text-white'
-                            : 'bg-[var(--color-bg-tertiary)] border-[var(--color-border)] text-gray-400 hover:bg-[var(--color-bg-primary)]'
-                            }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-sm font-medium text-gray-400 hover:bg-[var(--color-bg-primary)] disabled:opacity-50"
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                     >
-                      <span className="sr-only">Próxima</span>
-                      <FiChevronRight size={20} />
+                      Próximo
+                      <ChevronRight size={16} />
                     </button>
-                  </nav>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Modal Detalhes do Pedido (antigo Modal QR Code) - Styled like ProdutosTab modals */}
+        {qrOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="relative w-full max-w-3xl bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b border-white/10 flex-shrink-0">
+                <div className="flex justify-between items-start">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <ShoppingCart size={22} /> Detalhes do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}
+                  </h2>
+                  <button
+                    className="p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                    onClick={() => setQrOrder(null)}
+                    aria-label="Fechar"
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
 
-      {/* Modal Detalhes do Pedido (antigo Modal QR Code) */}
-      {qrOrder && (
-        <div className="fixed inset-0 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-3xl shadow-xl border border-[var(--color-border)] max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <FiShoppingCart /> Detalhes do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}
-              </h3>
-              <button
-                onClick={() => setQrOrder(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
+              <div className="p-6 flex-grow overflow-y-auto">
+                {isLoadingQr && (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
 
-            {isLoadingQr && (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            )}
+                {!isLoadingQr && error && (
+                  <div className="text-red-400 text-center p-4">{error}</div>
+                )}
 
-            {!isLoadingQr && error && (
-              <div className="text-red-500 text-center p-4">{error}</div>
-            )}
+                {!isLoadingQr && !error && qrOrder && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="text-md font-semibold mb-2 text-gray-200">Informações do Pedido</h4>
+                          <div className="space-y-1.5 text-sm">
+                            <p><span className="text-gray-400">Status:</span>
+                              <span className={`ml-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
+                                qrOrder.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                                qrOrder.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                                'bg-red-500/20 text-red-300 border-red-500/30'
+                              }`}>
+                                {getStatusIconComponent(qrOrder.status)}
+                                {getStatusLabelText(qrOrder.status)}
+                              </span>
+                            </p>
+                            <p><span className="text-gray-400">Data:</span> <span className="text-gray-300">{formatDate(qrOrder.createdAt)}</span></p>
+                            <p><span className="text-gray-400">Método:</span> <span className="text-gray-300">{getPaymentMethodLabel(qrOrder.paymentMethod)}</span></p>
+                            {qrOrder.transaction?.txHash && (
+                              <p><span className="text-gray-400">Tx Hash:</span>
+                                <a href={`https://explorer.bitcoinabc.org/tx/${qrOrder.transaction.txHash}`} target="_blank" rel="noopener noreferrer" className="ml-2 font-mono text-blue-400 hover:text-blue-300 break-all text-xs">
+                                  {qrOrder.transaction.txHash.substring(0, 10)}...{qrOrder.transaction.txHash.substring(qrOrder.transaction.txHash.length - 5)}
+                                </a>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-md font-semibold mb-2 text-gray-200">Partes Envolvidas</h4>
+                          <div className="space-y-1.5 text-sm">
+                            <p><span className="text-gray-400">Loja:</span> <span className="text-gray-300">{qrOrder.store}</span></p>
+                            <p><span className="text-gray-400">Cliente:</span> <span className="text-gray-300">{qrOrder.customerEmail || 'Não identificado'}</span></p>
+                          </div>
+                        </div>
+                      </div>
 
-            {!isLoadingQr && !error && qrOrder && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Main grid for details and QR */}
-                {/* Coluna da Esquerda: Detalhes do Pedido */}
-                <div className="md:col-span-2 space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="text-lg font-semibold mb-2 text-gray-200">Informações do Pedido</h4>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-400">Status:</span>
-                          <span className="ml-2 inline-flex items-center">
-                            {getStatusIconComponent(qrOrder.status)}
-                            <span className="ml-1">{getStatusLabelText(qrOrder.status)}</span>
-                          </span>
-                        </p>
-                        <p><span className="text-gray-400">Data:</span> <span className="text-gray-300">{formatDate(qrOrder.createdAt)}</span></p>
-                        <p><span className="text-gray-400">Método de Pagamento:</span> <span className="text-gray-300">{getPaymentMethodLabel(qrOrder.paymentMethod)}</span></p>
-                        {qrOrder.transaction?.txHash && (
-                          <p><span className="text-gray-400">Hash Transação:</span>
-                            <a href={`https://explorer.bitcoinabc.org/tx/${qrOrder.transaction.txHash}`} target="_blank" rel="noopener noreferrer" className="ml-2 font-mono text-blue-400 hover:text-blue-300 break-all">
-                              {qrOrder.transaction.txHash.substring(0, 10)}...
-                            </a>
+                      <div>
+                        <h4 className="text-md font-semibold mb-2 text-gray-200">Itens do Pedido</h4>
+                        <div className="border border-white/10 rounded-lg overflow-hidden bg-[#2F363E]/70">
+                          <table className="min-w-full divide-y divide-white/10">
+                            <thead className="bg-white/5">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Produto</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qtd</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço Unit.</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subtotal</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/10">
+                              {qrOrder.items.map((item, index) => (
+                                <tr key={index}>
+                                  <td className="px-4 py-2 text-sm text-gray-200">{item.product.name}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-300 text-center">{item.quantity}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-300">{formatCurrency(item.priceBRL)}</td>
+                                  <td className="px-4 py-2 text-sm text-gray-200 font-medium">{formatCurrency(item.priceBRL * item.quantity)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-start pt-2">
+                        <p className="text-gray-400 text-sm">Total do Pedido:</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(qrOrder.totalAmount)}</p>
+                        {qrOrder.paymentMethod === 'bch' && qrOrder.exchangeRateUsed && (
+                          <p className="text-sm text-yellow-400">
+                            ({(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)} BCH)
                           </p>
                         )}
                       </div>
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold mb-2 text-gray-200">Partes Envolvidas</h4>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-gray-400">Loja:</span> <span className="text-gray-300">{qrOrder.store}</span></p>
-                        <p><span className="text-gray-400">Cliente:</span> <span className="text-gray-300">{qrOrder.customerEmail || 'Não identificado'}</span></p>
-                      </div>
+
+                    <div className="md:col-span-1">
+                      {qrOrder.paymentMethod === 'bch' && qrOrder.status === 'pending' && qrOrder.merchantAddress && qrOrder.exchangeRateUsed && (
+                        <div className="flex flex-col items-center p-4 bg-[#2F363E]/70 rounded-lg sticky top-6 border border-white/10">
+                          <h4 className="text-md font-semibold mb-3 text-gray-200">Pagar com Bitcoin Cash</h4>
+                          <div className="bg-white p-2 rounded-md inline-block shadow-lg">
+                            <QRCode value={`${qrOrder.merchantAddress.startsWith('bitcoincash:') ? qrOrder.merchantAddress : `bitcoincash:${qrOrder.merchantAddress}`}?amount=${(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)}&label=Kashy&message=Pedido%20#${qrOrder._id}`} size={180} level="M" />
+                          </div>
+                          <p className="mt-3 text-xs text-gray-400 text-center break-all">Endereço: {qrOrder.merchantAddress}</p>
+                          <p className="mt-1 text-sm font-semibold text-yellow-300">Valor: {(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)} BCH</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <div>
-                    <h4 className="text-lg font-semibold mb-2 text-gray-200">Itens do Pedido</h4>
-                    <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-                      <table className="min-w-full divide-y divide-[var(--color-divide)]">
-                        <thead className="bg-gray-750">
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Produto</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qtd</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Preço Unit.</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-[var(--color-bg-secondary)] divide-y divide-[var(--color-divide)]">
-                          {qrOrder.items.map((item, index) => (
-                            <tr key={index}>
-                              <td className="px-4 py-2 text-sm text-gray-300">{item.product.name}</td>
-                              <td className="px-4 py-2 text-sm text-gray-300">{item.quantity}</td>
-                              <td className="px-4 py-2 text-sm text-gray-300">{formatCurrency(item.priceBRL)}</td>
-                              <td className="px-4 py-2 text-sm text-gray-300">{formatCurrency(item.priceBRL * item.quantity)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-start"> {/* Alinhado à esquerda */}
-                    <p className="text-gray-400 text-sm">Total do Pedido:</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(qrOrder.totalAmount)}</p>
-                    {qrOrder.paymentMethod === 'bch' && qrOrder.exchangeRateUsed && (
-                      <p className="text-sm text-yellow-400">
-                        ({(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)} BCH)
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* QR Code Section - Conditionally Displayed */}
-                <div className="md:col-span-1">
-                  {qrOrder.paymentMethod === 'bch' && qrOrder.status === 'pending' && qrOrder.merchantAddress && qrOrder.exchangeRateUsed && (
-                    <div className="flex flex-col items-center p-4 bg-[var(--color-bg-tertiary)] rounded-lg sticky top-6"> {/* sticky e top-6 para fixar ao rolar */}
-                      <h4 className="text-md font-semibold mb-3 text-gray-200">Pagar com Bitcoin Cash</h4>
-                      <div className="bg-white p-2 rounded-md inline-block">
-                        <QRCode value={`${qrOrder.merchantAddress.startsWith('bitcoincash:') ? qrOrder.merchantAddress : `bitcoincash:${qrOrder.merchantAddress}`}?amount=${(qrOrder.totalAmount / qrOrder.exchangeRateUsed).toFixed(8)}&label=Kashy&message=Pedido%20#${qrOrder._id}`} size={180} level="M" />
-                      </div>
-                      <p className="mt-2 text-xs text-gray-400 text-center break-all">Endereço: {qrOrder.merchantAddress}</p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            )}
 
-            <div className="flex justify-end gap-3 mt-6 border-t border-[var(--color-border)] pt-4">
-              <button
-                onClick={() => handlePrint(qrOrder!)} // Assuming qrOrder is not null here
-                disabled={!qrOrder || isLoadingQr}
-                className="px-4 py-2 rounded-lg border border-gray-600 hover:bg-gray-700 transition-colors text-sm text-gray-300 flex items-center gap-2 disabled:opacity-50"
-              >
-                <FiPrinter /> Imprimir
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white"
-                onClick={() => setQrOrder(null)}
-                disabled={isLoadingQr}
-              >
-                Fechar
-              </button>
+              <div className="flex justify-end gap-3 mt-auto p-6 border-t border-white/10 flex-shrink-0">
+                <button
+                  onClick={() => handlePrint(qrOrder!)}
+                  disabled={!qrOrder || isLoadingQr}
+                  className="px-4 py-2 rounded-lg border border-gray-500 hover:bg-gray-700/50 transition-colors text-sm text-gray-300 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Printer size={16} /> Imprimir
+                </button>
+                <button
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white font-medium transition-colors"
+                  onClick={() => setQrOrder(null)}
+                  disabled={isLoadingQr}
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal Novo Pedido */}
-      {isOrderModalOpen && (
-        <div className="fixed inset-0 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--color-bg-primary)] rounded-lg p-6 w-full max-w-3xl shadow-xl border border-[var(--color-border)] max-h-[90vh] flex flex-col">
-            <h3 className="text-lg font-bold mb-4 flex-shrink-0">Novo Pedido</h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleCreateOrder();
-              }}
-              className="flex-grow overflow-y-auto pr-2 space-y-4" // Added space-y-4 for consistent spacing
-            >
-              {/* Selecionar Loja */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Loja</label>
-                <select
-                  value={selectedStore}
-                  onChange={(e) => {
-                    console.log('[PedidosTab] Loja selecionada no modal:', e.target.value);
-                    setSelectedStore(e.target.value);
-                  }}
-                  className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Selecione uma loja</option>
-                  <option value="Loja A">Loja A</option>
-                  <option value="Loja B">Loja B</option>
-                  <option value="Loja C">Loja C</option>
-                </select>
+        {/* Modal Novo Pedido - Styled like ProdutosTab modals */}
+        {isOrderModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="relative w-full max-w-3xl bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col">
+               <button
+                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                onClick={() => {
+                  console.log("[PedidosTab] Botão Cancelar (Novo Pedido) clicado.");
+                  setIsOrderModalOpen(false);
+                  // Reset form states if needed
+                  setSelectedStore("");
+                  setCustomerEmail("");
+                  setSelectedProducts([]);
+                  setPaymentMethod("");
+                  setModalSearchTerm("");
+                }}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+              <div className="p-6 border-b border-white/10 flex-shrink-0">
+                <h2 className="text-xl font-bold text-white">Novo Pedido</h2>
+                <p className="text-gray-400 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
               </div>
 
-              {/* Adicionar Produtos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Produtos</label>
-                <input
-                  type="text"
-                  placeholder="Buscar produtos..."
-                  value={modalSearchTerm}
-                  onChange={(e) => setModalSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                />
-                <div className="max-h-40 overflow-y-auto border border-[var(--color-border)] rounded-md">
-                  {loadingProducts && <p className="text-gray-400 p-2 text-center">Carregando produtos...</p>}
-                  {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-2">Nenhum produto encontrado para esta loja.</p>}
-                  {!loadingProducts && !selectedStore && <p className="text-gray-400 p-2">Selecione uma loja para ver os produtos.</p>}
-                  {products
-                    .filter((product) =>
-                      product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
-                    )
-                    .map((product) => (
-                      <div
-                        key={product._id}
-                        className="flex justify-between items-center px-3 py-2 hover:bg-[var(--color-bg-terciary)] cursor-pointer border-b border-[var(--color-border)] last:border-b-0"
-                        onClick={() => {
-                          setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-                          console.log('[PedidosTab] Produto adicionado ao carrinho:', product);
-                        }}
-                      >
-                        <span>{product.name}</span>
-                        <span>{formatCurrency(product.priceBRL)}</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Lista de Produtos Selecionados */}
-              {selectedProducts.length > 0 && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateOrder();
+                }}
+                className="p-6 flex-grow overflow-y-auto space-y-4 max-h-[70vh]"
+              >
                 <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-1">Produtos Selecionados</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto border border-[var(--color-border)] rounded-md p-2">
-                    {selectedProducts.map((product, index) => (
-                      <div
-                        key={`${product._id}-${index}`} // Ensure unique key if same product added multiple times
-                        className="flex justify-between items-center px-3 py-2 bg-[var(--color-bg-terciary)] rounded-lg"
-                      >
-                        <span className="truncate max-w-[60%]">{product.name}</span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            value={product.quantity || 1}
-                            onChange={(e) => {
-                              const newQuantity = parseInt(e.target.value, 10);
-                              console.log(`[PedidosTab] Atualizando quantidade do produto ${product.name} para ${newQuantity}`);
-                              updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
-                            }}
-                            className="w-16 px-2 py-1 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none text-center"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeProductFromCart(index)}
-                            className="text-red-400 hover:text-red-300"
-                            title="Remover Produto"
-                          >
-                            <FiTrash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-right font-bold mt-2">Total: {formatCurrency(calculateTotal())}</p>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja *</label>
+                  <select
+                    value={selectedStore}
+                    onChange={(e) => {
+                      console.log('[PedidosTab] Loja selecionada no modal:', e.target.value);
+                      setSelectedStore(e.target.value);
+                    }}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    required
+                  >
+                    <option value="">Selecione uma loja</option>
+                    <option value="Loja A">Loja A</option>
+                    <option value="Loja B">Loja B</option>
+                    <option value="Loja C">Loja C</option>
+                  </select>
                 </div>
-              )}
 
-              {/* E-mail do Cliente */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">E-mail do Cliente (Opcional)</label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Digite o e-mail do cliente..."
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Adicionar Produtos</label>
+                  <input
+                    type="text"
+                    placeholder="Buscar produtos na loja selecionada..."
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm mb-2"
+                    disabled={!selectedStore || loadingProducts}
+                  />
+                  <div className="max-h-40 overflow-y-auto border border-white/10 rounded-md bg-[#2F363E]/50">
+                    {loadingProducts && <p className="text-gray-400 p-3 text-center text-sm">Carregando produtos...</p>}
+                    {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-3 text-sm">Nenhum produto encontrado para esta loja.</p>}
+                    {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm">Selecione uma loja para ver os produtos.</p>}
+                    {products
+                      .filter((product) =>
+                        product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
+                      )
+                      .map((product) => (
+                        <div
+                          key={product._id}
+                          className="flex justify-between items-center px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+                          onClick={() => {
+                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                            console.log('[PedidosTab] Produto adicionado ao carrinho:', product);
+                          }}
+                        >
+                          <span className="text-gray-200">{product.name}</span>
+                          <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
 
-              {/* Método de Pagamento */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Método de Pagamento</label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Selecione um método</option>
-                  <option value="bch">Bitcoin Cash</option>
-                  <option value="pix">PIX</option>
-                  <option value="card">Cartão</option>
-                </select>
-              </div>
+                {selectedProducts.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-300 mb-1.5">Produtos no Pedido</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-white/10 rounded-md p-2 bg-[#2F363E]/50">
+                      {selectedProducts.map((product, index) => (
+                        <div
+                          key={`${product._id}-${index}`}
+                          className="flex justify-between items-center px-3 py-2 bg-[#24292D]/70 rounded-lg text-sm"
+                        >
+                          <span className="truncate max-w-[50%] text-gray-200">{product.name}</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              value={product.quantity || 1}
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value, 10);
+                                updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
+                              }}
+                              className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-white/10 focus:outline-none text-center text-white text-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeProductFromCart(index)}
+                              className="text-red-400 hover:text-red-300"
+                              title="Remover Produto"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-right font-semibold mt-2 text-lg text-white">Total: {formatCurrency(calculateTotal())}</p>
+                  </div>
+                )}
 
-              {/* Botões de Ação */}
-              <div className="flex justify-end gap-4 pt-4 flex-shrink-0 border-t border-[var(--color-border)] mt-auto">
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente (Opcional)</label>
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    placeholder="cliente@email.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Método de Pagamento *</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    required
+                  >
+                    <option value="">Selecione um método</option>
+                    <option value="bch">Bitcoin Cash</option>
+                    <option value="pix">PIX</option>
+                    <option value="card">Cartão</option>
+                  </select>
+                </div>
+              </form>
+
+              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => {
-                    console.log("[PedidosTab] Botão Cancelar (Novo Pedido) clicado.");
                     setIsOrderModalOpen(false);
+                    setSelectedStore("");
+                    setCustomerEmail("");
+                    setSelectedProducts([]);
+                    setPaymentMethod("");
+                    setModalSearchTerm("");
                   }}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg"
+                  className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  onClick={handleCreateOrder} // Attach submit handler here as form is outside
+                  className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
                   disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
                 >
                   Criar Pedido
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
