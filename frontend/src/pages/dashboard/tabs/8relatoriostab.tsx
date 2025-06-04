@@ -15,6 +15,36 @@ import {
 import jsPDF from 'jspdf';
  
  
+// --- Specific Preview Data Type Definitions ---
+interface StandardInventoryPreviewData {
+  totalProducts?: number;
+  lowStockItemCount?: number; // Renamed from lowStockItems for clarity if it was just a count
+  outOfStockItemCount?: number; // Renamed from outOfStockItems for clarity
+  mostStockedCategory?: string;
+  // Detailed lists for standard inventory reports
+  lowStockProductDetails?: Array<{ name: string; sku?: string; category?: string; quantity: number }>;
+  outOfStockProductDetails?: Array<{ name: string; sku?: string; category?: string; }>;
+}
+
+interface SalesPreviewData {
+  totalSales?: number;
+  totalTransactions?: number;
+  bestSellingProduct?: string;
+  comparison?: string;
+}
+
+interface TransactionsPreviewData {
+  totalBCH?: number;
+  avgTransaction?: number;
+  peakDay?: string;
+  comparison?: string;
+}
+
+interface AICustomPreviewData {
+  insights: string;
+  conclusion?: string;
+}
+
 // --- Report Type Definition ---
 type Report = {
   _id?: string;
@@ -23,8 +53,7 @@ type Report = {
   type: 'sales' | 'transactions' | 'inventory' | 'custom'; // Keep existing types
   dateRange: string; // String for display (e.g., "01/01/2024 - 31/01/2024" or "Período completo")
   generatedAt: string; // Timestamp string
-  previewData: any; // Consider more specific types for each report.type if possible
-  // For AI: { insights: string, conclusion?: string }
+  previewData: StandardInventoryPreviewData | SalesPreviewData | TransactionsPreviewData | AICustomPreviewData | { summary?: string } | any; // Union type for previewData
   isAIGenerated?: boolean;
   promptUsed?: string; // Store the prompt used for AI reports
 };
@@ -83,43 +112,74 @@ const generatePDF = (report: Report) => {
  
   // --- Report Specific Data ---
   try {
-    if (report.type === 'custom' && report.isAIGenerated && report.previewData?.insights) {
-      const insightsText = report.previewData.insights;
-      // Split the text into lines that fit the page width
-      const lines = doc.splitTextToSize(insightsText, pageWidth - 28); // 14 margin each side
-      yPosition = addText(lines, 14, yPosition);
- 
-    } else if (report.type === 'sales' && report.previewData) {
-      yPosition = addText(`- Total de Vendas: R$ ${report.previewData.totalSales?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Total de Transações: ${report.previewData.totalTransactions || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Produto Mais Vendido: ${report.previewData.bestSellingProduct || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Comparativo: ${report.previewData.comparison || 'N/D'}`, 14, yPosition);
-    } else if (report.type === 'transactions' && report.previewData) {
-      yPosition = addText(`- Total BCH: ${report.previewData.totalBCH?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
-      yPosition = addText(`- Média por Transação: ${report.previewData.avgTransaction?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
-      yPosition = addText(`- Dia com Mais Transações: ${report.previewData.peakDay || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Comparativo: ${report.previewData.comparison || 'N/D'}`, 14, yPosition);
-    } else if (report.type === 'inventory' && report.previewData) {
-      yPosition = addText(`- Produtos Cadastrados: ${report.previewData.totalProducts || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Itens com Baixo Estoque: ${report.previewData.lowStockItems || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Itens Esgotados: ${report.previewData.outOfStockItems || 'N/D'}`, 14, yPosition);
-      yPosition = addText(`- Categoria com Mais Itens: ${report.previewData.mostStockedCategory || 'N/D'}`, 14, yPosition);
-    } else if (report.type === 'custom' && report.previewData) {
-      // Handle non-AI custom reports if they exist
-      const summaryText = report.previewData.summary || report.previewData.insights || 'Relatório personalizado sem conteúdo detalhado.';
+    if (report.isAIGenerated && report.type === 'custom') {
+      const aiData = report.previewData as AICustomPreviewData;
+      if (aiData.insights) {
+        const insightsText = aiData.insights;
+        const lines = doc.splitTextToSize(insightsText, pageWidth - 28);
+        yPosition = addText(lines, 14, yPosition);
+      } else {
+        yPosition = addText('Conteúdo da análise IA não disponível.', 14, yPosition);
+      }
+      if (aiData.conclusion) {
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100);
+        const conclusionLines = doc.splitTextToSize(`Conclusão: ${aiData.conclusion}`, pageWidth - 28);
+        yPosition = addText(conclusionLines, 14, yPosition + 5);
+      }
+    } else if (report.type === 'sales') {
+      const salesData = report.previewData as SalesPreviewData;
+      yPosition = addText(`- Total de Vendas: R$ ${salesData.totalSales?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Total de Transações: ${salesData.totalTransactions || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Produto Mais Vendido: ${salesData.bestSellingProduct || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Comparativo: ${salesData.comparison || 'N/D'}`, 14, yPosition);
+    } else if (report.type === 'transactions') {
+      const transData = report.previewData as TransactionsPreviewData;
+      yPosition = addText(`- Total BCH: ${transData.totalBCH?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
+      yPosition = addText(`- Média por Transação: ${transData.avgTransaction?.toFixed(8) || 'N/D'} BCH`, 14, yPosition);
+      yPosition = addText(`- Dia com Mais Transações: ${transData.peakDay || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Comparativo: ${transData.comparison || 'N/D'}`, 14, yPosition);
+    } else if (report.type === 'inventory') {
+      const invData = report.previewData as StandardInventoryPreviewData;
+      yPosition = addText(`- Produtos Cadastrados: ${invData.totalProducts || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Contagem de Itens com Baixo Estoque: ${invData.lowStockItemCount || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Contagem de Itens Esgotados: ${invData.outOfStockItemCount || 'N/D'}`, 14, yPosition);
+      yPosition = addText(`- Categoria com Mais Itens: ${invData.mostStockedCategory || 'N/D'}`, 14, yPosition);
+
+      if (invData.lowStockProductDetails && invData.lowStockProductDetails.length > 0) {
+        yPosition = addText('Produtos com Estoque Baixo:', 14, yPosition + 4, { fontStyle: 'bold' });
+        invData.lowStockProductDetails.forEach(p => {
+          let productLine = `  • ${p.name} (Qtd: ${p.quantity})`;
+          if (p.sku) productLine += `, SKU: ${p.sku}`;
+          if (p.category) productLine += `, Cat: ${p.category}`;
+          const productLines = doc.splitTextToSize(productLine, pageWidth - 32); // Indented for list item
+          yPosition = addText(productLines, 16, yPosition);
+        });
+      }
+      if (invData.outOfStockProductDetails && invData.outOfStockProductDetails.length > 0) {
+        yPosition = addText('Produtos Esgotados:', 14, yPosition + 4, { fontStyle: 'bold' });
+        invData.outOfStockProductDetails.forEach(p => {
+          let productLine = `  • ${p.name}`;
+          if (p.sku) productLine += `, SKU: ${p.sku}`;
+          if (p.category) productLine += `, Cat: ${p.category}`;
+          const productLines = doc.splitTextToSize(productLine, pageWidth - 32); // Indented for list item
+          yPosition = addText(productLines, 16, yPosition);
+        });
+      }
+    } else if (report.type === 'custom' && !report.isAIGenerated) {
+      const customData = report.previewData as { summary?: string };
+      const summaryText = customData.summary || 'Relatório personalizado sem conteúdo detalhado.';
       const lines = doc.splitTextToSize(summaryText, pageWidth - 28);
       yPosition = addText(lines, 14, yPosition);
-    }
-    else {
-      yPosition = addText('Dados do relatório não disponíveis ou formato não reconhecido.', 14, yPosition);
-    }
- 
-    // Add conclusion if it exists
-    if (report.previewData?.conclusion) {
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(100);
-      const conclusionLines = doc.splitTextToSize(`Conclusão: ${report.previewData.conclusion}`, pageWidth - 28);
-      yPosition = addText(conclusionLines, 14, yPosition + 5); // Add extra space before conclusion
+    } else { // Fallback for any other unhandled or empty previewData
+      const genericData = report.previewData as any;
+      if (genericData && (genericData.insights || genericData.summary)) {
+        const content = genericData.insights || genericData.summary;
+        const lines = doc.splitTextToSize(content, pageWidth - 28);
+        yPosition = addText(lines, 14, yPosition);
+      } else {
+        yPosition = addText('Dados do relatório não disponíveis ou formato não reconhecido.', 14, yPosition);
+      }
     }
  
   } catch (error) {
@@ -149,27 +209,46 @@ export function RelatoriosTab() {
   const [reportTitle, setReportTitle] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
  
+  // Updated and more diverse AI prompt options
   const aiPromptOptions = [
     {
-      value: 'users_count',
-      label: 'Quantos usuários foram cadastrados?',
-      prompt: 'Liste o número de usuários cadastrados.'
+      value: 'default_select',
+      label: 'Selecione um modelo ou escreva seu prompt abaixo...',
+      prompt: ''
     },
     {
-      value: 'low_stock',
-      label: 'Quantos produtos estão com estoque baixo?',
-      prompt: 'Liste quantos produtos estão com estoque baixo.'
+      value: 'sales_summary_last_month',
+      label: 'Resumo de Vendas do Último Mês',
+      prompt: 'Gere um resumo detalhado das vendas do último mês, incluindo total de vendas, número de transações, ticket médio e produto mais vendido. Compare com o mês anterior, se possível, destacando variações percentuais.'
     },
     {
-      value: 'total_products',
-      label: 'Quantos produtos existem no estoque?',
-      prompt: 'Quantos produtos existem atualmente no estoque?'
+      value: 'inventory_status_critical',
+      label: 'Status Crítico do Inventário',
+      prompt: 'Identifique produtos com estoque baixo (definido como menos de 10 unidades) e produtos atualmente esgotados. Liste-os por categoria e sugira ações prioritárias.'
     },
-    // Adicione mais opções conforme necessário
+    {
+      value: 'customer_engagement_vip',
+      label: 'Engajamento de Clientes VIP',
+      prompt: 'Analise o comportamento de compra dos clientes marcados como VIP nos últimos 3 meses. Quais são os produtos mais comprados por este segmento e qual a frequência média de compra? Há alguma tendência emergente?'
+    },
+    {
+      value: 'transaction_peak_hours_bch',
+      label: 'Horários de Pico para Transações BCH',
+      prompt: 'Analise as transações em BCH da última semana e identifique os horários de pico (maior volume de transações). Existe algum padrão específico nos dias da semana?'
+    },
+    {
+      value: 'product_performance_new_releases',
+      label: 'Performance de Novos Produtos Lançados',
+      prompt: 'Compare a performance de vendas dos produtos adicionados ao catálogo nos últimos 30 dias. Quais estão com maior volume de vendas e quais necessitam de mais atenção promocional?'
+    },
+    {
+      value: 'custom_prompt_indicator', // Indicates the user is likely using a custom prompt
+      label: 'Prompt Personalizado (digitado abaixo)',
+      prompt: '' // This will be ignored if the user types in the textarea
+    }
   ];
  
   const [selectedPromptOption, setSelectedPromptOption] = useState(aiPromptOptions[0].value);
- 
   // Action States
   const [isGenerating, setIsGenerating] = useState(false); // For AI generation specifically
   const [isSaving, setIsSaving] = useState(false); // For standard report generation/update
@@ -472,7 +551,7 @@ export function RelatoriosTab() {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
                 </button>
               </div>
-            </div>
+            </div> 
           </div>
         </div>
  
@@ -617,7 +696,7 @@ export function RelatoriosTab() {
             <button className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl" onClick={resetForm} aria-label="Fechar">×</button>
             <div className="flex justify-between items-center mb-6 p-6 border-b border-white/10">
               <h3 className="text-2xl font-bold">
-                {isEditModalOpen ? 'Editar Relatório' : 'Gerar Novo Relatório'}
+                {isEditModalOpen ? 'Editar Relatório' : (newReportType === 'ai' ? 'Gerar Relatório com IA' : 'Gerar Relatório Padrão')}
               </h3>
               <button onClick={resetForm} className="text-gray-400 hover:text-white text-xl" title="Fechar">✕</button>
             </div>
@@ -666,32 +745,65 @@ export function RelatoriosTab() {
                     className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
                   />
                 </div>
-  
+
               {/* AI Prompt (Only for New AI Report) */}
               {newReportType === 'ai' && !isEditModalOpen && (
-                <div>
-                  <label htmlFor="aiPromptSelect" className="block text-xs font-medium mb-1 text-gray-300">
-                    Escolha o tipo de relatório: <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="aiPromptSelect"
-                    value={selectedPromptOption}
-                    onChange={e => {
-                      setSelectedPromptOption(e.target.value);
-                      const found = aiPromptOptions.find(opt => opt.value === e.target.value);
-                      setAiPrompt(found?.prompt || '');
-                    }}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm"
-                    required
-                  >
-                    {aiPromptOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    A IA usará o prompt pré-definido para gerar o relatório.
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <label htmlFor="aiPromptSelect" className="block text-xs font-medium mb-1.5 text-gray-300">
+                      Modelos de Prompt (Opcional)
+                    </label>
+                    <select
+                      id="aiPromptSelect"
+                      value={selectedPromptOption}
+                      onChange={e => {
+                        const selectedValue = e.target.value;
+                        setSelectedPromptOption(selectedValue);
+                        const found = aiPromptOptions.find(opt => opt.value === selectedValue);
+                        if (found && found.prompt) { // Only update if there's a prompt to set
+                          setAiPrompt(found.prompt);
+                        } else if (selectedValue === 'default_select' || selectedValue === 'custom_prompt_indicator') {
+                           // Optionally clear if "select..." or "custom" is chosen and textarea is meant to be primary
+                           // setAiPrompt(''); // Or leave as is, allowing user to type over
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm"
+                    >
+                      {aiPromptOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="aiPromptTextarea" className="block text-xs font-medium mb-1.5 text-gray-300">
+                      Seu Prompt para IA <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      id="aiPromptTextarea"
+                      rows={4}
+                      value={aiPrompt}
+                      onChange={(e) => {
+                        setAiPrompt(e.target.value);
+                        // If user types, assume it's custom
+                        if (selectedPromptOption !== 'custom_prompt_indicator') {
+                          setSelectedPromptOption('custom_prompt_indicator');
+                        }
+                      }}
+                      placeholder="Descreva o que você gostaria de analisar ou qual pergunta você quer responder com os dados..."
+                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm resize-y"
+                      required
+                    />
+                  </div>
+                  <div className="mt-3 p-3 bg-[#2F363E]/40 rounded-lg border border-white/10 text-xs text-gray-400 space-y-1">
+                    <p className="font-semibold text-gray-300">Dicas para Prompts Eficazes:</p>
+                    <ul className="list-disc list-inside pl-1 space-y-0.5">
+                      <li><b>Seja específico:</b> Quanto mais detalhes, melhor o resultado.</li>
+                      <li><b>Defina o período:</b> Se relevante, mencione datas (Ex: "vendas de 01/01/2024 a 31/01/2024").</li>
+                      <li><b>Peça formatos:</b> Sugira o formato da resposta (Ex: "liste em tópicos", "crie uma tabela").</li>
+                      <li><b>Contexto:</b> A IA utiliza dados processados e fornecidos pelo sistema para gerar as respostas.</li>
+                    </ul>
+                  </div>
+                </>
               )}
  
               {/* Error Display Area */}
@@ -701,13 +813,13 @@ export function RelatoriosTab() {
                   {error}
                 </div>
               )}
-              {aiPreview && (
+              {aiPreview && newReportType === 'ai' && !isEditModalOpen && (
                 <div className="mt-4 p-4 bg-[#2F363E]/50 border border-white/10 rounded-lg text-sm text-gray-200 whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                   <strong className="block mb-2 text-gray-100">Preview do Relatório (IA):</strong>
                   <div>{aiPreview}</div>
                   <div className="flex gap-3 mt-3">
                     <button
-                      className="px-5 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold"
+                      className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-400 hover:to-teal-500 text-white font-semibold transition-all duration-200 hover:scale-105 shadow-md text-sm"
                       onClick={async () => {
                         // Salvar o relatório usando o preview já gerado
                         const limitedTitle = (reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`).slice(0, 35);
@@ -728,10 +840,10 @@ export function RelatoriosTab() {
                         resetForm();
                       }}
                     >
-                      Salvar Relatório
-                    </button> {/* This button should be styled */}
+                      Salvar Relatório Gerado
+                    </button>
                     <button
-                      className="px-5 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-base font-semibold"
+                      className="flex-1 px-4 py-2 rounded-lg bg-sky-600/80 hover:bg-sky-700/80 text-white font-semibold transition-all duration-200 hover:scale-105 shadow-md text-sm border border-sky-500/50"
                       onClick={() => {
                         // Gera PDF do preview AI (sem salvar no backend)
                         const limitedTitle = (reportTitle.trim() || `Análise AI: ${aiPrompt.substring(0, 30)}${aiPrompt.length > 30 ? '...' : ''}`).slice(0, 35);
@@ -752,8 +864,8 @@ export function RelatoriosTab() {
                         generatePDF(tempReport);
                       }}
                       type="button"
-                    >
-                      Salvar como PDF {/* This button should be styled */}
+                    > 
+                      Baixar Preview em PDF
                     </button> 
                   </div>
                 </div>
@@ -769,7 +881,7 @@ export function RelatoriosTab() {
               >
                 Cancelar
               </button>
-              <button
+              {!aiPreview && <button // Only show Gerar/Salvar button if no preview is shown (or if it's standard/edit)
                 type="button"
                 onClick={() => {
                   if (isEditModalOpen) { updateReport(); }
@@ -777,7 +889,7 @@ export function RelatoriosTab() {
                   else { generateStandardReport(); }
                 }}
                 className={`px-5 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm font-semibold min-w-[160px]
-                    ${(isGenerating || isSaving)
+                    ${(isGenerating || isSaving || (newReportType === 'ai' && !aiPrompt.trim() && !isEditModalOpen))
                     ? 'bg-gray-500/50 cursor-not-allowed text-gray-300'
                     : newReportType === 'ai'
                       ? 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-lg'
@@ -798,6 +910,7 @@ export function RelatoriosTab() {
                       : <><FileText size={16} /> Gerar Padrão</>
                 )}
               </button>
+              }
             </div>
           </div>
         </div>

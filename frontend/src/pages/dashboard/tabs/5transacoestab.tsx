@@ -332,7 +332,10 @@ export function TransacoesTab() {
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div
+          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+          style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
+        >
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
@@ -349,97 +352,107 @@ export function TransacoesTab() {
               <div className="text-gray-400">Nenhuma transação encontrada com os filtros aplicados.</div>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
-                    <tr className="text-xs">
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Hash/ID</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Tipo</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Valor</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Endereço</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Conf.</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Taxa</th>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                  <tr className="text-xs">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Hash/ID</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Tipo</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Valor</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Endereço</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Conf.</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Taxa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {transactions.map((tx) => (
+                    <tr key={tx._id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm font-mono text-indigo-400 hover:text-indigo-300 cursor-pointer" title={tx.txid || tx._id}>
+                          {formatAddress(tx.txid || tx._id)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`capitalize text-sm ${
+                          tx.type === 'incoming' ? 'text-green-400' : 
+                          tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
+                        }`}>
+                          {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-white font-medium">
+                          {formatBCH(tx.amountSatoshis)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm font-mono text-gray-300" title={tx.address}>{formatAddress(tx.address)}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusClasses(tx.status)}`}>
+                          {getStatusIcon(tx.status)}
+                          {getStatusLabel(tx.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                        {formatDate(tx.timestamp || tx.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-center">
+                        {typeof tx.confirmations === 'number' ? tx.confirmations : '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                        {typeof tx.feeBCH === 'number' ? `${tx.feeBCH.toFixed(8)} BCH` : '-'}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {transactions.map((tx) => (
-                      <tr key={tx._id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-sm font-mono text-indigo-400 hover:text-indigo-300 cursor-pointer" title={tx.txid || tx._id}>
-                            {formatAddress(tx.txid || tx._id)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`capitalize text-sm ${
-                            tx.type === 'incoming' ? 'text-green-400' : 
-                            tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
-                          }`}>
-                            {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-white font-medium">
-                            {formatBCH(tx.amountSatoshis)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-sm font-mono text-gray-300" title={tx.address}>{formatAddress(tx.address)}</span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${getStatusClasses(tx.status)}`}>
-                            {getStatusIcon(tx.status)}
-                            {getStatusLabel(tx.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                          {formatDate(tx.timestamp || tx.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-center">
-                          {typeof tx.confirmations === 'number' ? tx.confirmations : '-'}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                          {typeof tx.feeBCH === 'number' ? `${tx.feeBCH.toFixed(8)} BCH` : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {!loading && !error && transactions.length > 0 && (
-                <div className="mt-0 flex items-center justify-between px-4 py-3 border-t border-white/10">
-                  <div>
-                    <p className="text-xs text-gray-300">
-                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      <ChevronLeft size={16} />
-                      Anterior
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      Próximo
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
+
+        {/* Pagination Controls - fora do container da tabela */}
+        {!loading && !error && transactions.length > 0 && (
+          <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
+            <div>
+              <p className="text-xs text-gray-300">
+                Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Mostrando{' '}
+                <span className="font-medium text-gray-200">
+                  {Math.min((currentPage - 1) * itemsPerPage + 1, (currentPage - 1) * itemsPerPage + transactions.length)}
+                </span>
+                {' - '}
+                <span className="font-medium text-gray-200">
+                  {Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + transactions.length)}
+                </span>
+                {' de '}
+                <span className="font-medium text-gray-200">{totalPages * itemsPerPage /* ou totalFilteredTransactionsCount, se quiser */}</span> transações
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <ChevronLeft size={16} />
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                Próximo
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

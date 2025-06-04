@@ -7,26 +7,24 @@ import { Listbox } from '@headlessui/react';
 export type Product = {
   _id: string;
   name: string;
-  description: string;
   priceBRL: number;
   priceBCH: number;
   quantity: number;
   sku: string;
   category: string;
-  isActive: boolean;
-  createdAt: string;
+  subcategory: string;
   store: string;
+  createdAt: string;
 };
 
 export function ProdutosTab() {
-  // ... keep existing code (state declarations)
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0); // Initialize with 0
   const [totalFilteredProductsCount, setTotalFilteredProductsCount] = useState<number>(0);
-  const itemsPerPage = 8; // Revertendo para 8 para caber mais na tela, ou manter 10 e ajustar mais
+  const itemsPerPage = 8; // Reduza para mostrar menos produtos por página
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStore, setSelectedStore] = useState<string>('all');
@@ -35,13 +33,12 @@ export function ProdutosTab() {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     priceBRL: 0,
     priceBCH: 0,
     quantity: 0,
     sku: '',
-    category: 'outros',
-    isActive: true,
+    category: '', // <-- string vazia
+    subcategory: '',
     store: '',
     minimum: 1,
   });
@@ -54,9 +51,14 @@ export function ProdutosTab() {
   const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState<boolean>(false);
   const [productToDeleteId, setProductToDeleteId] = useState<string | null>(null);
 
+  // State for update confirmation modal
+  const [isUpdateConfirmModalOpen, setIsUpdateConfirmModalOpen] = useState<boolean>(false);
+  // We can reuse currentProduct for the update confirmation, no need for a new state like productToUpdateId
+
   const { addNotification } = useNotification();
 
   const categories = [
+    
     { value: 'alimentos', label: 'Alimentos' },
     { value: 'bebidas', label: 'Bebidas' },
     { value: 'eletronicos', label: 'Eletrônicos' },
@@ -71,6 +73,16 @@ export function ProdutosTab() {
     { value: 'Loja B', label: 'Loja B' },
     { value: 'Loja C', label: 'Loja C' },
   ];
+
+  // 1. Adicione as subcategorias por categoria
+  const subcategoriesMap: Record<string, string[]> = {
+    alimentos: ['Doces', 'Salgados', 'Orgânicos', 'Congelados'],
+    bebidas: ['Alcoólica', 'Não alcoólica', 'Refrigerante', 'Suco', 'Energético'],
+    eletronicos: ['Celular', 'Notebook', 'Acessório', 'TV'],
+    vestuario: ['Masculino', 'Feminino', 'Infantil', 'Acessórios'],
+    servicos: ['Entrega', 'Montagem', 'Instalação'],
+    outros: ['Outro'],
+  };
 
   // ... keep existing code (useEffect for fetchProducts)
   useEffect(() => {
@@ -122,17 +134,20 @@ export function ProdutosTab() {
   }, [currentPage, searchTerm, selectedCategory, selectedStore, addNotification, itemsPerPage]);
 
   // ... keep existing code (form handlers)
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked :
-        type === 'number' ? parseFloat(value) || 0 :
-          value
+      [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
 
+    if (name === 'category') {
+      setFormData(prev => ({
+        ...prev,
+        category: value,
+        subcategory: '', // Limpa subcategoria ao trocar categoria
+      }));
+    }
     if (name === 'priceBRL') {
       const brlValue = parseFloat(value) || 0;
       setFormData(prev => ({
@@ -196,13 +211,12 @@ export function ProdutosTab() {
   const resetForm = () => {
     setFormData({
       name: '',
-      description: '',
       priceBRL: 0,
       priceBCH: 0,
       quantity: 0,
       sku: '',
-      category: 'outros',
-      isActive: true,
+      category: '', // <-- string vazia
+      subcategory: '',
       store: '',
       minimum: 1,
     });
@@ -210,17 +224,27 @@ export function ProdutosTab() {
     setIsFormOpen(false);
   };
 
+  const handleOpenUpdateConfirmModal = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent default form submission if any
+    if (currentProduct) { // Ensure there is a product to update
+      setIsUpdateConfirmModalOpen(true);
+    } else {
+      // This case should ideally not happen if the button is only shown for updates
+      toast.error("Nenhum produto selecionado para atualização.");
+    }
+  };
+
+
   const handleEdit = (product: Product) => {
     setCurrentProduct(product);
     setFormData({
       name: product.name,
-      description: product.description,
       priceBRL: product.priceBRL,
       priceBCH: product.priceBCH,
       quantity: product.quantity,
       sku: product.sku,
       category: product.category,
-      isActive: product.isActive,
+      subcategory: product.subcategory,
       store: product.store,
       minimum: 1,
     });
@@ -264,6 +288,19 @@ export function ProdutosTab() {
     }
   };
 
+  // This function will be called when the user confirms the update in the new modal
+  const handleConfirmUpdate = async (e: React.FormEvent) => {
+    // We need to prevent the default form submission that might be triggered
+    // if this function is called directly from a form's onSubmit.
+    // However, in our new flow, it's called from a button click inside the confirmation modal.
+    // So, `e` might be a React.MouseEvent or a synthetic event if we pass one.
+    // For simplicity, we can call handleSubmit directly.
+    // If handleSubmit expects a specific event structure, we might need to adjust.
+    setIsUpdateConfirmModalOpen(false); // Close the confirmation modal first
+    await handleSubmit(e); // Proceed with the actual submission logic
+  };
+
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -281,12 +318,12 @@ export function ProdutosTab() {
 
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 py-2">
         
         {/* Enhanced Hero Section */}
-        <div className="relative overflow-hidden mb-10">
+        <div className="relative overflow-hidden mb-4">
           <div
-            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            className="relative p-3 text-white text-center rounded-2xl shadow-xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(26, 194, 166, 0.3) 0%, transparent 50%),
@@ -309,7 +346,7 @@ export function ProdutosTab() {
                 </div>
               </div>
               {/* Enhanced Action Button */}
-              <div className="mt-8">
+              <div className="mt-4">
                 <button
                   onClick={() => setIsFormOpen(true)}
                   className="group relative px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-teal-400 text-sm"
@@ -356,8 +393,8 @@ export function ProdutosTab() {
         </div>
 
         {/* Enhanced Filters Section */}
-        <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
+        <div className="mb-3">
+          <div className="p-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -466,8 +503,11 @@ export function ProdutosTab() {
 
         {/* Products Content */}
         {viewMode === 'table' ? (
-          <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-            {loading ? ( // Reduced padding for loading/error/empty states
+          <div
+            className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+            style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }} // Altura definida para o container da tabela
+          >
+            {loading ? ( 
               <div className="p-8 text-center">
                 <div className="inline-flex items-center gap-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
@@ -490,8 +530,8 @@ export function ProdutosTab() {
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Produto</th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Preço</th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Estoque</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Categoria</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Subcategoria</th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
                     </tr>
@@ -530,18 +570,12 @@ export function ProdutosTab() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${
-                              product.isActive
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                                : 'bg-red-500/20 text-red-300 border-red-500/30'
-                            }`}>
-                              {product.isActive ? 'Ativo' : 'Inativo'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
                             <span className="text-xs text-gray-300">
                               {categories.find(c => c.value === product.category)?.label || 'Outros'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-gray-300">{product.subcategory}</span>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-gray-300">{product.store}</span>
@@ -596,13 +630,6 @@ export function ProdutosTab() {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-base font-semibold text-white truncate flex-1 mr-2">{product.name}</h3>
-                    <span className={`px-1.5 py-0.5 rounded-md text-[11px] font-medium border flex-shrink-0 ${
-                      product.isActive 
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-                        : 'bg-red-500/20 text-red-300 border-red-500/30'
-                    }`}>
-                      {product.isActive ? 'Ativo' : 'Inativo'}
-                    </span>
                   </div>
                   
                   <div className="mb-3">
@@ -686,152 +713,208 @@ export function ProdutosTab() {
 
         {/* Enhanced Form Modal */}
         {isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="relative w-full max-w-2xl bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
-              <button
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
-                onClick={resetForm}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-              
-              <div className="p-6 border-b border-white/10">
-                <h2 className="text-xl font-bold text-white">
-                  {currentProduct ? 'Editar Produto' : 'Novo Produto'}
-                </h2>
-                <p className="text-gray-400 mt-1 text-sm">
-                  {currentProduct ? 'Atualize as informações do produto' : 'Adicione um novo produto ao inventário'}
-                </p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-2xl border border-teal-400/30 shadow-2xl overflow-hidden">
+              {/* Header com ícone */}
+              <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-teal-600/10 to-transparent">
+                <div className="p-2 bg-teal-500/20 rounded-xl border border-teal-400/30">
+                  <Package size={28} className="text-teal-300" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {currentProduct ? 'Editar Produto' : 'Novo Produto'}
+                  </h2>
+                  <p className="text-gray-400 mt-1 text-sm">
+                    {currentProduct
+                      ? 'Atualize as informações do produto'
+                      : 'Adicione um novo produto ao inventário'}
+                  </p>
+                </div>
+                <button
+                  className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                  onClick={resetForm}
+                  aria-label="Fechar"
+                >
+                  ×
+                </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 max-h-[70vh] overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* ... keep existing code (form fields with enhanced styling) */}
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">Nome *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                      required
-                    />
+              <form onSubmit={handleSubmit} className="relative p-6 pt-2 max-h-[70vh] overflow-y-auto">
+                {/* Grupo: Identificação */}
+                <div className="mb-6">
+                  <div className="mb-2 text-teal-300 font-semibold text-xs tracking-wider flex items-center gap-2">
+                    <Package size={16} /> Identificação
                   </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Descrição</label>
-                    <textarea
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      rows={2}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all resize-none text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">Preço (BRL) *</label>
-                    <input
-                      type="number"
-                      name="priceBRL"
-                      value={formData.priceBRL}
-                      onChange={handleInputChange}
-                      min="0.01"
-                      step="0.01"
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Preço (BCH)</label>
-                    <input
-                      type="number"
-                      name="priceBCH"
-                      value={formData.priceBCH}
-                      onChange={handleInputChange}
-                      min="0.000001"
-                      step="0.000001"
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all opacity-60 text-sm"
-                      disabled
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">Quantidade *</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">SKU *</label>
-                    <input
-                      type="text"
-                      name="sku"
-                      value={formData.sku}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">Categoria *</label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                    >
-                      {categories.map((cat) => (
-                        <option key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja *</label>
-                    <select
-                      name="store"
-                      value={formData.store}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
-                      required
-                    >
-                      <option value="">Selecione uma loja</option>
-                      <option value="Loja A">Loja A</option>
-                      <option value="Loja B">Loja B</option>
-                      <option value="Loja C">Loja C</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleInputChange}
-                      className="h-3.5 w-3.5 text-teal-600 rounded bg-[#2F363E] border-white/20 focus:ring-teal-500 focus:ring-offset-0"
-                    />
-                    <label htmlFor="isActive" className="ml-2 text-xs text-gray-300">
-                      Produto Ativo
-                    </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Nome <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: Coca-Cola Lata 350ml"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        SKU <span className="text-teal-400">*</span>
+                        <span className="ml-1 text-gray-500" title="Código único do produto">(?)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="sku"
+                        value={formData.sku}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: BEB-COCA-350"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Loja <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="store"
+                        value={formData.store}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      >
+                        <option value="">Selecione uma Loja</option>
+                        <option value="Loja A">Loja A</option>
+                        <option value="Loja B">Loja B</option>
+                        <option value="Loja C">Loja C</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+                {/* Grupo: Estoque e Preço */}
+                <div className="mb-6">
+                  <div className="mb-2 text-teal-300 font-semibold text-xs tracking-wider flex items-center gap-2">
+                    <Package size={16} /> Estoque & Preço
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Quantidade <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="quantity"
+                        value={formData.quantity}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Estoque mínimo <span className="text-teal-400">*</span>
+                        <span className="ml-1 text-gray-500" title="Alerta de estoque baixo">(?)</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="minimum"
+                        value={formData.minimum}
+                        onChange={handleInputChange}
+                        min="1"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BRL) <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBRL"
+                        value={formData.priceBRL}
+                        onChange={handleInputChange}
+                        min="0.01"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BCH)
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBCH"
+                        value={formData.priceBCH}
+                        onChange={handleInputChange}
+                        min="0.000001"
+                        step="0.000001"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white opacity-60 focus:outline-none text-sm"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grupo: Categoria */}
+                <div>
+                  <div className="mb-2 text-teal-300 font-semibold text-xs tracking-wider flex items-center gap-2">
+                    <Package size={16} /> Categoria
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Categoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      >
+                        <option value="">Selecione uma Categoria</option>
+                        {categories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Subcategoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="subcategory"
+                        value={formData.subcategory}
+                        onChange={handleInputChange}
+                        className={`w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${
+                          !formData.category ? 'opacity-60 cursor-not-allowed' : ''
+                        }`}
+                        required
+                        disabled={!formData.category || formData.category === ''}
+                      >
+                        <option value="">Selecione uma Subcategoria</option>
+                        {(formData.category && subcategoriesMap[formData.category])
+                          ? subcategoriesMap[formData.category].map((subcat) => (
+                              <option key={subcat} value={subcat}>{subcat}</option>
+                            ))
+                          : null}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rodapé fixo para ações */}
+                <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent pt-4 mt-8 -mx-6 px-6 border-t border-white/10 flex justify-end gap-3 z-20">
                   <button
                     type="button"
                     onClick={resetForm}
@@ -841,7 +924,12 @@ export function ProdutosTab() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                    onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
+                    className={`px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${
+                      currentProduct
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white'
+                        : 'bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white'
+                    }`}
                   >
                     {currentProduct ? 'Atualizar' : 'Salvar'}
                   </button>
@@ -920,6 +1008,38 @@ export function ProdutosTab() {
           </div>
         )}
 
+        {/* Update Confirmation Modal */}
+        {isUpdateConfirmModalOpen && currentProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-orange-500/50 bg-orange-500/20">
+                  <AlertTriangle size={36} className="text-orange-400" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-white mb-2">Confirmar Atualização</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  Tem certeza que deseja salvar as alterações para o produto "{currentProduct.name}"?
+                </p>
+                
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    onClick={() => setIsUpdateConfirmModalOpen(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                    onClick={handleConfirmUpdate} // Calls the function that will then call handleSubmit
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Edit2, // ou Edit
-  Trash2,
+
   Plus,
   Search,
   ChevronLeft,
@@ -14,9 +13,7 @@ import {
   Zap, // Para insights
   Gift, // Para insights
   MessageCircle, // Para ações no modal
-  DollarSign, // Para total gasto
-  Activity, // Para visitas
-  CalendarDays, // Para última compra
+
 } from 'lucide-react';
 
 type Cliente = {
@@ -265,7 +262,10 @@ export function ClientesTab() {
         </div>
 
         {/* Lista de clientes */}
-        <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div
+          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+          style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
+        >
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
@@ -282,88 +282,99 @@ export function ClientesTab() {
               <div className="text-gray-400">Nenhum cliente encontrado.</div>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
-                    <tr className="text-xs">
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Nome</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Contato</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Última Compra</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total Gasto</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Visitas</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Clube</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                  <tr className="text-xs">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Nome</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Contato</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Última Compra</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total Gasto</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Visitas</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Clube</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {clientesFiltrados.map(cliente => (
+                    <tr key={cliente._id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-white font-medium">{cliente.nome}</div>
+                        {cliente.email && <div className="text-xs text-gray-400">{cliente.email}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-300">{cliente.telefone}</td>
+                      <td className="px-4 py-3 text-sm text-gray-400">{formatDate(cliente.ultimaCompra)}</td>
+                      <td className="px-4 py-3 text-sm text-white font-medium">{formatCurrency(cliente.totalGasto)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-300 text-center">{cliente.visitas}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
+                          cliente.clubeAtivo
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : 'bg-red-500/20 text-red-300 border-red-500/30'
+                        }`}>
+                          {cliente.clubeAtivo ? <UserCheck size={14} /> : <UserX size={14} />}
+                          {cliente.clubeAtivo ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => setModalCliente(cliente)}
+                            className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
+                            title="Ver Detalhes"
+                          >
+                            <Users size={14} />
+                          </button>
+                          {/* Adicionar botões de editar e excluir se necessário */}
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {clientesFiltrados.map(cliente => (
-                      <tr key={cliente._id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-white font-medium">{cliente.nome}</div>
-                          {cliente.email && <div className="text-xs text-gray-400">{cliente.email}</div>}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-300">{cliente.telefone}</td>
-                        <td className="px-4 py-3 text-sm text-gray-400">{formatDate(cliente.ultimaCompra)}</td>
-                        <td className="px-4 py-3 text-sm text-white font-medium">{formatCurrency(cliente.totalGasto)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-300 text-center">{cliente.visitas}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
-                            cliente.clubeAtivo
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                              : 'bg-red-500/20 text-red-300 border-red-500/30'
-                          }`}>
-                            {cliente.clubeAtivo ? <UserCheck size={14} /> : <UserX size={14} />}
-                            {cliente.clubeAtivo ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => setModalCliente(cliente)}
-                              className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
-                              title="Ver Detalhes"
-                            >
-                              <Users size={14} />
-                            </button>
-                            {/* Adicionar botões de editar e excluir se necessário */}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination Controls */}
-              {!loading && !error && clientesFiltrados.length > 0 && (
-                <div className="mt-0 flex items-center justify-between px-4 py-3 border-t border-white/10">
-                  <div>
-                    <p className="text-xs text-gray-300">
-                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      <ChevronLeft size={16} /> Anterior
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-md border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      Próximo <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
+        {/* Pagination Controls - fora do container da tabela */}
+        {!loading && !error && clientesFiltrados.length > 0 && (
+          <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
+            <div>
+              <p className="text-xs text-gray-300">
+                Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Mostrando{' '}
+                <span className="font-medium text-gray-200">
+                  {Math.min((currentPage - 1) * itemsPerPage + 1, (currentPage - 1) * itemsPerPage + clientesFiltrados.length)}
+                </span>
+                {' - '}
+                <span className="font-medium text-gray-200">
+                  {Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + clientesFiltrados.length)}
+                </span>
+                {' de '}
+                <span className="font-medium text-gray-200">{totalPages * itemsPerPage /* ou totalFilteredClientesCount, se quiser */}</span> clientes
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <ChevronLeft size={16} /> Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                Próximo <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Modal de perfil do cliente */}
         {modalCliente && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">

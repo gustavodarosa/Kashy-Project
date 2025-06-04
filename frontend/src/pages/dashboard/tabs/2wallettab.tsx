@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import bitcore from 'bitcore-lib-cash';
-import { Bitcoin, SearchIcon, TrendingUp, ArrowUpRight, ArrowDownLeft, RotateCcw, RefreshCw as RefreshCwLucide, Eye, EyeOff, Copy as CopyLucide, Code as CodeLucide, Clock as ClockLucide, CheckCircle as CheckCircleLucide } from 'lucide-react';
+import { Bitcoin, SearchIcon, TrendingUp, ArrowUp ,ChevronLeft, ChevronRight, ArrowDown, RotateCcw, RefreshCw, Eye, EyeOff, Copy as CopyLucide, Code as CodeLucide, Clock as ClockLucide, CheckCircle as CheckCircleLucide } from 'lucide-react';
 import { FiCheckCircle } from 'react-icons/fi'; // Kept for success modal, can be replaced
 import QRCode from 'react-qr-code';
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -85,6 +85,9 @@ export function WalletTab() {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'confirmed', 'pending', 'error'
   const [categoryFilter, setCategoryFilter] = useState('all'); // 'all', 'sent', 'received'
   const [activityPeriod, setActivityPeriod] = useState<'today' | 'week' | 'month'>('week');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
 
   // --- Formatting Functions ---
   const formatCurrency = (value: number | undefined) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -426,7 +429,7 @@ export function WalletTab() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#24292D] to-[#1E2328] p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Global Error */}
         {error && !sendModalOpen && !receiveModalOpen && !showSuccessModal && (
           <div className="bg-red-700/20 border border-red-600/30 text-red-300 px-4 py-3 rounded-xl relative mb-6 shadow-md" role="alert">
@@ -488,10 +491,10 @@ export function WalletTab() {
             {/* Action Buttons */}
             <div className="flex flex-wrap justify-center gap-4 md:gap-6 mt-4">
               {[
-                { label: 'Enviar', icon: ArrowUpRight, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setSendModalOpen(true); setError(null); } },
-                { label: 'Receber', icon: ArrowDownLeft, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setReceiveModalOpen(true); setError(null); } },
+                { label: 'Enviar', icon: ArrowUp, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setSendModalOpen(true); setError(null); } },
+                { label: 'Receber', icon: ArrowDown, action: () => { if (!isInitialized || !walletAddress) { toast.error("Endereço indisponível ou carteira não inicializada."); return; } setReceiveModalOpen(true); setError(null); } },
                 { label: 'Trocar', icon: RotateCcw, action: () => toast.info("Funcionalidade de Troca em breve!") },
-                { label: 'Converter', icon: RefreshCwLucide, action: () => toast.info("Funcionalidade de Conversão em breve!") },
+                { label: 'Converter', icon: RefreshCw, action: () => toast.info("Funcionalidade de Conversão em breve!") },
               ].map(item => (
                 <div key={item.label} className="flex flex-col items-center group">
                   <button
@@ -537,176 +540,265 @@ export function WalletTab() {
 
         {/* Content */}
         {viewMode === 'transactions' && (
-          <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-            {/* Filters */}
-            <div className="p-4 md:p-6 border-b border-white/10">
-              <div className="flex flex-col lg:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full lg:max-w-md">
-                  <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar transações..."
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D]/80 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 transition-all text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-3 w-full lg:w-auto">
-                  <Listbox value={statusFilter} onChange={setStatusFilter}>
-                    <div className="relative min-w-[160px]">
-                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
-                        {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos Status'}
-                      </Listbox.Button>
-                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
-                        {statusOptions.map(opt => (
-                          <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
-                            {opt.label}
-                          </Listbox.Option>
-                        ))}
-                      </Listbox.Options>
-                    </div>
-                  </Listbox>
-                  <Listbox value={categoryFilter} onChange={setCategoryFilter}>
-                    <div className="relative min-w-[160px]">
-                      <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
-                        {categoryOptions.find(c => c.value === categoryFilter)?.label || 'Todas Categorias'}
-                      </Listbox.Button>
-                      <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
-                         {categoryOptions.map(opt => (
-                          <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
-                            {opt.label}
-                          </Listbox.Option>
-                        ))}
-                      </Listbox.Options>
-                    </div>
-                  </Listbox>
+          <>
+            {/* Filters - fora do container da tabela */}
+            <div className="mb-6">
+              <div className="p-4 md:p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                  <div className="relative flex-1 w-full lg:max-w-md">
+                    <SearchIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar transações..."
+                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#24292D]/80 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent placeholder-gray-400 transition-all text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-3 w-full lg:w-auto">
+                    <Listbox value={statusFilter} onChange={setStatusFilter}>
+                      <div className="relative min-w-[160px]">
+                        <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                          {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos Status'}
+                        </Listbox.Button>
+                        <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
+                          {statusOptions.map(opt => (
+                            <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
+                              {opt.label}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
+                    <Listbox value={categoryFilter} onChange={setCategoryFilter}>
+                      <div className="relative min-w-[160px]">
+                        <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                          {categoryOptions.find(c => c.value === categoryFilter)?.label || 'Todas Categorias'}
+                        </Listbox.Button>
+                        <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20 mt-1">
+                          {categoryOptions.map(opt => (
+                            <Listbox.Option key={opt.value} value={opt.value} className="px-4 py-2 hover:bg-[#2d3338] cursor-pointer ui-active:bg-[#2d3338] ui-selected:font-semibold text-sm">
+                              {opt.label}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Transactions Table */}
-            <div className="overflow-x-auto">
-              {loading && filteredTransactions.length === 0 ? (
-                 <div className="space-y-4 p-6 animate-pulse">{[...Array(3)].map((_, i) => (<div key={i} className="flex justify-between items-center p-4 rounded-lg bg-[#24292D]/50"><div className="flex items-center gap-4"><div className="p-3 rounded-full bg-gray-700 h-12 w-12"></div><div><div className="h-4 bg-gray-700 rounded w-32 mb-2"></div><div className="h-3 bg-gray-700 rounded w-24"></div></div></div><div className="text-right"><div className="h-4 bg-gray-700 rounded w-20 mb-2"></div><div className="h-3 bg-gray-700 rounded w-16"></div></div></div>))}</div>
-              ) : !loading && filteredTransactions.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <div className="flex flex-col items-center gap-2">
-                    <Bitcoin size={48} className="opacity-50" />
-                    <p>Nenhuma transação encontrada{searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' ? ' com os filtros aplicados' : ''}.</p>
+            {/* Transactions Table - container isolado */}
+           
+              {/* Transactions Table - padrão unificado */}
+              <div
+                className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+                style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
+              >
+                {loading ? (
+                  <div className="p-8 text-center">
+                    <div className="inline-flex items-center gap-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
+                      <span className="text-white font-medium">Carregando transações...</span>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="p-8 text-center">
+                    <div className="text-red-400 font-medium">{error}</div>
+                  </div>
+                ) : filteredTransactions.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="text-gray-400">Nenhuma transação encontrada.</div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                        <tr className="text-xs">
+                          <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Transação</th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider hidden md:table-cell">Data</th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Quantidade</th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTransactions.map((tx) => (
+                          <tr
+                            key={tx._id}
+                            className="border-b border-[#3A414A]/50 hover:bg-[#3A414A]/30 transition-colors"
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                    tx.type === 'received' 
+                                      ? 'bg-green-500/20 text-green-400' 
+                                      : (tx.type === 'sent' || tx.type === 'self')
+                                      ? 'bg-red-500/20 text-red-400' 
+                                      : 'bg-blue-500/20 text-blue-400'
+                                  }`}
+                                >
+                                  {tx.type === 'received' ? 
+                                    <ArrowDown size={16} /> : 
+                                    (tx.type === 'sent' || tx.type === 'self') ? 
+                                    <ArrowUp size={16} /> : 
+                                    <RotateCcw size={16} />
+                                  }
+                                </div>
+                                <div>
+                                  <p className="text-white font-medium text-xs md:text-sm">
+                                    {tx.type === 'received' ? 'Recebido' : (tx.type === 'sent' || tx.type === 'self') ? 'Enviado' : 'Desconhecido'}
+                                  </p>
+                                  <p className="text-gray-300 text-xs truncate max-w-[80px] sm:max-w-[120px]" title={tx.address}>
+                                    {formatAddress(tx.address)}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-200 text-xs hidden md:table-cell">
+                              {formatDate(tx.timestamp)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className={`text-xs md:text-sm font-medium ${tx.type === 'received' ? 'text-green-400' : (tx.type === 'sent' || tx.type === 'self') ? 'text-red-400' : 'text-white'}`}>
+                                {tx.type === 'received' ? '+' : (tx.type === 'sent' || tx.type === 'self') ? '-' : ''}{tx.amountBCH.toFixed(8)} BCH
+                              </div>
+                              <div className="text-gray-300 text-xs">
+                                {formatCurrency(tx.amountBRL)}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
+                                  tx.status === 'confirmed'
+                                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                    : tx.status === 'pending'
+                                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                    : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                                }`}
+                              >
+                                {tx.status === 'confirmed' ? `Confirmado (${tx.confirmations > 99 ? "99+" : tx.confirmations})` : tx.status === 'pending' ? `Pendente (${tx.confirmations})` : 'Erro'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <a
+                                href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 md:px-4 md:py-2 bg-teal-600/20 text-teal-300 rounded-lg text-xs md:text-sm font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
+                              >
+                                Detalhes
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination Controls - fora do container da tabela */}
+              {!loading && !error && filteredTransactions.length > 0 && (
+                <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
+                  <div>
+                    <p className="text-xs text-gray-300">
+                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      Mostrando{' '}
+                      <span className="font-medium text-gray-200">
+                        {Math.min((currentPage - 1) * itemsPerPage + 1, filteredTransactions.length)}
+                      </span>
+                      {' - '}
+                      <span className="font-medium text-gray-200">
+                        {Math.min(currentPage * itemsPerPage, filteredTransactions.length)}
+                      </span>
+                      {' de '}
+                      <span className="font-medium text-gray-200">{filteredTransactions.length}</span> transações
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    >
+                      <ChevronLeft size={16} /> Anterior
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                    >
+                      Próximo <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
-                    <tr className="text-xs">
-                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Transação</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider hidden md:table-cell">Data</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Quantidade</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-300 uppercase tracking-wider">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.map((tx) => (
-                      <tr
-                        key={tx._id}
-                        className="border-b border-[#3A414A]/50 hover:bg-[#3A414A]/30 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                tx.type === 'received' 
-                                  ? 'bg-green-500/20 text-green-400' 
-                                  : (tx.type === 'sent' || tx.type === 'self')
-                                  ? 'bg-red-500/20 text-red-400' 
-                                  : 'bg-blue-500/20 text-blue-400' // unknown
-                              }`}
-                            >
-                              {tx.type === 'received' ? 
-                                <ArrowDownLeft size={18} /> : 
-                                (tx.type === 'sent' || tx.type === 'self') ? 
-                                <ArrowUpRight size={18} /> : 
-                                <RotateCcw size={18} /> // Or another icon for 'unknown'
-                              }
-
-                            </div>
-                            <div>
-                              <p className="text-white font-medium text-sm md:text-base">
-                                {tx.type === 'received' ? 'Recebido' : (tx.type === 'sent' || tx.type === 'self') ? 'Enviado' : 'Desconhecido'}
-                              </p>
-                              <p className="text-gray-300 text-xs md:text-sm truncate max-w-[100px] sm:max-w-[150px]" title={tx.address}>
-                                {formatAddress(tx.address)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        
-                        <td className="px-6 py-4 text-gray-200 text-sm hidden md:table-cell">
-                          {formatDate(tx.timestamp)}
-                        </td>
-                        
-                        <td className="px-6 py-4">
-                          <div className={`text-sm md:text-base font-medium ${tx.type === 'received' ? 'text-green-400' : (tx.type === 'sent' || tx.type === 'self') ? 'text-red-400' : 'text-white'}`}>
-                            {tx.type === 'received' ? '+' : (tx.type === 'sent' || tx.type === 'self') ? '-' : ''}{tx.amountBCH.toFixed(8)} BCH
-                          </div>
-                          <div className="text-gray-300 text-xs md:text-sm">
-                            {formatCurrency(tx.amountBRL)}
-                          </div>
-                        </td>
-                        
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                              tx.status === 'confirmed'
-                                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                                : tx.status === 'pending'
-                                ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                                : 'bg-red-500/20 text-red-300 border border-red-500/30' // error
-                            }`}
-                          >
-                            {tx.status === 'confirmed' ? `Confirmado (${tx.confirmations > 99 ? "99+" : tx.confirmations})` : tx.status === 'pending' ? `Pendente (${tx.confirmations})` : 'Erro'}
-                          </span>
-                        </td>
-                        
-                        <td className="px-6 py-4">
-                          <a
-                            href={`${BCH_EXPLORER_TX_URL}${tx.txid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 md:px-4 md:py-2 bg-teal-600/20 text-teal-300 rounded-lg text-xs md:text-sm font-medium hover:bg-teal-600/30 transition-colors border border-teal-500/30"
-                          >
-                            Detalhes
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               )}
-            </div>
-          </div>
+           
+          </>
         )}
 
         {viewMode === 'analysis' && (
-          <div className="bg-[#2F363E]/60 backdrop-blur-sm rounded-2xl border border-white/10 p-4 md:p-6 shadow-xl">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-3 sm:mb-0">Análise de Atividade</h3>
-              
-              <div className="flex gap-1 bg-[#24292D]/70 rounded-xl p-1">
-                {(['today', 'week', 'month'] as const).map((period) => (
-                  <button
-                    key={period}
-                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium transition-all text-xs md:text-sm ${
-                      activityPeriod === period
-                        ? 'bg-teal-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-[#3A414A]/50'
-                    }`}
-                    onClick={() => setActivityPeriod(period)}
-                  >
-                    {period === 'today' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mês'}
-                  </button>
-                ))}
+          <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4 md:p-6 shadow-xl">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="group p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <ArrowDown className="text-green-400" size={24} />
+                  </div>
+                  <div className="text-white">
+                    <p className="text-xs font-medium uppercase">Total Recebido</p>
+                    <p className="text-lg md:text-xl font-bold">{formatBCH(balance.totalBCH)}</p>
+                  </div>
+                </div>
+                <div className="text-green-300 text-xs">
+                  <p>+12.5% vs período anterior</p>
+                </div>
+              </div>
+              <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <TrendingUp className="text-blue-400" size={24} />
+                  </div>
+                  <div className="text-white">
+                    <p className="text-xs font-medium uppercase">Saldo Líquido</p>
+                    <p className="text-lg md:text-xl font-bold">{formatBCH(balance.totalBCH)}</p>
+                  </div>
+                </div>
+                <div className="text-blue-300 text-xs">
+                  <p>+18.2% vs período anterior</p>
+                </div>
+              </div>
+              <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <ClockLucide className="text-yellow-400" size={24} />
+                  </div>
+                  <div className="text-white">
+                    <p className="text-xs font-medium uppercase">Média de Taxa</p>
+                    <p className="text-lg md:text-xl font-bold">{formatBCH(estimatedFeeClientSide)}</p>
+                  </div>
+                </div>
+                <div className="text-yellow-300 text-xs">
+                  <p>-5.3% vs período anterior</p>
+                </div>
+              </div>
+              <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <ArrowUp className="text-red-400" size={24} />
+                  </div>
+                  <div className="text-white">
+                    <p className="text-xs font-medium uppercase">Total Enviado</p>
+                    <p className="text-lg md:text-xl font-bold">{formatBCH(balance.totalBCH)}</p>
+                  </div>
+                </div>
+                <div className="text-red-300 text-xs">
+                  <p>-7.8% vs período anterior</p>
+                </div>
               </div>
             </div>
 
@@ -765,8 +857,8 @@ export function WalletTab() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: 'Total Recebido', value: '0.0456 BCH', change: '+12.5%', changeColor: 'text-green-400', icon: ArrowDownLeft, iconColor: 'text-green-400' },
-                { title: 'Total Enviado', value: '0.0123 BCH', change: '-5.3%', changeColor: 'text-red-400', icon: ArrowUpRight, iconColor: 'text-red-400' },
+                { title: 'Total Recebido', value: '0.0456 BCH', change: '+12.5%', changeColor: 'text-green-400', icon: ArrowDown, iconColor: 'text-green-400' },
+                { title: 'Total Enviado', value: '0.0123 BCH', change: '-5.3%', changeColor: 'text-red-400', icon: ArrowUp, iconColor: 'text-red-400' },
                 { title: 'Saldo Líquido', value: '+0.0333 BCH', change: '+18.2%', changeColor: 'text-blue-400', icon: TrendingUp, iconColor: 'text-blue-400' },
               ].map(item => (
                 <div key={item.title} className="bg-[#24292D]/50 rounded-xl p-4">
@@ -897,7 +989,7 @@ export function WalletTab() {
                   className={`w-full bg-teal-600 text-white rounded-xl py-3 font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${isSending ? 'animate-pulse' : ''}`}
                   disabled={isSending || !sendForm.address || !sendForm.amountBCH || parseFloat(sendForm.amountBCH) <= 0}
                 >
-                  {isSending ? <><ClockLucide className="animate-spin h-5 w-5 mr-2" /> Enviando...</> : <><ArrowUpRight className="h-5 w-5 mr-1" /> Enviar Transação</>}
+                  {isSending ? <><ClockLucide className="animate-spin h-5 w-5 mr-2" /> Enviando...</> : <><ArrowUp className="h-5 w-5 mr-1" /> Enviar Transação</>}
                 </button>
               </form>
             </div>

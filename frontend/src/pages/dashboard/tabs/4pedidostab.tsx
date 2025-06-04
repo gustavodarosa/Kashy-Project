@@ -90,6 +90,12 @@ export function PedidosTab() {
   // Estado para o modal de QR Code
   const [qrOrder, setQrOrder] = useState<Order | null>(null);
 
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
+
+  const [isPrintConfirmOpen, setIsPrintConfirmOpen] = useState(false);
+  const [orderToPrint, setOrderToPrint] = useState<Order | null>(null);
+
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
     console.log('[PedidosTab] useEffect - selectedOrder mudou:', selectedOrder);
@@ -398,13 +404,12 @@ export function PedidosTab() {
   };
   */
 
+  // Adicione este estado para o modal de sucesso
+  const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
+
   // Função para deletar um pedido
   const handleDeleteOrder = async (orderId: string) => {
-    console.log(`[PedidosTab] handleDeleteOrder chamado para orderId: ${orderId}`);
-    if (!window.confirm('Tem certeza que deseja excluir este pedido?')) return;
-
     try {
-      console.log(`[PedidosTab] Enviando requisição DELETE para /api/orders/${orderId}`);
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
         method: 'DELETE',
@@ -412,14 +417,11 @@ export function PedidosTab() {
       });
 
       if (!response.ok) {
-        console.error(`[PedidosTab] Erro ao deletar pedido ${orderId}:`, response.status);
         throw new Error('Erro ao deletar pedido.');
       }
-      console.log(`[PedidosTab] Pedido ${orderId} deletado com sucesso.`);
       setOrders((prev) => prev.filter((order) => order._id !== orderId));
-      alert('Pedido deletado com sucesso!');
+      setIsDeleteSuccessOpen(true); // Abre modal de sucesso
     } catch (error) {
-      console.error('[PedidosTab] Erro ao deletar pedido:', error);
       alert('Erro ao deletar pedido.');
     }
   };
@@ -763,14 +765,20 @@ export function PedidosTab() {
                               <Edit2 size={14} />
                             </button>
                             <button
-                              onClick={() => handlePrint(order)}
+                              onClick={() => {
+                                setOrderToPrint(order);
+                                setIsPrintConfirmOpen(true);
+                              }}
                               className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
                               title="Imprimir"
                             >
                               <Printer size={14} />
                             </button>
                             <button
-                              onClick={() => handleDeleteOrder(order._id)}
+                              onClick={() => {
+                                setOrderIdToDelete(order._id);
+                                setIsDeleteConfirmOpen(true);
+                              }}
                               className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
                               title="Excluir"
                             >
@@ -958,27 +966,31 @@ export function PedidosTab() {
 
         {/* Modal Novo Pedido - Styled like ProdutosTab modals */}
         {isOrderModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="relative w-full max-w-3xl bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col">
-               <button
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
-                onClick={() => {
-                  console.log("[PedidosTab] Botão Cancelar (Novo Pedido) clicado.");
-                  setIsOrderModalOpen(false);
-                  // Reset form states if needed
-                  setSelectedStore("");
-                  setCustomerEmail("");
-                  setSelectedProducts([]);
-                  setPaymentMethod("");
-                  setModalSearchTerm("");
-                }}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-              <div className="p-6 border-b border-white/10 flex-shrink-0">
-                <h2 className="text-xl font-bold text-white">Novo Pedido</h2>
-                <p className="text-gray-400 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border border-blue-400/30 shadow-2xl overflow-hidden flex flex-col">
+              {/* Header com ícone */}
+              <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-blue-600/10 to-transparent">
+                <div className="p-2 bg-blue-500/20 rounded-xl border border-blue-400/30">
+                  <ShoppingBasket size={28} className="text-blue-300" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Novo Pedido</h2>
+                  <p className="text-gray-400 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
+                </div>
+                <button
+                  className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                  onClick={() => {
+                    setIsOrderModalOpen(false);
+                    setSelectedStore("");
+                    setCustomerEmail("");
+                    setSelectedProducts([]);
+                    setPaymentMethod("");
+                    setModalSearchTerm("");
+                  }}
+                  aria-label="Fechar"
+                >
+                  ×
+                </button>
               </div>
 
               <form
@@ -986,17 +998,15 @@ export function PedidosTab() {
                   e.preventDefault();
                   handleCreateOrder();
                 }}
-                className="p-6 flex-grow overflow-y-auto space-y-4 max-h-[70vh]"
+                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh]"
               >
+                {/* Grupo: Loja */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja *</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja <span className="text-blue-400">*</span></label>
                   <select
                     value={selectedStore}
-                    onChange={(e) => {
-                      console.log('[PedidosTab] Loja selecionada no modal:', e.target.value);
-                      setSelectedStore(e.target.value);
-                    }}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
                     required
                   >
                     <option value="">Selecione uma loja</option>
@@ -1006,6 +1016,7 @@ export function PedidosTab() {
                   </select>
                 </div>
 
+                {/* Grupo: Produtos */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">Adicionar Produtos</label>
                   <input
@@ -1013,10 +1024,10 @@ export function PedidosTab() {
                     placeholder="Buscar produtos na loja selecionada..."
                     value={modalSearchTerm}
                     onChange={(e) => setModalSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm mb-2"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm mb-2"
                     disabled={!selectedStore || loadingProducts}
                   />
-                  <div className="max-h-40 overflow-y-auto border border-white/10 rounded-md bg-[#2F363E]/50">
+                  <div className="max-h-40 overflow-y-auto border border-blue-400/10 rounded-md bg-[#2F363E]/50">
                     {loadingProducts && <p className="text-gray-400 p-3 text-center text-sm">Carregando produtos...</p>}
                     {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-3 text-sm">Nenhum produto encontrado para esta loja.</p>}
                     {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm">Selecione uma loja para ver os produtos.</p>}
@@ -1027,11 +1038,8 @@ export function PedidosTab() {
                       .map((product) => (
                         <div
                           key={product._id}
-                          className="flex justify-between items-center px-3 py-2 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                          onClick={() => {
-                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-                            console.log('[PedidosTab] Produto adicionado ao carrinho:', product);
-                          }}
+                          className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+                          onClick={() => setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])}
                         >
                           <span className="text-gray-200">{product.name}</span>
                           <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
@@ -1040,10 +1048,11 @@ export function PedidosTab() {
                   </div>
                 </div>
 
+                {/* Grupo: Carrinho */}
                 {selectedProducts.length > 0 && (
                   <div>
                     <h4 className="text-xs font-medium text-gray-300 mb-1.5">Produtos no Pedido</h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto border border-white/10 rounded-md p-2 bg-[#2F363E]/50">
+                    <div className="space-y-2 max-h-48 overflow-y-auto border border-blue-400/10 rounded-md p-2 bg-[#2F363E]/50">
                       {selectedProducts.map((product, index) => (
                         <div
                           key={`${product._id}-${index}`}
@@ -1059,7 +1068,7 @@ export function PedidosTab() {
                                 const newQuantity = parseInt(e.target.value, 10);
                                 updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
                               }}
-                              className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-white/10 focus:outline-none text-center text-white text-xs"
+                              className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-blue-400/10 focus:outline-none text-center text-white text-xs"
                             />
                             <button
                               type="button"
@@ -1077,23 +1086,25 @@ export function PedidosTab() {
                   </div>
                 )}
 
+                {/* Grupo: Cliente */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente (Opcional)</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente <span className="text-gray-500">(Opcional)</span></label>
                   <input
                     type="email"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
                     placeholder="cliente@email.com"
                   />
                 </div>
 
+                {/* Grupo: Pagamento */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Método de Pagamento *</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Método de Pagamento <span className="text-blue-400">*</span></label>
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
                     required
                   >
                     <option value="">Selecione um método</option>
@@ -1104,7 +1115,8 @@ export function PedidosTab() {
                 </div>
               </form>
 
-              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
+              {/* Rodapé fixo para ações */}
+              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent">
                 <button
                   type="button"
                   onClick={() => {
@@ -1121,11 +1133,72 @@ export function PedidosTab() {
                 </button>
                 <button
                   type="submit"
-                  onClick={handleCreateOrder} // Attach submit handler here as form is outside
+                  onClick={handleCreateOrder}
                   className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
                   disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
                 >
                   Criar Pedido
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de confirmação de exclusão */}
+        {isDeleteConfirmOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-500/50 bg-red-500/20">
+                  <Trash2 size={36} className="text-red-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Confirmar Exclusão</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  Tem certeza que deseja excluir este pedido? Esta ação não poderá ser desfeita.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    onClick={() => {
+                      setIsDeleteConfirmOpen(false);
+                      setOrderIdToDelete(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white text-sm"
+                    onClick={() => {
+                      if (orderIdToDelete) handleDeleteOrder(orderIdToDelete);
+                      setIsDeleteConfirmOpen(false);
+                      setOrderIdToDelete(null);
+                    }}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de sucesso ao excluir */}
+        {isDeleteSuccessOpen && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#23272F] rounded-xl w-full max-w-sm shadow-2xl relative border border-emerald-400/20">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
+                  <CheckCircle size={36} className="text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Pedido excluído com sucesso!</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  O pedido foi removido do sistema.
+                </p>
+                <button
+                  className="w-full rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                  onClick={() => setIsDeleteSuccessOpen(false)}
+                >
+                  OK
                 </button>
               </div>
             </div>
