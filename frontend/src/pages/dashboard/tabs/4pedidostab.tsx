@@ -13,7 +13,7 @@ import {
   XCircle,
   Plus,
   CreditCard,
-  ListFilter,
+  
   ShoppingCart,
 } from 'lucide-react';
 import { Listbox } from '@headlessui/react';
@@ -341,8 +341,6 @@ export function PedidosTab() {
         throw new Error(errorData.message || "Erro ao criar pedido");
       }
       const savedOrder = await response.json();
-      console.log("[PedidosTab] Pedido salvo com sucesso:", savedOrder);
-      alert("Pedido criado com sucesso!");
 
       setSelectedStore("");
       setCustomerEmail("");
@@ -351,14 +349,12 @@ export function PedidosTab() {
       setIsOrderModalOpen(false);
       setCurrentPage(1);
 
+      setIsOrderSuccessOpen(true); // Abre o modal de sucesso
+
       // Se o pagamento for BCH, abra o modal de QR Code imediatamente
       if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
-        console.log("[PedidosTab] Pedido BCH criado. Abrindo modal de QR Code para ID:", savedOrder._id);
         openQrModal(savedOrder._id);
       } else {
-        // Se não for BCH, apenas atualize a lista de pedidos
-        // Refetch para garantir que a lista e paginação estejam corretas
-        // fetchOrders não está disponível aqui, então forçamos atualização manual
         setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
         setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
       }
@@ -406,6 +402,7 @@ export function PedidosTab() {
 
   // Adicione este estado para o modal de sucesso
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
+  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false); // Novo estado para modal de sucesso do pedido
 
   // Função para deletar um pedido
   const handleDeleteOrder = async (orderId: string) => {
@@ -503,11 +500,11 @@ export function PedidosTab() {
   ];
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 py-2">
         {/* Enhanced Hero Section */}
         <div className="relative overflow-hidden mb-10">
           <div
-            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
@@ -530,26 +527,60 @@ export function PedidosTab() {
                 </div>
               </div>
               {/* Action Button - Novo Pedido */}
-              <div className="mt-8">
+              <div className="mt-6 flex justify-center">
                 <button
                   id="btn-novo-pedido"
                   onClick={() => setIsOrderModalOpen(true)}
-                  className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-blue-400/30 text-sm"
+                  className="group relative px-8 py-3 bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-blue-400/40 text-base overflow-hidden"
                 >
-                  <div className="flex items-center gap-2">
-                    <Plus size={18} />
+                  <span className="flex items-center gap-2 relative z-10">
+                    <Plus size={20} />
                     <span>Novo Pedido</span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                  </span>
+                  {/* Animated Shine Effect */}
+                  <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
               </div>
             </div>
           </div>
+          {/* Custom Animations */}
+          <style>
+            {`
+              @keyframes pulse-slow {
+                0%, 100% { opacity: 0.7; transform: scale(1);}
+                50% { opacity: 1; transform: scale(1.08);}
+              }
+              @keyframes pulse-slower {
+                0%, 100% { opacity: 0.5; transform: scale(1);}
+                50% { opacity: 0.8; transform: scale(1.06);}
+              }
+              .animate-pulse-slow { animation: pulse-slow 6s ease-in-out infinite; }
+              .animate-pulse-slower { animation: pulse-slower 9s ease-in-out infinite; }
+              @keyframes shine {
+                0% { left: -100%; }
+                60% { left: 120%; }
+                100% { left: 120%; }
+              }
+              .group:hover .animate-shine {
+                animation: shine 1.2s linear 1;
+              }
+              .animate-shine {
+                position: absolute;
+                top: 0; left: -100%;
+                width: 120%;
+                height: 100%;
+                background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
+                opacity: 0.25;
+                pointer-events: none;
+              }
+            `}
+          </style>
         </div>
 
+
         {/* Enhanced Filters Section */}
-        <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
+        <div className="mb-3">
+          <div className="p-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full lg:max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -557,7 +588,7 @@ export function PedidosTab() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar por ID, loja ou cliente..."
+                  placeholder="Buscar pedidos..."
                   className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
                   value={searchTerm}
                   onChange={(e) => {
@@ -648,7 +679,10 @@ export function PedidosTab() {
         </div>
 
         {/* Tabela de pedidos */}
-        <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div
+          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+          style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
+        >
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
@@ -665,164 +699,162 @@ export function PedidosTab() {
               <div className="text-gray-400">Nenhum pedido encontrado.</div>
             </div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
-                    <tr className="text-xs">
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">ID</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Cliente</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Pagamento</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Fatura</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {orders.map((order) => (
-                      <tr key={order._id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-mono text-blue-400">
-                              #{order._id.substring(order._id.length - 6)}
-                            </span>
-                            <button
-                              onClick={() => navigator.clipboard.writeText(order._id)}
-                              className="text-gray-400 hover:text-blue-300 transition-colors"
-                              title="Copiar ID"
-                            >
-                              <Copy size={14} />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-white font-medium">{order.store}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm text-gray-300">
-                            {order.customerEmail || 'Anônimo'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-white font-medium">{formatCurrency(order.totalAmount)}</div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-300 flex items-center gap-2">
-                            {order.paymentMethod === 'bch' && (
-                              <span className="w-5 h-5 inline-block align-middle" title="Bitcoin Cash">
-                                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                                  <rect width="32" height="32" rx="8" fill="#0AC18E"/>
-                                  <g>
-                                    <circle cx="16" cy="16" r="10" fill="#fff"/>
-                                    <path d="M18.7 13.2c.3-2-1.2-3.1-3.3-3.1l.3-1.3-1.2-.3-.3 1.3c-.3-.1-.6-.1-.9-.2l.3-1.3-1.2-.3-.3 1.3c-.2 0-.4-.1-.6-.1l-1.6-.4-.3 1.3s.9.2.9.2c.5.1.6.5.6.8l-1.5 6.1c-.1.2-.2.5-.6.4 0 0-.9-.2-.9-.2l-.3 1.4 1.5.4c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c2.1.4 3.7.2 4.4-1.7.5-1.3 0-2.1-1-2.6.7-.2 1.2-.8 1.3-1.9zm-2.3 4.1c-.3 1.3-2.6.6-3.3.4l.6-2.3c.7.2 3 .7 2.7 1.9zm.3-4.2c-.3 1.1-2.1.6-2.7.5l.5-2c.6.1 2.5.4 2.2 1.5z" fill="#0AC18E"/>
-                                  </g>
-                                </svg>
-                              </span>
-                            )}
-                            {order.paymentMethod === 'pix' && (
-                              <span className="w-5 h-5 inline-block align-middle" title="PIX">
-                                <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                                  <rect width="32" height="32" rx="8" fill="#00E1CC"/>
-                                  <path d="M16 8.5c.5 0 1 .2 1.4.6l5.5 5.5c.8.8.8 2 0 2.8l-5.5 5.5c-.8.8-2 .8-2.8 0l-5.5-5.5c-.8-.8-.8-2 0-2.8l5.5-5.5c.4-.4.9-.6 1.4-.6z" fill="#fff"/>
-                                </svg>
-                              </span>
-                            )}
-                            {order.paymentMethod === 'card' && <CreditCard size={18} className="text-blue-400" />}
-                            {getPaymentMethodLabel(order.paymentMethod)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                          {formatDate(order.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
-                            order.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                            order.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                            'bg-red-500/20 text-red-300 border-red-500/30'
-                          }`}>
-                            {getStatusIconComponent(order.status)}
-                            {getStatusLabelText(order.status)}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
+                  <tr className="text-xs">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">ID</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Cliente</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Pagamento</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Fatura</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {orders.map((order) => (
+                    <tr key={order._id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-mono text-blue-400">
+                            #{order._id.substring(order._id.length - 6)}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
                           <button
-                            className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 text-xs font-medium transition-colors"
-                            onClick={() => openQrModal(order._id)}
+                            onClick={() => navigator.clipboard.writeText(order._id)}
+                            className="text-gray-400 hover:text-blue-300 transition-colors"
+                            title="Copiar ID"
                           >
-                            Detalhes
+                            <Copy size={14} />
                           </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => fetchOrderDetails(order._id)}
-                              className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
-                              title="Editar Pedido (funcionalidade futura)"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOrderToPrint(order);
-                                setIsPrintConfirmOpen(true);
-                              }}
-                              className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
-                              title="Imprimir"
-                            >
-                              <Printer size={14} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setOrderIdToDelete(order._id);
-                                setIsDeleteConfirmOpen(true);
-                              }}
-                              className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
-                              title="Excluir"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination Controls - Styled like ProdutosTab */}
-              {!loading && !error && orders.length > 0 && (
-                <div className="mt-0 flex items-center justify-between px-4 py-3 border-t border-white/10">
-                  <div>
-                    <p className="text-xs text-gray-300">
-                      Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      <ChevronLeft size={16} />
-                      Anterior
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                    >
-                      Próximo
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-white font-medium">{order.store}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm text-gray-300">
+                          {order.customerEmail || 'Anônimo'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-white font-medium">{formatCurrency(order.totalAmount)}</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-300 flex items-center gap-2">
+                          {order.paymentMethod === 'bch' && (
+                            <span className="w-5 h-5 inline-block align-middle" title="Bitcoin Cash">
+                              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                                <rect width="32" height="32" rx="8" fill="#0AC18E"/>
+                                <g>
+                                  <circle cx="16" cy="16" r="10" fill="#fff"/>
+                                  <path d="M18.7 13.2c.3-2-1.2-3.1-3.3-3.1l.3-1.3-1.2-.3-.3 1.3c-.3-.1-.6-.1-.9-.2l.3-1.3-1.2-.3-.3 1.3c-.2 0-.4-.1-.6-.1l-1.6-.4-.3 1.3s.9.2.9.2c.5.1.6.5.6.8l-1.5 6.1c-.1.2-.2.5-.6.4 0 0-.9-.2-.9-.2l-.3 1.4 1.5.4c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c2.1.4 3.7.2 4.4-1.7.5-1.3 0-2.1-1-2.6.7-.2 1.2-.8 1.3-1.9zm-2.3 4.1c-.3 1.3-2.6.6-3.3.4l.6-2.3c.7.2 3 .7 2.7 1.9zm.3-4.2c-.3 1.1-2.1.6-2.7.5l.5-2c.6.1 2.5.4 2.2 1.5z" fill="#0AC18E"/>
+                                </g>
+                              </svg>
+                            </span>
+                          )}
+                          {order.paymentMethod === 'pix' && (
+                            <span className="w-5 h-5 inline-block align-middle" title="PIX">
+                              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                                <rect width="32" height="32" rx="8" fill="#00E1CC"/>
+                                <path d="M16 8.5c.5 0 1 .2 1.4.6l5.5 5.5c.8.8.8 2 0 2.8l-5.5 5.5c-.8.8-2 .8-2.8 0l-5.5-5.5c-.8-.8-.8-2 0-2.8l5.5-5.5c.4-.4.9-.6 1.4-.6z" fill="#fff"/>
+                              </svg>
+                            </span>
+                          )}
+                          {order.paymentMethod === 'card' && <CreditCard size={18} className="text-blue-400" />}
+                          {getPaymentMethodLabel(order.paymentMethod)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
+                        {formatDate(order.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
+                          order.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                          order.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                          'bg-red-500/20 text-red-300 border-red-500/30'
+                        }`}>
+                          {getStatusIconComponent(order.status)}
+                          {getStatusLabelText(order.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 text-xs font-medium transition-colors"
+                          onClick={() => openQrModal(order._id)}
+                        >
+                          Detalhes
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => fetchOrderDetails(order._id)}
+                            className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
+                            title="Editar Pedido (funcionalidade futura)"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOrderToPrint(order);
+                              setIsPrintConfirmOpen(true);
+                            }}
+                            className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
+                            title="Imprimir"
+                          >
+                            <Printer size={14} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOrderIdToDelete(order._id);
+                              setIsDeleteConfirmOpen(true);
+                            }}
+                            className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
+                            title="Excluir"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
+
+        {/* Pagination Controls - fora do container da tabela */}
+        {!loading && !error && orders.length > 0 && (
+          <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
+            <div>
+              <p className="text-xs text-gray-300">
+                Página <span className="font-semibold text-white">{currentPage}</span> de <span className="font-semibold text-white">{totalPages}</span>
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <ChevronLeft size={16} />
+                Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                Próximo
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modal Detalhes do Pedido (antigo Modal QR Code) - Styled like ProdutosTab modals */}
         {qrOrder && (
@@ -1197,6 +1229,29 @@ export function PedidosTab() {
                 <button
                   className="w-full rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
                   onClick={() => setIsDeleteSuccessOpen(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de sucesso ao criar pedido */}
+        {isOrderSuccessOpen && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#23272F] rounded-xl w-full max-w-sm shadow-2xl relative border border-emerald-400/20">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
+                  <CheckCircle size={36} className="text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Pedido criado com sucesso!</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  O novo pedido foi registrado no sistema.
+                </p>
+                <button
+                  className="w-full rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                  onClick={() => setIsOrderSuccessOpen(false)}
                 >
                   OK
                 </button>

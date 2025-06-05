@@ -542,14 +542,37 @@ export function RelatoriosTab() {
               <div className="mt-8">
                 <button
                   onClick={openNewModal}
-                  className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-blue-400/30 text-sm"
+                  className="group relative px-8 py-3 bg-gradient-to-r from-pink-500 via-fuchsia-600 to-violet-500 hover:from-pink-400 hover:to-violet-500 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-pink-400/40 text-base overflow-hidden"
                 >
-                  <div className="flex items-center gap-2">
-                    <Plus size={18} />
+                  <span className="flex items-center gap-2 relative z-10">
+                    <Plus size={20} />
                     <span>Novo Relatório</span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                  </span>
+                  {/* Animated Shine Effect */}
+                  <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
+                {/* Custom Animations */}
+                <style>
+                  {`
+                    @keyframes shine {
+                      0% { left: -100%; }
+                      60% { left: 120%; }
+                      100% { left: 120%; }
+                    }
+                    .group:hover .animate-shine {
+                      animation: shine 1.2s linear 1;
+                    }
+                    .animate-shine {
+                      position: absolute;
+                      top: 0; left: -100%;
+                      width: 120%;
+                      height: 100%;
+                      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
+                      opacity: 0.25;
+                      pointer-events: none;
+                    }
+                  `}
+                </style>
               </div>
             </div> 
           </div>
@@ -919,3 +942,26 @@ export function RelatoriosTab() {
     </div>
   );
 }
+
+/* Custom Animations */
+<style>
+  {`
+    @keyframes shine {
+      0% { left: -100%; }
+      60% { left: 120%; }
+      100% { left: 120%; }
+    }
+    .group:hover .animate-shine {
+      animation: shine 1.2s linear 1;
+    }
+    .animate-shine {
+      position: absolute;
+      top: 0; left: -100%;
+      width: 120%;
+      height: 100%;
+      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
+      opacity: 0.25;
+      pointer-events: none;
+    }
+  `}
+</style>

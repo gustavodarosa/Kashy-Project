@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify'; 
-import { Edit, Trash2, Plus, Search, ChevronLeft, ChevronRight, Package, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { Tags, Bitcoin, Tag ,Edit,Baby,Zap,Glasses,Drill, Printer,MonitorSmartphone,GlassWater, Ham,Beer, BeerOff, Barcode, Trash2, Plus, Search, DollarSign, ChevronLeft, ChevronRight,Mars, CircleX, Package, ChartNoAxesCombined, AlignJustify, CheckCircle, AlertTriangle, Info, Utensils, Coffee, Smartphone, Shirt, Wrench, ShoppingBag, ShoppingCart, Wine, CupSoda,Settings, Apple, Snowflake, Truck, Monitor, Tv, User,Venus, Users, Candy, Store, Box } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 import { Listbox } from '@headlessui/react';
 
@@ -58,27 +58,25 @@ export function ProdutosTab() {
   const { addNotification } = useNotification();
 
   const categories = [
-    
-    { value: 'alimentos', label: 'Alimentos' },
-    { value: 'bebidas', label: 'Bebidas' },
-    { value: 'eletronicos', label: 'Eletrônicos' },
-    { value: 'vestuario', label: 'Vestuário' },
-    { value: 'servicos', label: 'Serviços' },
+    { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-orange-300" /> },
+    { value: 'bebidas', label: 'Bebidas', icon: <Coffee size={16} className="inline mr-1 text-blue-300" /> },
+    { value: 'eletronicos', label: 'Eletrônicos', icon: <MonitorSmartphone size={16} className="inline mr-1 text-green-300" /> },
+    { value: 'vestuario', label: 'Vestuário', icon: <Shirt size={16} className="inline mr-1 text-red-400" /> },
+    { value: 'servicos', label: 'Serviços', icon: <Wrench size={16} className="inline mr-1 text-yellow-300" /> },
   ];
 
-  // Adicione este array para as lojas, se quiser centralizar:
   const stores = [
-    { value: 'all', label: 'Todas as Lojas' },
-    { value: 'Loja A', label: 'Loja A' },
-    { value: 'Loja B', label: 'Loja B' },
-    { value: 'Loja C', label: 'Loja C' },
+    { value: 'all', label: 'Todas as Lojas'},
+    { value: 'Loja A', label: 'Loja A', icon: <Store size={16} className="inline mr-1 text-teal-400" /> },
+    { value: 'Loja B', label: 'Loja B', icon: <Store size={16} className="inline mr-1 text-blue-400" /> },
+    { value: 'Loja C', label: 'Loja C', icon: <Store size={16} className="inline mr-1 text-pink-400" /> },
   ];
 
   // 1. Adicione as subcategorias por categoria
   const subcategoriesMap: Record<string, string[]> = {
     alimentos: ['Doces', 'Salgados', 'Orgânicos', 'Congelados'],
     bebidas: ['Alcoólica', 'Não alcoólica', 'Refrigerante', 'Suco', 'Energético'],
-    eletronicos: ['Celular', 'Notebook', 'Acessório', 'TV'],
+    eletronicos: ['Celular', 'Notebook', 'Impressora', 'TV'],
     vestuario: ['Masculino', 'Feminino', 'Infantil', 'Acessórios'],
     servicos: ['Entrega', 'Montagem', 'Instalação'],
     outros: ['Outro'],
@@ -215,7 +213,7 @@ export function ProdutosTab() {
       priceBCH: 0,
       quantity: 0,
       sku: '',
-      category: '', // <-- string vazia
+      category: '', 
       subcategory: '',
       store: '',
       minimum: 1,
@@ -345,32 +343,121 @@ export function ProdutosTab() {
                   <p className="text-base text-teal-100/80">Gestão inteligente do seu inventário</p>
                 </div>
               </div>
-              {/* Enhanced Action Button */}
-              <div className="mt-4">
+              {/* Enhanced Action Button - Novo Produto com animação e cores teal/cyan */}
+              <div className="mt-6 flex justify-center">
                 <button
+                id="btn-novo-produto"
                   onClick={() => setIsFormOpen(true)}
-                  className="group relative px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-teal-400 text-sm"
+                  className="group relative px-8 py-3 bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-teal-400/40 text-base overflow-hidden"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-md">
-                      <Plus size={18} />
-                    </div>
+                  <span className="flex items-center gap-2 relative z-10">
+                    <Plus size={20} />
                     <span>Novo Produto</span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                  </span>
+                  {/* Animated Shine Effect */}
+                  <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
+                {/* Custom Animations */}
+                <style>
+                  {`
+                    @keyframes shine {
+                      0% { left: -100%; }
+                      60% { left: 120%; }
+                      100% { left: 120%; }
+                    }
+                    .group:hover .animate-shine {
+                      animation: shine 1.2s linear 1;
+                    }
+                    .animate-shine {
+                      position: absolute;
+                      top: 0; left: -100%;
+                      width: 120%;
+                      height: 100%;
+                      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
+                      opacity: 0.25;
+                      pointer-events: none;
+                    }
+                  `}
+                </style>
               </div>
             </div>
           </div>
         </div>
+{/* Estatísticas de Estoque - Cards aprimorados */}
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  {/* Alto Estoque */}
+  <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
+    <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+      <ChartNoAxesCombined size={64} className="text-emerald-400" />
+    </div>
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-3xl font-bold text-emerald-300 drop-shadow">{products.filter(p => p.quantity >= 30).length}</span>
+      <span className="text-lg text-emerald-200 font-semibold">Produtos</span>
+    </div>
+    <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
+      <ChartNoAxesCombined size={18} className="inline" /> Alto Estoque
+    </div>
+    <div className="mt-2 flex items-center gap-1 text-xs text-emerald-300">
+      🟢 30+ unidades
+    </div>
+  </div>
+  {/* Médio Estoque */}
+  <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-blue-700/20 via-blue-500/10 to-blue-400/5 rounded-2xl border border-blue-400/30 shadow-xl hover:shadow-2xl hover:border-blue-400/60 transition-all duration-300 hover:scale-[1.03]">
+    <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+      <AlignJustify size={64} className="text-blue-400" />
+    </div>
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-3xl font-bold text-blue-300 drop-shadow">{products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}</span>
+      <span className="text-lg text-blue-200 font-semibold">Produtos</span>
+    </div>
+    <div className="flex items-center gap-2 text-sm text-blue-200 font-medium">
+      <AlignJustify size={18} className="inline" /> Médio Estoque
+    </div>
+    <div className="mt-2 flex items-center gap-1 text-xs text-blue-300">
+      🔵 16-29 unidades
+    </div>
+  </div>
+  {/* Baixo Estoque */}
+  <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
+    <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+      <AlertTriangle size={64} className="text-amber-400" />
+    </div>
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-3xl font-bold text-amber-300 drop-shadow">{products.filter(p => p.quantity > 0 && p.quantity <= 15).length}</span>
+      <span className="text-lg text-amber-200 font-semibold">Produtos</span>
+    </div>
+    <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
+      <AlertTriangle size={18} className="inline" /> Baixo Estoque
+    </div>
+    <div className="mt-2 flex items-center gap-1 text-xs text-amber-300">
+      🟡 1-15 unidades
+    </div>
+  </div>
+  {/* Esgotados */}
+  <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
+    <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+      <CircleX size={64} className="text-red-400" />
+    </div>
+    <div className="flex items-center gap-2 mb-2">
+      <span className="text-3xl font-bold text-red-300 drop-shadow">{products.filter(p => p.quantity === 0).length}</span>
+      <span className="text-lg text-red-200 font-semibold">Produtos</span>
+    </div>
+    <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
+      <CircleX size={18} className="inline" /> Esgotados
+    </div>
+    <div className="mt-2 flex items-center gap-1 text-xs text-red-300">
+      🔴 0 unidades
+    </div>
+  </div>
+</div>
 
         {/* Enhanced View Mode Toggle */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4.5">
           <div className="p-1.5 bg-[#2F363E]/80 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl">
             <div className="flex gap-1">
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${
                   viewMode === 'table' 
                     ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg' 
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -380,7 +467,7 @@ export function ProdutosTab() {
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${
                   viewMode === 'grid' 
                     ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg' 
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
@@ -402,8 +489,8 @@ export function ProdutosTab() {
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar produtos, SKU..."
-                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-sm"
+                  placeholder="Buscar produtos..."
+                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-base"
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -415,28 +502,29 @@ export function ProdutosTab() {
               <div className="flex gap-4">
                 {/* Categoria Listbox */}
                 <Listbox value={selectedCategory} onChange={(value) => { setSelectedCategory(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white transition-all text-sm w-full text-left whitespace-nowrap truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]">
+                    <Listbox.Button className="flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white transition-all text-base w-full text-left whitespace-nowrap truncate">
+                      {categories.find(c => c.value === selectedCategory)?.icon}
                       {selectedCategory === 'all'
-                        ? 'Todas Categorias' // Mantido como estava no seu código original
+                        ? 'Todas Categorias'
                         : categories.find(c => c.value === selectedCategory)?.label || 'Outros'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
                       <Listbox.Option
                         value="all"
-                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-base"
                       >
-                        Todas Categorias {/* Mantido como estava no seu código original */}
+                        <span role="img" aria-label="Todas"></span> Todas Categorias
                       </Listbox.Option>
                       {categories.map((cat, idx) => (
                         <Listbox.Option
                           key={cat.value}
                           value={cat.value}
-                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-base
                             ${idx === categories.length - 1 ? 'rounded-b-xl' : ''}
                           `}
                         >
-                          {cat.label}
+                          {cat.icon} {cat.label}
                         </Listbox.Option>
                       ))}
                     </Listbox.Options>
@@ -445,8 +533,9 @@ export function ProdutosTab() {
 
                 {/* Loja Listbox */}
                 <Listbox value={selectedStore} onChange={(value) => { setSelectedStore(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-sm w-full text-left whitespace-nowrap truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]">
+                    <Listbox.Button className="flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-base w-full text-left whitespace-nowrap truncate">
+                      {stores.find(s => s.value === selectedStore)?.icon}
                       {stores.find(s => s.value === selectedStore)?.label || 'Todas Lojas'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
@@ -454,11 +543,11 @@ export function ProdutosTab() {
                         <Listbox.Option
                           key={store.value}
                           value={store.value}
-                          className={`px-4 py-2 hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                          className={`px-4 py-2 hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-base
                             ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === stores.length - 1 ? 'rounded-b-xl' : ''}
                           `}
                         >
-                          {store.label}
+                          {store.icon} {store.label}
                         </Listbox.Option>
                       ))}
                     </Listbox.Options>
@@ -469,38 +558,7 @@ export function ProdutosTab() {
           </div>
         </div>
 
-        {/* Estoque Stats Cards - igual PedidosTab */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="group p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-green-300 mb-1">
-              {products.filter(p => p.quantity >= 30).length}
-            </div>
-            <div className="text-xs text-green-200/80 font-medium">Alto Estoque</div>
-            
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-blue-300 mb-1">
-              {products.filter(p => p.quantity >= 16 && p.quantity <= 29).length}
-            </div>
-            <div className="text-xs text-blue-200/80 font-medium">Médio Estoque</div>
-
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-yellow-300 mb-1">
-              {products.filter(p => p.quantity > 0 && p.quantity <= 15).length}
-            </div>
-            <div className="text-xs text-yellow-200/80 font-medium">Baixo Estoque</div>
-
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-red-300 mb-1">
-              {products.filter(p => p.quantity === 0).length}
-            </div>
-            <div className="text-xs text-red-200/80 font-medium">Esgotados</div>
- 
-          </div>
-        </div>
-
+        
         {/* Products Content */}
         {viewMode === 'table' ? (
           <div
@@ -527,70 +585,113 @@ export function ProdutosTab() {
                 <table className="w-full">
                   <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
                     <tr className="text-xs">
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Produto</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Preço</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Estoque</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Categoria</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Subcategoria</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <Package size={14} className="inline mr-1 text-teal-300" /> Produto
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <Barcode size={14} className="inline mr-1 text-cyan-400 "/> SKU
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <DollarSign size={14} className="inline mr-1 text-amber-500" /> Preço
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <AlertTriangle size={14} className="inline mr-1 text-yellow-300" /> Estoque
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <Tag size={14} className="inline mr-1 text-red-500" /> Categoria
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <Tags size={14} className="inline mr-1 text-purple-400" /> Subcategoria
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                        <Store size={14} className="inline mr-1 text-blue-300" /> Loja
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
+                        <Settings size={15} className="inline mr-1 text-zinc-400" /> Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {products.map((product) => {
                       let estoqueClass = '';
                       let estoqueLabel = '';
+                      let estoqueEmoji = '';
                       if (product.quantity >= 30) {
-                        estoqueLabel = 'Alto';
+             
                         estoqueClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                        estoqueEmoji = '🟢';
                       } else if (product.quantity >= 16) {
-                        estoqueLabel = 'Médio';
+                    
                         estoqueClass = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+                        estoqueEmoji = '🔵';
                       } else if (product.quantity > 0) {
-                        estoqueLabel = 'Baixo';
+                      
                         estoqueClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                        estoqueEmoji = '🟡';
                       } else {
-                        estoqueLabel = 'Esgotado';
+                       
                         estoqueClass = 'bg-red-500/20 text-red-300 border-red-500/30';
+                        estoqueEmoji = '🔴';
                       }
 
                       return (
-                        <tr key={product._id} className="hover:bg-white/5 transition-colors">
+                        <tr key={product._id} className="hover:bg-white/5 transition-colors group">
                           <td className="px-4 py-3">
-                            <div className="text-sm text-white font-medium">{product.name}</div>
-                            <div className="text-xs text-gray-400">SKU: {product.sku}</div>
+                            <div className="flex items-center gap-2">
+                              <Package size={18} className="text-teal-400" />
+                              <span className="text-xs text-white">{product.name}</span>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
-                            <div className="text-sm text-white font-medium">R$ {product.priceBRL.toFixed(2)}</div>
-                            <div className="text-xs text-gray-400">{product.priceBCH.toFixed(6)} BCH</div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${estoqueClass}`}>
-                              {product.quantity} un. - {estoqueLabel}
+                            <span className="text-xs text-white flex items-center gap-1">
+                              <Barcode size={18} className="text-cyan-400" /> {product.sku}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-xs text-gray-300">
+                            <div className="flex items-center gap-1 text-xs text-white ">
+                              <DollarSign size={18} className="text-green-400" /> {product.priceBRL.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-400 flex items-center gap-1">
+                              <Bitcoin size={18} className="text-yellow-400" />{product.priceBCH.toFixed(6)} BCH
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${estoqueClass}`}>
+                              <span>{estoqueEmoji}</span>
+                              {product.quantity} unidades
+                              <span className="ml-1">{estoqueLabel}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="flex items-center gap-1 text-xs text-gray-300">
+                              {categories.find(c => c.value === product.category)?.icon}
                               {categories.find(c => c.value === product.category)?.label || 'Outros'}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-xs text-gray-300">{product.subcategory}</span>
+                            <span className="flex items-center gap-1 text-xs text-gray-300">
+                              {getSubcategoryIcon(product.category, product.subcategory)}
+                              {product.subcategory}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-xs text-gray-300">{product.store}</span>
+                            <span className="flex items-center gap-1 text-xs text-gray-300">
+                              {getStoreIcon(product.store)} {product.store}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex gap-2 justify-center">
                               <button
                                 onClick={() => handleEdit(product)}
-                                className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
+                                className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
+                                title="Editar"
                               >
                                 <Edit size={14} />
                               </button>
                               <button
                                 onClick={() => handleDelete(product._id)}
-                                className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
+                                className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
+                                title="Excluir"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -610,56 +711,100 @@ export function ProdutosTab() {
               let estoqueClass = '';
               let estoqueLabel = '';
               if (product.quantity >= 30) {
-                estoqueLabel = 'Alto';
+                estoqueLabel = '- Alto';
                 estoqueClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
               } else if (product.quantity >= 16) {
-                estoqueLabel = 'Médio';
+                estoqueLabel = '- Médio';
                 estoqueClass = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
               } else if (product.quantity > 0) {
-                estoqueLabel = 'Baixo';
+                estoqueLabel = '- Baixo';
                 estoqueClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
               } else {
-                estoqueLabel = 'Esgotado';
+                estoqueLabel = '- Esgotado';
                 estoqueClass = 'bg-red-500/20 text-red-300 border-red-500/30';
               }
 
               return (
                 <div
                   key={product._id}
-                  className="group p-4 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 hover:border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                  className="group relative p-5 bg-[#2F363E]/60 rounded-2xl border border-white/10 hover:border-teal-400/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.04] overflow-hidden"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-base font-semibold text-white truncate flex-1 mr-2">{product.name}</h3>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <div className="text-lg font-bold text-white">R$ {product.priceBRL.toFixed(2)}</div>
-                    <div className="text-xs text-gray-400">{product.priceBCH.toFixed(6)} BCH</div>
+                  {/* Ícone de categoria grande no topo direito */}
+                  <div className="absolute top-4 right-4 opacity-50 group-hover:opacity-70 transition-all pointer-events-none select-none">
+                    {categories.find(c => c.value === product.category)?.icon}
                   </div>
 
+                  {/* Nome e SKU */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="p-2 bg-teal-500/20 rounded-lg border border-teal-400/20">
+                      <Package size={20} className="text-teal-300" />
+                    </span>
+                    <h3 className="text-lg font-bold text-white truncate flex-1">{product.name}</h3>
+                  </div>
+                 
+
+                  {/* Preço */}
                   <div className="mb-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium border ${estoqueClass}`}>
-                      {product.quantity} un. - {estoqueLabel}
+                    <div className="text-xl text-white flex items-center gap-1">
+                      <DollarSign size={20} className="text-green-400" /> {product.priceBRL.toFixed(2)} BRL
+                    </div>
+                    <div className="text-xl text-white flex items-center gap-1">
+                      <Bitcoin size={20} className="text-amber-400" /> {product.priceBCH.toFixed(6)} BCH
+                    </div>
+                     <div className="text-sm text-white flex items-center gap-1">
+                    <Barcode size={20} className="text-cyan-400" /> {product.sku} SKU
+                  </div>
+                  </div>
+
+                  {/* Estoque */}
+                  <div className="mb-3">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${estoqueClass}`}>
+                      {estoqueLabel === 'Alto' && <ChartNoAxesCombined size={14} className="text-emerald-300" />}
+                      {estoqueLabel === 'Médio' && <AlignJustify size={14} className="text-blue-300" />}
+                      {estoqueLabel === 'Baixo' && <AlertTriangle size={14} className="text-amber-300" />}
+                      {estoqueLabel === 'Esgotado' && <CircleX size={14} className="text-red-300" />}
+                      {product.quantity} Unidades
+                      <span>{estoqueLabel}</span>
                     </span>
                   </div>
 
-                  <div className="text-xs text-gray-400 mb-4 space-y-0.5">
-                    <div>SKU: {product.sku}</div>
-                    <div>Categoria: {categories.find(c => c.value === product.category)?.label || 'Outros'}</div>
-                    <div>Loja: {product.store}</div>
+                  {/* Categoria, Subcategoria e Loja */}
+                  <div className="flex flex-col gap-1 text-xs text-gray-400 mb-4">
+                    <div className="flex items-center gap-1">
+                      {categories.find(c => c.value === product.category)?.icon}
+                      <span>{categories.find(c => c.value === product.category)?.label || 'Outros'}</span>
+                      {product.subcategory && (
+                        <>
+                          <span className="mx-1 text-gray-500">|</span>
+                          {getSubcategoryIcon(product.category, product.subcategory)}
+                          <span>{product.subcategory}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {getStoreIcon(product.store)}
+                      <span>{product.store}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <Info size={12} className="text-gray-500" />
+                      <span className="text-gray-500">Criado em {formatDate(product.createdAt)}</span>
+                    </div>
                   </div>
 
-                  <div className="flex gap-1.5">
+                  {/* Botões de ação */}
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(product)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-lg border border-teal-500/30 hover:border-teal-500/50 font-medium transition-all duration-200 hover:scale-105 text-xs"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-teal-600/30 to-teal-400/20 hover:from-teal-500 hover:to-teal-400 text-teal-200 rounded-lg border border-teal-400/30 hover:border-teal-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
                     >
                       <Edit size={14} />
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(product._id)}
-                      className="flex items-center justify-center p-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-105"
+                      className="flex items-center justify-center p-2 bg-gradient-to-r from-red-600/30 to-red-400/20 hover:from-red-500 hover:to-red-400 text-red-300 rounded-lg border border-red-400/30 hover:border-red-400/60 transition-all duration-200 hover:scale-105 shadow"
+                      title="Excluir"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -918,7 +1063,7 @@ export function ProdutosTab() {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                    className="px-5 py-2 bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
                   >
                     Cancelar
                   </button>
@@ -927,8 +1072,8 @@ export function ProdutosTab() {
                     onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
                     className={`px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${
                       currentProduct
-                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white'
-                        : 'bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white'
+                        ? 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
+                        : 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
                     }`}
                   >
                     {currentProduct ? 'Atualizar' : 'Salvar'}
@@ -965,7 +1110,7 @@ export function ProdutosTab() {
                   }`}
                   onClick={() => setIsActionModalOpen(false)}
                 >
-                  Ok, Entendi
+                  Ok, Entendi!
                 </button>
               </div>
             </div>
@@ -988,7 +1133,7 @@ export function ProdutosTab() {
                 
                 <div className="flex gap-3">
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white text-sm"
                     onClick={() => {
                       setIsDeleteConfirmModalOpen(false);
                       setProductToDeleteId(null);
@@ -997,7 +1142,7 @@ export function ProdutosTab() {
                     Cancelar
                   </button>
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white text-sm"
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
                     onClick={confirmDelete}
                   >
                     Excluir
@@ -1024,13 +1169,13 @@ export function ProdutosTab() {
                 
                 <div className="flex gap-3">
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
                     onClick={() => setIsUpdateConfirmModalOpen(false)}
                   >
                     Cancelar
                   </button>
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
                     onClick={handleConfirmUpdate} // Calls the function that will then call handleSubmit
                   >
                     Confirmar
@@ -1045,3 +1190,49 @@ export function ProdutosTab() {
     </div>
   );
 }
+
+// Ícones para subcategorias
+function getSubcategoryIcon(category: string, subcategory: string) {
+  if (category === 'alimentos') {
+    if (subcategory === 'Doces') return <Candy size={14} className="text-pink-500" />;
+    if (subcategory === 'Salgados') return <Ham size={14} className="text-orange-500" />;
+    if (subcategory === 'Orgânicos') return <Apple size={14} className="text-green-500" />;
+    if (subcategory === 'Congelados') return <Snowflake size={14} className="text-blue-300" />;
+  }
+  if (category === 'bebidas') {
+    if (subcategory === 'Alcoólica') return <Beer size={14} className="text-amber-500" />;
+    if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-red-500" />;
+    if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-purple-400" />;
+    if (subcategory === 'Suco') return <GlassWater size={14} className="text-cyan-400" />;
+    if (subcategory === 'Energético') return <Zap size={14} className="text-yellow-400" />;
+  }
+  if (category === 'eletronicos') {
+    if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-500" />;
+    if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-500" />;
+    if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-500" />;
+    if (subcategory === 'TV') return <Tv size={14} className="text-gray-500" />;
+  }
+  if (category === 'vestuario') {
+    if (subcategory === 'Masculino') return <Mars size={14} className="text-blue-400" />;
+    if (subcategory === 'Feminino') return <Venus size={14} className="text-pink-400" />;
+    if (subcategory === 'Infantil') return <Baby size={14} className="text-yellow-400" />;
+    if (subcategory === 'Acessórios') return <Glasses size={14} className="text-black" />;
+  }
+  if (category === 'servicos') {
+    if (subcategory === 'Entrega') return <Truck size={14} className="text-green-500" />;
+    if (subcategory === 'Montagem') return <Drill size={14} className="text-yellow-300" />;
+    if (subcategory === 'Instalação') return <Wrench size={14} className="text-blue-400" />;
+  }
+  return <Tag size={14} className="text-gray-400" />;
+}
+
+// Ícones para lojas
+function getStoreIcon(store: string) {
+  switch (store) {
+    case 'Loja A': return <Store size={16} className="text-teal-400" />;
+    case 'Loja B': return <Store size={16} className="text-blue-400" />;
+    case 'Loja C': return <Store size={16} className="text-pink-400" />;
+    default: return <Store size={16} className="text-gray-400" />;
+  }
+}
+
