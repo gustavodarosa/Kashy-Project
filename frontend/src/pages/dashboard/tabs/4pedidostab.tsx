@@ -1,21 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingBasket,
-  Edit2, // Or Edit, depending on preference
-  Trash2,
-  Copy,
-  Printer,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Plus,
-  CreditCard,
-  
-  ShoppingCart,
-} from 'lucide-react';
+import { Search, Landmark, CircleCheckBig, Bitcoin, User, Store, Settings, DollarSign, AlignJustify, CircleX, AlertTriangle, ChevronLeft, ChevronRight, ShoppingBasket, Edit2, Trash2, Copy, Printer, Clock, CheckCircle, XCircle, Plus, CreditCard, ChartNoAxesCombined, ShoppingCart, } from 'lucide-react';
 import { Listbox } from '@headlessui/react';
 import QRCode from 'react-qr-code';
 
@@ -355,7 +339,7 @@ export function PedidosTab() {
       if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
         openQrModal(savedOrder._id);
       } else {
-        setOrders(prev => [savedOrder, ...prev].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
+        setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
         setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
       }
 
@@ -465,7 +449,7 @@ export function PedidosTab() {
         return <Clock size={14} className="text-gray-500" />;
     }
   };
-  
+
   const getStatusLabelText = (status: Order['status']): string => {
     switch (status) {
       case 'paid':
@@ -502,7 +486,7 @@ export function PedidosTab() {
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
       <div className="container mx-auto px-2 py-2">
         {/* Enhanced Hero Section */}
-        <div className="relative overflow-hidden mb-10">
+        <div className="relative overflow-hidden mb-4">
           <div
             className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
@@ -577,7 +561,79 @@ export function PedidosTab() {
           </style>
         </div>
 
+        {/* Quick Stats - Styled like ProdutosTab hero stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {/* Pagos */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+              <CircleCheckBig size={64} className="text-emerald-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-emerald-300 drop-shadow">{orders.filter(o => o.status === 'paid').length}</span>
+              <span className="text-lg text-emerald-200 font-semibold">Pedidos</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
+              <CircleCheckBig size={18} className="inline" /> Pagos
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-300">
+              🟢 0 BCH - 0 Cartão - 0 Pix
+            </div>
+          </div>
+          {/* Pendentes */}
 
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+
+              <AlertTriangle size={64} className="text-amber-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+
+              <span className="text-3xl font-bold text-amber-300 drop-shadow">{orders.filter(o => o.status === 'pending').length}</span>
+              <span className="text-lg text-amber-200 font-semibold">Pedidos</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
+              <AlertTriangle size={18} className="inline" /> Pendentes
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-amber-300">
+              🟡 0 BCH - 0 Cartão - 0 Pix
+            </div>
+          </div>
+          {/* Cancelados/Expirados */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+              <CircleX size={64} className="text-red-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-red-300 drop-shadow">{orders.filter(o => o.status === 'cancelled' || o.status === 'expired' || o.status === 'refunded').length}</span>
+              <span className="text-lg text-red-200 font-semibold">Pedidos</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
+              <CircleX size={18} className="inline" /> Cancelados/Expirados
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-red-300">
+              🔴 0 BCH - 0 Cartão - 0 Pix
+            </div>
+          </div>
+          {/* Total de Pedidos */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-blue-700/20 via-blue-500/10 to-blue-400/5 rounded-2xl border border-blue-400/30 shadow-xl hover:shadow-2xl hover:border-blue-400/60 transition-all duration-300 hover:scale-[1.03]">
+
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+
+              <Landmark size={64} className="text-blue-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+
+              <span className="text-3xl font-bold text-blue-300 drop-shadow">{orders.length}</span>
+              <span className="text-lg text-blue-200 font-semibold">Pedidos</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-blue-200 font-medium">
+              <Landmark size={18} className="inline" /> Total de Pedidos
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-blue-300">
+              🔵 0 BCH - 0 Cartão - 0 Pix
+            </div>
+          </div>
+        </div>
         {/* Enhanced Filters Section */}
         <div className="mb-3">
           <div className="p-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl relative z-10">
@@ -597,29 +653,40 @@ export function PedidosTab() {
                   }}
                 />
               </div>
-              
+
               <div className="flex gap-3 w-full lg:w-auto">
                 {/* Status Listbox */}
                 <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]">
+                    <Listbox.Button className="flex items-center gap-2 w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                      {statusFilter === 'all' && <AlignJustify size={16} className="text-gray-400" />}
+                      {statusFilter === 'pending' && <AlertTriangle size={16} className="text-amber-400" />}
+                      {statusFilter === 'paid' && <CheckCircle size={16} className="text-emerald-400" />}
+                      {statusFilter === 'cancelled' && <CircleX size={16} className="text-red-400" />}
+                      {statusFilter === 'expired' && <Clock size={16} className="text-blue-400" />}
+                      {statusFilter === 'refunded' && <DollarSign size={16} className="text-yellow-400" />}
                       {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos os Status'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
                       <Listbox.Option
                         value="all"
-                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
                       >
-                        Todos os Status
+                        <AlignJustify size={16} className="text-gray-400" /> Todos os Status
                       </Listbox.Option>
                       {statusOptions.filter(opt => opt.value !== 'all').map((statusOpt, idx, arr) => (
                         <Listbox.Option
                           key={statusOpt.value}
                           value={statusOpt.value}
-                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                          className={`flex items-center gap-2 px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
                             ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
                           `}
                         >
+                          {statusOpt.value === 'pending' && <AlertTriangle size={16} className="text-amber-400" />}
+                          {statusOpt.value === 'paid' && <CheckCircle size={16} className="text-emerald-400" />}
+                          {statusOpt.value === 'cancelled' && <CircleX size={16} className="text-red-400" />}
+                          {statusOpt.value === 'expired' && <Clock size={16} className="text-blue-400" />}
+                          {statusOpt.value === 'refunded' && <DollarSign size={16} className="text-yellow-400" />}
                           {statusOpt.label}
                         </Listbox.Option>
                       ))}
@@ -628,25 +695,32 @@ export function PedidosTab() {
                 </Listbox>
                 {/* Payment Method Listbox */}
                 <Listbox value={paymentFilter} onChange={(value) => { setPaymentFilter(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]">
+                    <Listbox.Button className="flex items-center gap-2 w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                      {paymentFilter === 'all' && <AlignJustify size={16} className="text-gray-400" />}
+                      {paymentFilter === 'bch' && <Bitcoin size={16} className="text-green-400" />}
+                      {paymentFilter === 'pix' && <CreditCard size={16} className="text-blue-400" />}
+                      {paymentFilter === 'card' && <CreditCard size={16} className="text-blue-400" />}
                       {paymentOptions.find(p => p.value === paymentFilter)?.label || 'Todos os Métodos'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
                       <Listbox.Option
                         value="all"
-                        className="px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] rounded-t-xl cursor-pointer whitespace-nowrap text-sm"
                       >
-                        Todos os Métodos
+                        <AlignJustify size={16} className="text-gray-400" /> Todos os Métodos
                       </Listbox.Option>
                       {paymentOptions.filter(opt => opt.value !== 'all').map((paymentOpt, idx, arr) => (
                         <Listbox.Option
                           key={paymentOpt.value}
                           value={paymentOpt.value}
-                          className={`px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
+                          className={`flex items-center gap-2 px-4 py-2 bg-[#24292D] hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-sm
                             ${idx === arr.length - 1 ? 'rounded-b-xl' : ''}
                           `}
                         >
+                          {paymentOpt.value === 'bch' && <Bitcoin size={16} className="text-green-400" />}
+                          {paymentOpt.value === 'pix' && <CreditCard size={16} className="text-blue-400" />}
+                          {paymentOpt.value === 'card' && <CreditCard size={16} className="text-blue-400" />}
                           {paymentOpt.label}
                         </Listbox.Option>
                       ))}
@@ -658,31 +732,11 @@ export function PedidosTab() {
           </div>
         </div>
 
-        {/* Quick Stats - Styled like ProdutosTab hero stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="group p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-xl backdrop-blur-sm border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-green-300 mb-1">{orders.filter(o => o.status === 'paid').length}</div>
-            <div className="text-xs text-green-200/80 font-medium">Pagos</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-yellow-300 mb-1">{orders.filter(o => o.status === 'pending').length}</div>
-            <div className="text-xs text-yellow-200/80 font-medium">Pendentes</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-red-300 mb-1">{orders.filter(o => o.status === 'cancelled' || o.status === 'expired' || o.status === 'refunded').length}</div>
-            <div className="text-xs text-red-200/80 font-medium">Cancelados/Expirados</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-xl backdrop-blur-sm border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-blue-300 mb-1">{orders.length}</div>
-            <div className="text-xs text-blue-200/80 font-medium">Total de Pedidos</div>
-          </div>
-        </div>
+
 
         {/* Tabela de pedidos */}
         <div
-          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-          style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
-        >
+          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
@@ -703,20 +757,38 @@ export function PedidosTab() {
               <table className="w-full">
                 <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
                   <tr className="text-xs">
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">ID</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Loja</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Cliente</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Total</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Pagamento</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Data</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Fatura</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <span className="inline-block mr-1 text-blue-400"><Copy size={16} /></span> ID
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <Store size={16} className="inline mr-1 text-teal-400" /> Loja
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <User size={16} className="inline mr-1 text-cyan-400" /> Cliente
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <DollarSign size={16} className="inline mr-1 text-amber-500" /> Total
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <CreditCard size={16} className="inline mr-1 text-green-400" /> Pagamento
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <Clock size={16} className="inline mr-1 text-blue-300" /> Data
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
+                      <CheckCircle size={16} className="inline mr-1 text-emerald-400" /> Status
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
+                      <Printer size={16} className="inline mr-1 text-zinc-400" /> Fatura
+                    </th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
+                      <Settings size={16} className="inline mr-1 text-zinc-400" /> Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {orders.map((order) => (
-                    <tr key={order._id} className="hover:bg-white/5 transition-colors">
+                    <tr key={order._id} className="hover:bg-white/5 transition-colors group">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-mono text-blue-400">
@@ -732,50 +804,38 @@ export function PedidosTab() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-white font-medium">{order.store}</div>
+                        <span className="flex items-center gap-1 text-xs text-white">
+                          <Store size={16} className="text-teal-400" /> {order.store}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-300">
-                          {order.customerEmail || 'Anônimo'}
-                        </div>
+                        <span className="flex items-center gap-1 text-xs text-gray-300">
+                          <User size={16} className="text-cyan-400" /> {order.customerEmail || 'Anônimo'}
+                        </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-white font-medium">{formatCurrency(order.totalAmount)}</div>
+                        <span className="flex items-center gap-1 text-xs text-white">
+                          <DollarSign size={16} className="text-amber-500" /> {formatCurrency(order.totalAmount)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-300 flex items-center gap-2">
-                          {order.paymentMethod === 'bch' && (
-                            <span className="w-5 h-5 inline-block align-middle" title="Bitcoin Cash">
-                              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                                <rect width="32" height="32" rx="8" fill="#0AC18E"/>
-                                <g>
-                                  <circle cx="16" cy="16" r="10" fill="#fff"/>
-                                  <path d="M18.7 13.2c.3-2-1.2-3.1-3.3-3.1l.3-1.3-1.2-.3-.3 1.3c-.3-.1-.6-.1-.9-.2l.3-1.3-1.2-.3-.3 1.3c-.2 0-.4-.1-.6-.1l-1.6-.4-.3 1.3s.9.2.9.2c.5.1.6.5.6.8l-1.5 6.1c-.1.2-.2.5-.6.4 0 0-.9-.2-.9-.2l-.3 1.4 1.5.4c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c.3.1.6.1.9.2l-.3 1.3 1.2.3.3-1.3c2.1.4 3.7.2 4.4-1.7.5-1.3 0-2.1-1-2.6.7-.2 1.2-.8 1.3-1.9zm-2.3 4.1c-.3 1.3-2.6.6-3.3.4l.6-2.3c.7.2 3 .7 2.7 1.9zm.3-4.2c-.3 1.1-2.1.6-2.7.5l.5-2c.6.1 2.5.4 2.2 1.5z" fill="#0AC18E"/>
-                                </g>
-                              </svg>
-                            </span>
-                          )}
-                          {order.paymentMethod === 'pix' && (
-                            <span className="w-5 h-5 inline-block align-middle" title="PIX">
-                              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                                <rect width="32" height="32" rx="8" fill="#00E1CC"/>
-                                <path d="M16 8.5c.5 0 1 .2 1.4.6l5.5 5.5c.8.8.8 2 0 2.8l-5.5 5.5c-.8.8-2 .8-2.8 0l-5.5-5.5c-.8-.8-.8-2 0-2.8l5.5-5.5c.4-.4.9-.6 1.4-.6z" fill="#fff"/>
-                              </svg>
-                            </span>
-                          )}
-                          {order.paymentMethod === 'card' && <CreditCard size={18} className="text-blue-400" />}
+                        <span className="flex items-center gap-1 text-xs text-gray-300">
+                          {order.paymentMethod === 'bch' && <Bitcoin size={16} className="text-green-400" />}
+                          {order.paymentMethod === 'pix' && <CreditCard size={16} className="text-blue-400" />}
+                          {order.paymentMethod === 'card' && <CreditCard size={16} className="text-blue-400" />}
                           {getPaymentMethodLabel(order.paymentMethod)}
-                        </div>
+                        </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-400">
-                        {formatDate(order.createdAt)}
+                      <td className="px-4 py-3 whitespace-nowrap text-xs flex items-center gap-1 text-gray-400">
+                        <Clock size={16} className="text-blue-300" />{formatDate(order.createdAt)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
-                          order.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
-                          order.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                          'bg-red-500/20 text-red-300 border-red-500/30'
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${order.status === 'paid'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : order.status === 'pending'
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                              : 'bg-red-500/20 text-red-300 border-red-500/30'
+                          }`}>
                           {getStatusIconComponent(order.status)}
                           {getStatusLabelText(order.status)}
                         </span>
@@ -793,7 +853,7 @@ export function PedidosTab() {
                           <button
                             onClick={() => fetchOrderDetails(order._id)}
                             className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
-                            title="Editar Pedido (funcionalidade futura)"
+                            title="Editar Pedido"
                           >
                             <Edit2 size={14} />
                           </button>
@@ -826,6 +886,7 @@ export function PedidosTab() {
             </div>
           )}
         </div>
+
 
         {/* Pagination Controls - fora do container da tabela */}
         {!loading && !error && orders.length > 0 && (
@@ -894,11 +955,10 @@ export function PedidosTab() {
                           <h4 className="text-md font-semibold mb-2 text-gray-200">Informações do Pedido</h4>
                           <div className="space-y-1.5 text-sm">
                             <p><span className="text-gray-400">Status:</span>
-                              <span className={`ml-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
-                                qrOrder.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                              <span className={`ml-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${qrOrder.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
                                 qrOrder.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                                'bg-red-500/20 text-red-300 border-red-500/30'
-                              }`}>
+                                  'bg-red-500/20 text-red-300 border-red-500/30'
+                                }`}>
                                 {getStatusIconComponent(qrOrder.status)}
                                 {getStatusLabelText(qrOrder.status)}
                               </span>

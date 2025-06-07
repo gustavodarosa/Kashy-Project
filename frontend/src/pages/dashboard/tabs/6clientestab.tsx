@@ -1,20 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-
-  Plus,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Users, // Ícone para o cabeçalho
-  Award, // Para clube ativo
-  UserCheck,
-  UserX,
-  Zap, // Para insights
-  Gift, // Para insights
-  MessageCircle, // Para ações no modal
-
-} from 'lucide-react';
+import { CircleCheckBig, CircleX, AlertTriangle, Plus, Search, ChevronLeft, ChevronRight, Download, Users, Award, UserCheck, UserX, Zap, Gift, MessageCircle } from 'lucide-react';
 
 type Cliente = {
   _id: string;
@@ -28,7 +13,7 @@ type Cliente = {
   tags?: string[];
   pontuacao?: number;
   // Adicionar campos que podem vir da API, como createdAt
-  createdAt?: string; 
+  createdAt?: string;
 };
 
 export function ClientesTab() {
@@ -154,12 +139,12 @@ export function ClientesTab() {
 
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 py-2">
 
         {/* Hero Section */}
-        <div className="relative overflow-hidden mb-10">
+        <div className="relative overflow-hidden mb-4">
           <div
-            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.2) 0%, transparent 50%),
@@ -181,8 +166,8 @@ export function ClientesTab() {
                   <p className="text-base text-indigo-100/80">Conheça e gerencie sua base de clientes</p>
                 </div>
               </div>
-              
-              <div className="mt-8">
+
+              <div className="mt-6">
                 <button
                   onClick={() => setIsNewClientModalOpen(true)}
                   className="group relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
@@ -220,7 +205,77 @@ export function ClientesTab() {
             </div>
           </div>
         </div>
-        
+        {/* Stats Grid - Moved here, similar to ProdutosTab */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+              <CircleCheckBig size={64} className="text-emerald-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-emerald-300 drop-shadow">{totalClientes}</span>
+              <span className="text-lg text-emerald-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
+              <CircleCheckBig size={18} className="inline" /> Pagas
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-300">
+              🟢 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+          {/* Pendentes */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+
+              <AlertTriangle size={64} className="text-amber-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+
+              <span className="text-3xl font-bold text-amber-300 drop-shadow">{clientesAtivosClube}</span>
+              <span className="text-lg text-amber-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
+              <AlertTriangle size={18} className="inline" /> Pendentes
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-amber-300">
+              🟡 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+          {/* Cancelados/Expirados */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+              <CircleX size={64} className="text-red-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-red-300 drop-shadow">{formatCurrency(mediaGasto)}</span>
+              <span className="text-lg text-red-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
+              <CircleX size={18} className="inline" /> Canceladas
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-red-300">
+              🔴 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+        </div>
+        {/* Insights IA */}
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105 flex items-center gap-3">
+            <div className="p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+              <Zap className="text-yellow-300" size={20} />
+            </div>
+            <span className="text-sm text-yellow-200/90">
+              Você tem <b>{clientes.filter(c => c.visitas > 5).length} clientes</b> que compraram mais de 5x.
+            </span>
+          </div>
+          <div className="group p-4 bg-gradient-to-br from-pink-500/10 to-pink-600/5 rounded-xl backdrop-blur-sm border border-pink-400/20 hover:border-pink-400/40 transition-all duration-300 hover:scale-105 flex items-center gap-3">
+            <div className="p-2 bg-pink-500/20 rounded-lg border border-pink-500/30">
+              <Gift className="text-pink-300" size={20} />
+            </div>
+            <span className="text-sm text-pink-200/90">
+              <b>{clientes.filter(c => c.visitas === 9).length} clientes</b> completaram 9 compras – incentive a 10ª!
+            </span>
+          </div>
+        </div>
         {/* Filters and Actions Section */}
         <div className="mb-6">
           <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
@@ -247,48 +302,9 @@ export function ClientesTab() {
           </div>
         </div>
 
-        {/* Stats Grid - Moved here, similar to ProdutosTab */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="group p-4 bg-gradient-to-br from-sky-500/10 to-sky-600/5 rounded-xl backdrop-blur-sm border border-sky-400/20 hover:border-sky-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-sky-300 mb-1">{totalClientes}</div>
-            <div className="text-xs text-sky-200/80 font-medium">Total de Clientes</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-emerald-300 mb-1">{clientesAtivosClube}</div>
-            <div className="text-xs text-emerald-200/80 font-medium">Ativos no Clube</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-amber-300 mb-1">{formatCurrency(mediaGasto)}</div>
-            <div className="text-xs text-amber-200/80 font-medium">Gasto Médio</div>
-          </div>
-        </div>
-
-
-        {/* Insights IA */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="group p-4 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 rounded-xl backdrop-blur-sm border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:scale-105 flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
-              <Zap className="text-yellow-300" size={20} />
-            </div>
-            <span className="text-sm text-yellow-200/90">
-              Você tem <b>{clientes.filter(c => c.visitas > 5).length} clientes</b> que compraram mais de 5x.
-            </span>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-pink-500/10 to-pink-600/5 rounded-xl backdrop-blur-sm border border-pink-400/20 hover:border-pink-400/40 transition-all duration-300 hover:scale-105 flex items-center gap-3">
-            <div className="p-2 bg-pink-500/20 rounded-lg border border-pink-500/30">
-              <Gift className="text-pink-300" size={20} />
-            </div>
-            <span className="text-sm text-pink-200/90">
-              <b>{clientes.filter(c => c.visitas === 9).length} clientes</b> completaram 9 compras – incentive a 10ª!
-            </span>
-          </div>
-        </div>
-
         {/* Lista de clientes */}
         <div
-          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-          style={{ minHeight: 520, maxHeight: 600, overflowY: 'auto' }}
-        >
+          className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
@@ -330,11 +346,10 @@ export function ClientesTab() {
                       <td className="px-4 py-3 text-sm text-white font-medium">{formatCurrency(cliente.totalGasto)}</td>
                       <td className="px-4 py-3 text-sm text-gray-300 text-center">{cliente.visitas}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${
-                          cliente.clubeAtivo
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border ${cliente.clubeAtivo
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                             : 'bg-red-500/20 text-red-300 border-red-500/30'
-                        }`}>
+                          }`}>
                           {cliente.clubeAtivo ? <UserCheck size={14} /> : <UserX size={14} />}
                           {cliente.clubeAtivo ? 'Ativo' : 'Inativo'}
                         </span>
@@ -397,7 +412,7 @@ export function ClientesTab() {
             </div>
           </div>
         )}
-        
+
         {/* Modal de perfil do cliente */}
         {modalCliente && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
@@ -465,7 +480,7 @@ export function ClientesTab() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Seção de Ações Rápidas */}
                 <div>
                   <h4 className="text-sm font-semibold text-indigo-300 mb-2">Ações Rápidas</h4>

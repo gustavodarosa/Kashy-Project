@@ -448,90 +448,105 @@ export function Dashboard() {
     };
 
     return (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen bg-[#181c24]">
             {/* Sidebar Desktop */}
-            <div className="fixed top-0 left-0 h-screen z-30 border-r border-[var(--color-border)] hidden sm:flex w-72 bg-[var(--color-bg-primary)] shadow-sm text-white transition-all duration-300 flex-shrink-0 flex-col">
+            <div className="fixed top-0 left-0 h-screen z-30 border-r border-[#232428] hidden sm:flex w-72 bg-[#20232a] shadow-2xl text-white transition-all duration-300 flex-shrink-0 flex-col">
 
-                <div className="flex items-center gap-4 justify-center h-20 px-2  flex-shrink-0">
-
-                    <div>
-                        <img
-                            src="/logokashy.svg"
-                            alt="Kashy Logo Header"
-                            className="h-24 w-auto max-w-[9rem] sm:max-w-[12rem]" // Ajustado para melhor responsividade do logo na sidebar
-                        />
-                    </div>
+                <div className="flex items-center gap-4 justify-center h-20 px-2 flex-shrink-0 border-b border-[#232428]/60 bg-[#232428]">
+                    <img
+                        src="/logokashy.svg"
+                        alt="Kashy Logo Header"
+                        className="h-20 w-auto max-w-[10rem] drop-shadow-lg"
+                    />
                 </div>
 
                 {/* Sidebar Navigation */}
-                <nav className="flex flex-col p-2 sm:p-4 gap-2 overflow-y-auto">
+                <nav className="flex flex-col p-4 gap-2 overflow-y-auto flex-1">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             title={tab.label}
-                            className={`py-5 px-2 sm:px-4 hover:bg-[var(--color-bg-tertiary)] rounded-2xl flex items-center justify-start gap-6 ${activeTab === tab.id ? 'bg-[var(--color-bg-tertiary)] font-semibold' : ''} transition-colors duration-200`}
+                            className={`
+                                group flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200
+                                font-medium text-base
+                                ${activeTab === tab.id
+                                    ? 'bg-[#14B498]/90 shadow-lg text-white ring-2 ring-[#14B498]/40'
+                                    : 'hover:bg-[#232428] hover:shadow-md text-gray-300'}
+                            `}
                         >
-                            <div className="w-5 h-5 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
+                            <span className={`w-6 h-6 flex items-center justify-center transition-transform duration-200 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-105'}`}>
+                                {tab.icon}
+                            </span>
                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>
                         </button>
                     ))}
+                    <div className="mt-auto pt-4 border-t border-[#232428]/40 flex flex-col gap-2">
+                        <button
+                            onClick={toggleTheme}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#232428] transition-colors text-gray-400 hover:text-white"
+                        >
+                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                            <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</span>
+                        </button>
+                        <button
+                            onClick={toggleLanguage}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#232428] transition-colors text-gray-400 hover:text-white"
+                        >
+                            <Globe size={18} />
+                            <span>{language === 'pt-BR' ? 'Português' : 'English'}</span>
+                        </button>
+                    </div>
                 </nav>
             </div>
 
             {/* Navbar Area */}
             <div className="flex-1 flex flex-col min-w-0 pb-16 sm:pb-0 sm:ml-72">
-
-                <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-primary)] py-3 px-4 sm:px-6 text-white shadow-sm flex items-center justify-between sticky top-0 z-20 gap-4">
-
+                <header className="border-b border-[#232428] bg-[#232428] py-3 px-4 sm:px-6 text-white shadow-lg flex items-center justify-between sticky top-0 z-20 gap-4">
                     <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-sm md:max-w-xl">
                         <input
                             type="text"
                             id="search"
                             placeholder="Pesquisar..."
-                            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-bg-tertiary)] text-white focus:outline-none focus:border-white focus:ring-1 focus:ring-white text-sm sm:text-base"
+                            className="w-full pl-10 pr-4 py-2 border border-[#232428] rounded-lg bg-[#181c24] text-white focus:outline-none focus:border-[#14B498] focus:ring-2 focus:ring-[#14B498]/40 text-sm sm:text-base shadow-inner"
                         />
-                        <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
+                        <Search className='text-[#14B498] absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
-
-
-
                     <div className="flex items-center gap-4">
-                         {/* Chatbot Button */}
+                        {/* Chatbot Button */}
                         <button
                             onClick={() => setIsChatbotOpen(true)}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] text-white transition-colors shadow"
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#232428] hover:bg-[#14B498]/80 text-[#14B498] hover:text-white transition-colors shadow-lg"
                             title="Abrir Chatbot"
                         >
                             <FiMessageCircle size={22} />
                         </button>
-                        {/* Ícone de Notificações */}
+                        {/* Notificações */}
                         <button
                             onClick={handleOpenNotificationModal}
-                            className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-bg-secondary)] transition-colors"
+                            className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[#232428] hover:bg-[#14B498]/80 transition-colors shadow-lg"
                             title="Notificações"
                         >
-                            <Bell className="h-6 w-6 text-white" />
+                            <Bell className="h-6 w-6 text-[#14B498] group-hover:text-white transition-colors" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[var(--color-bg-tertiary)]"></span>
+                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#232428]"></span>
                             )}
                         </button>
-
-                           <div className="flex items-center gap-2">
-                            {/* User Icon/Button */}
+                        {/* User Dropdown */}
+                        <div className="flex items-center gap-2">
                             <div className="relative text-white flex-shrink-0">
                                 <button
                                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                                    className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
+                                    className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group border-2 border-transparent hover:border-[#14B498] transition-all"
                                 >
                                     {savedImage ? (
                                         <img
                                             src={savedImage}
                                             alt="User"
-                                            className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-transparent group-hover:border-white transition-colors"
+                                            className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-[#232428] group-hover:border-[#14B498] transition-colors"
                                         />
                                     ) : (
-                                        <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-white transition-colors" />
+                                        <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-[#14B498] transition-colors" />
                                     )}
                                 </button>
                                 {showUserDropdown && (

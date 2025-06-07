@@ -1,18 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  ListFilter,
-  CheckCircle,
-  Clock,
-  XCircle,
-  ChartNoAxesCombined,
-  AlertCircle,
-  TrendingUp, // Para o resumo
-  FileText,   // Para o cabeçalho
-} from 'lucide-react';
+import { Search,Landmark, AlertTriangle,CircleCheckBig, CircleX, ChevronLeft, ChevronRight, Download, AlignJustify, ListFilter, CheckCircle, Clock, XCircle, ChartNoAxesCombined, AlertCircle, TrendingUp, FileText, } from 'lucide-react';
 import { Listbox } from '@headlessui/react';
 
 type Transaction = {
@@ -198,12 +185,12 @@ export function TransacoesTab() {
 
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 py-2">
 
         {/* Hero Section */}
-        <div className="relative overflow-hidden mb-10">
+        <div className="relative overflow-hidden mb-4">
           <div
-            className="relative p-6 text-white text-center rounded-3xl shadow-2xl backdrop-blur-xl border border-white/10"
+            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(129, 140, 248, 0.2) 0%, transparent 50%),
@@ -225,7 +212,7 @@ export function TransacoesTab() {
                   <p className="text-base text-indigo-100/80">Visualize e gerencie todas as suas transações</p>
                 </div>
               </div>
-              <div className="mt-8">
+              <div className="mt-6">
                 <button
                   onClick={handleExportCSV}
                   className="group relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
@@ -263,10 +250,81 @@ export function TransacoesTab() {
             </div>
           </div>
         </div>
-
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {/* Pagos */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+              <CircleCheckBig size={64} className="text-emerald-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-emerald-300 drop-shadow">{transactions.filter(t => t.status === 'confirmed').length}</span>
+              <span className="text-lg text-emerald-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
+              <CircleCheckBig size={18} className="inline" /> Pagas
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-300">
+              🟢 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+           {/* Pendentes */}
+            <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+             
+              <AlertTriangle size={64} className="text-amber-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              
+                <span className="text-3xl font-bold text-amber-300 drop-shadow">{transactions.filter(t => t.status === 'pending').length}</span>
+              <span className="text-lg text-amber-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
+              <AlertTriangle size={18} className="inline" /> Pendentes
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-amber-300">
+              🟡 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+          {/* Cancelados/Expirados */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+                   <CircleX size={64} className="text-red-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl font-bold text-red-300 drop-shadow">{transactions.filter(t => t.status === 'failed').length}</span>
+              <span className="text-lg text-red-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
+              <CircleX size={18} className="inline" /> Canceladas
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-red-300">
+              🔴 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+          {/* Total de Pedidos */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-blue-700/20 via-blue-500/10 to-blue-400/5 rounded-2xl border border-blue-400/30 shadow-xl hover:shadow-2xl hover:border-blue-400/60 transition-all duration-300 hover:scale-[1.03]">
+          
+            <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
+         
+               <Landmark size={64} className="text-blue-400" />
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              
+                <span className="text-3xl font-bold text-blue-300 drop-shadow">{transactions.length}</span>
+              <span className="text-lg text-blue-200 font-semibold">Transações</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-blue-200 font-medium">
+              <Landmark size={18} className="inline" /> Total de transações
+            </div>
+            <div className="mt-2 flex items-center gap-1 text-xs text-blue-300">
+              🔵 0 Enviadas - 0 Recebidas
+            </div>
+          </div>
+        </div>
         {/* Filters Section */}
-        <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl relative z-10">
+        <div className="mb-3">
+          <div className="p-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl relative z-10">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full lg:max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -332,28 +390,7 @@ export function TransacoesTab() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="group p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-xl backdrop-blur-sm border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-emerald-300 mb-1">{transactions.filter(t => t.status === 'confirmed').length}</div>
-            <div className="text-xs text-emerald-200/80 font-medium">Confirmadas</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-xl backdrop-blur-sm border border-amber-400/20 hover:border-amber-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-amber-300 mb-1">{transactions.filter(t => t.status === 'pending').length}</div>
-            <div className="text-xs text-amber-200/80 font-medium">Pendentes</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 rounded-xl backdrop-blur-sm border border-red-400/20 hover:border-red-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-red-300 mb-1">{transactions.filter(t => t.status === 'failed').length}</div>
-            <div className="text-xs text-red-200/80 font-medium">Falhas</div>
-          </div>
-          <div className="group p-4 bg-gradient-to-br from-sky-500/10 to-sky-600/5 rounded-xl backdrop-blur-sm border border-sky-400/20 hover:border-sky-400/40 transition-all duration-300 hover:scale-105">
-            <div className="text-2xl font-bold text-sky-300 mb-1">{transactions.length}</div>
-            <div className="text-xs text-sky-200/80 font-medium">Total de Transações</div>
-          </div>
-        </div>
-
+        </div>                 
         {/* Transactions Table */}
         <div
           className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
@@ -398,10 +435,9 @@ export function TransacoesTab() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`capitalize text-sm ${
-                          tx.type === 'incoming' ? 'text-green-400' : 
-                          tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
-                        }`}>
+                        <span className={`capitalize text-sm ${tx.type === 'incoming' ? 'text-green-400' :
+                            tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
+                          }`}>
                           {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna'}
                         </span>
                       </td>
