@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search,Landmark, AlertTriangle,CircleCheckBig, CircleX, ChevronLeft, ChevronRight, Download, AlignJustify, ListFilter, CheckCircle, Clock, XCircle, ChartNoAxesCombined, AlertCircle, TrendingUp, FileText, } from 'lucide-react';
+import { Search, Landmark, AlertTriangle, CircleCheckBig, CircleX, ChevronLeft, ChevronRight, Download, CheckCircle, Clock, XCircle, ChartNoAxesCombined, AlertCircle, FileText, } from 'lucide-react';
 import { Listbox } from '@headlessui/react';
 
 type Transaction = {
@@ -33,10 +33,6 @@ export function TransacoesTab() {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        // Simulação de fetch com token, se necessário
-        // const token = localStorage.getItem('token');
-        // const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        // const response = await fetch('http://localhost:3000/api/transactions', { headers });
         const response = await fetch('http://localhost:3000/api/transactions');
         if (!response.ok) throw new Error('Erro ao buscar transações');
         const data: Transaction[] = await response.json();
@@ -82,7 +78,7 @@ export function TransacoesTab() {
 
   const formatBCH = (value: number | undefined | null) => {
     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
-    return (value / 1e8).toFixed(8) + ' BCH'; // Convertendo satoshis para BCH
+    return (value / 1e8).toFixed(8) + ' BCH'; 
   };
 
   const formatDate = (dateString: string) => {
@@ -186,11 +182,8 @@ export function TransacoesTab() {
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
       <div className="container mx-auto px-2 py-2">
-
-        {/* Hero Section */}
         <div className="relative overflow-hidden mb-4">
-          <div
-            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
+          <div className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(129, 140, 248, 0.2) 0%, transparent 50%),
@@ -215,44 +208,21 @@ export function TransacoesTab() {
               <div className="mt-6">
                 <button
                   onClick={handleExportCSV}
-                  className="group relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
+                  className="group cursor-pointer relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">
                     <Download size={20} />
                     <span>Exportar CSV</span>
                   </span>
-                  {/* Animated Shine Effect */}
                   <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
-                {/* Custom Animations */}
-                <style>
-                  {`
-                    @keyframes shine {
-                      0% { left: -100%; }
-                      60% { left: 120%; }
-                      100% { left: 120%; }
-                    }
-                    .group:hover .animate-shine {
-                      animation: shine 1.2s linear 1;
-                    }
-                    .animate-shine {
-                      position: absolute;
-                      top: 0; left: -100%;
-                      width: 120%;
-                      height: 100%;
-                      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
-                      opacity: 0.25;
-                      pointer-events: none;
-                    }
-                  `}
-                </style>
               </div>
             </div>
           </div>
         </div>
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {/* Pagos */}
+          {/* Pagas */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
             <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
               <CircleCheckBig size={64} className="text-emerald-400" />
@@ -268,15 +238,15 @@ export function TransacoesTab() {
               🟢 0 Enviadas - 0 Recebidas
             </div>
           </div>
-           {/* Pendentes */}
-            <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
+          {/* Pendentes */}
+          <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
             <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
-             
+
               <AlertTriangle size={64} className="text-amber-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
-              
-                <span className="text-3xl font-bold text-amber-300 drop-shadow">{transactions.filter(t => t.status === 'pending').length}</span>
+
+              <span className="text-3xl font-bold text-amber-300 drop-shadow">{transactions.filter(t => t.status === 'pending').length}</span>
               <span className="text-lg text-amber-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
@@ -286,10 +256,10 @@ export function TransacoesTab() {
               🟡 0 Enviadas - 0 Recebidas
             </div>
           </div>
-          {/* Cancelados/Expirados */}
+          {/* Canceladas */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
             <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
-                   <CircleX size={64} className="text-red-400" />
+              <CircleX size={64} className="text-red-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-3xl font-bold text-red-300 drop-shadow">{transactions.filter(t => t.status === 'failed').length}</span>
@@ -302,16 +272,16 @@ export function TransacoesTab() {
               🔴 0 Enviadas - 0 Recebidas
             </div>
           </div>
-          {/* Total de Pedidos */}
+          {/* Total de transações */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-blue-700/20 via-blue-500/10 to-blue-400/5 rounded-2xl border border-blue-400/30 shadow-xl hover:shadow-2xl hover:border-blue-400/60 transition-all duration-300 hover:scale-[1.03]">
-          
+
             <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
-         
-               <Landmark size={64} className="text-blue-400" />
+
+              <Landmark size={64} className="text-blue-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
-              
-                <span className="text-3xl font-bold text-blue-300 drop-shadow">{transactions.length}</span>
+
+              <span className="text-3xl font-bold text-blue-300 drop-shadow">{transactions.length}</span>
               <span className="text-lg text-blue-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-200 font-medium">
@@ -344,8 +314,8 @@ export function TransacoesTab() {
               <div className="flex gap-3 w-full lg:w-auto">
                 {/* Status Listbox */}
                 <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]"> 
+                    <Listbox.Button className="cursor-pointer w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
                       {statusOptions.find(s => s.value === statusFilter)?.label || 'Todos os status'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
@@ -367,8 +337,8 @@ export function TransacoesTab() {
 
                 {/* Date Listbox */}
                 <Listbox value={dateFilter} onChange={(value) => { setDateFilter(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]"> {/* Largura mínima definida */}
-                    <Listbox.Button className="w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
+                  <div className="relative min-w-[180px]"> 
+                    <Listbox.Button className="cursor-pointer w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate"> {/* Adicionado truncate */}
                       {dateOptions.find(d => d.value === dateFilter)?.label || 'Todo período'}
                     </Listbox.Button>
                     <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
@@ -390,7 +360,7 @@ export function TransacoesTab() {
               </div>
             </div>
           </div>
-        </div>                 
+        </div>
         {/* Transactions Table */}
         <div
           className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
@@ -436,7 +406,7 @@ export function TransacoesTab() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`capitalize text-sm ${tx.type === 'incoming' ? 'text-green-400' :
-                            tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
+                          tx.type === 'outgoing' ? 'text-red-400' : 'text-sky-400'
                           }`}>
                           {tx.type === 'incoming' ? 'Recebido' : tx.type === 'outgoing' ? 'Enviado' : 'Interna'}
                         </span>
@@ -472,7 +442,7 @@ export function TransacoesTab() {
           )}
         </div>
 
-        {/* Pagination Controls - fora do container da tabela */}
+        {/* Pagination Controls */}
         {!loading && !error && transactions.length > 0 && (
           <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
             <div>
@@ -489,14 +459,14 @@ export function TransacoesTab() {
                   {Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + transactions.length)}
                 </span>
                 {' de '}
-                <span className="font-medium text-gray-200">{totalPages * itemsPerPage /* ou totalFilteredTransactionsCount, se quiser */}</span> transações
+                <span className="font-medium text-gray-200">{totalPages * itemsPerPage}</span> transações
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <ChevronLeft size={16} />
                 Anterior
@@ -504,7 +474,7 @@ export function TransacoesTab() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Próximo
                 <ChevronRight size={16} />

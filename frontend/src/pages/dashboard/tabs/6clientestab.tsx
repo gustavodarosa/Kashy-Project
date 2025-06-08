@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { CircleCheckBig, CircleX, AlertTriangle, Plus, Search, ChevronLeft, ChevronRight, Download, Users, Award, UserCheck, UserX, Zap, Gift, MessageCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 type Cliente = {
   _id: string;
@@ -12,21 +12,19 @@ type Cliente = {
   ultimaCompra: string;
   tags?: string[];
   pontuacao?: number;
-  // Adicionar campos que podem vir da API, como createdAt
   createdAt?: string;
 };
 
 export function ClientesTab() {
   const [clientes, setClientes] = useState<Cliente[]>([
-    // Dados mocados iniciais
     { _id: '1', nome: 'João Silva Pereira', telefone: '(47) 99999-1234', email: 'joao.silva@email.com', totalGasto: 234.50, visitas: 12, clubeAtivo: true, ultimaCompra: '2024-07-20T10:30:00Z', pontuacao: 120, tags: ['VIP', 'Frequente'], createdAt: '2023-01-15T00:00:00Z' },
     { _id: '2', nome: 'Maria Clara Oliveira', telefone: '(47) 98888-9876', email: 'maria.clara@email.com', totalGasto: 89.00, visitas: 4, clubeAtivo: false, ultimaCompra: '2024-07-18T15:00:00Z', pontuacao: 30, tags: ['Novo'], createdAt: '2024-03-10T00:00:00Z' },
     { _id: '3', nome: 'Carlos Alberto Souza', telefone: '(48) 99123-4567', email: 'carlos.souza@email.com', totalGasto: 560.80, visitas: 25, clubeAtivo: true, ultimaCompra: '2024-07-22T09:15:00Z', pontuacao: 250, tags: ['VIP', 'Alto Valor'], createdAt: '2022-11-05T00:00:00Z' },
     { _id: '4', nome: 'Ana Beatriz Lima', telefone: '(49) 99234-5678', email: 'ana.lima@email.com', totalGasto: 15.00, visitas: 1, clubeAtivo: false, ultimaCompra: '2024-06-01T14:00:00Z', pontuacao: 5, createdAt: '2024-06-01T00:00:00Z' },
     { _id: '5', nome: 'Pedro Henrique Costa', telefone: '(47) 99345-6789', email: 'pedro.costa@email.com', totalGasto: 125.30, visitas: 8, clubeAtivo: true, ultimaCompra: '2024-07-15T11:00:00Z', pontuacao: 80, tags: ['Regular'], createdAt: '2023-08-20T00:00:00Z' },
   ]);
-  const [loading, setLoading] = useState<boolean>(false); // Para simular carregamento
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [modalCliente, setModalCliente] = useState<Cliente | null>(null);
@@ -38,9 +36,9 @@ export function ClientesTab() {
     clubeAtivo: false,
   });
 
-  // Paginação (ainda sem lógica completa, apenas UI)
+  // Paginação
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1); // Será calculado com base nos dados reais
+  const [totalPages, setTotalPages] = useState<number>(1); 
   const itemsPerPage = 8;
 
   // Simulação de fetch (pode ser substituído por uma chamada de API real)
@@ -140,11 +138,8 @@ export function ClientesTab() {
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
       <div className="container mx-auto px-2 py-2">
-
-        {/* Hero Section */}
         <div className="relative overflow-hidden mb-4">
-          <div
-            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
+          <div className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.2) 0%, transparent 50%),
@@ -170,57 +165,32 @@ export function ClientesTab() {
               <div className="mt-6">
                 <button
                   onClick={() => setIsNewClientModalOpen(true)}
-                  className="group relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
+                  className="group cursor-pointer relative px-8 py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-indigo-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">
                     <Plus size={20} />
                     <span>Novo Cliente</span>
                   </span>
-                  {/* Animated Shine Effect */}
                   <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
-                {/* Custom Animations */}
-                <style>
-                  {`
-                    @keyframes shine {
-                      0% { left: -100%; }
-                      60% { left: 120%; }
-                      100% { left: 120%; }
-                    }
-                    .group:hover .animate-shine {
-                      animation: shine 1.2s linear 1;
-                    }
-                    .animate-shine {
-                      position: absolute;
-                      top: 0; left: -100%;
-                      width: 120%;
-                      height: 100%;
-                      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
-                      opacity: 0.25;
-                      pointer-events: none;
-                    }
-                  `}
-                </style>
               </div>
             </div>
           </div>
         </div>
-        {/* Stats Grid - Moved here, similar to ProdutosTab */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
             <div className="absolute -top-4 -right-4 opacity-20 group-hover:opacity-30 transition">
               <CircleCheckBig size={64} className="text-emerald-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-3xl font-bold text-emerald-300 drop-shadow">{totalClientes}</span>
-              <span className="text-lg text-emerald-200 font-semibold">Transações</span>
+              <span className="text-lg text-emerald-200 font-semibold">Clientes</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
-              <CircleCheckBig size={18} className="inline" /> Pagas
+              <CircleCheckBig size={18} className="inline" /> Total de Clientes
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-300">
-              🟢 0 Enviadas - 0 Recebidas
-            </div>
+           
           </div>
           {/* Pendentes */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-amber-700/20 via-amber-500/10 to-amber-400/5 rounded-2xl border border-amber-400/30 shadow-xl hover:shadow-2xl hover:border-amber-400/60 transition-all duration-300 hover:scale-[1.03]">
@@ -231,14 +201,12 @@ export function ClientesTab() {
             <div className="flex items-center gap-2 mb-2">
 
               <span className="text-3xl font-bold text-amber-300 drop-shadow">{clientesAtivosClube}</span>
-              <span className="text-lg text-amber-200 font-semibold">Transações</span>
+              <span className="text-lg text-amber-200 font-semibold">Clientes</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
-              <AlertTriangle size={18} className="inline" /> Pendentes
+              <AlertTriangle size={18} className="inline" /> Clientes com Clube Ativo
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-amber-300">
-              🟡 0 Enviadas - 0 Recebidas
-            </div>
+           
           </div>
           {/* Cancelados/Expirados */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-red-700/20 via-red-500/10 to-red-400/5 rounded-2xl border border-red-400/30 shadow-xl hover:shadow-2xl hover:border-red-400/60 transition-all duration-300 hover:scale-[1.03]">
@@ -247,14 +215,12 @@ export function ClientesTab() {
             </div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-3xl font-bold text-red-300 drop-shadow">{formatCurrency(mediaGasto)}</span>
-              <span className="text-lg text-red-200 font-semibold">Transações</span>
+              <span className="text-lg text-red-200 font-semibold">BRL</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
-              <CircleX size={18} className="inline" /> Canceladas
+              <CircleX size={18} className="inline" /> Média de Gastos por Cliente
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-red-300">
-              🔴 0 Enviadas - 0 Recebidas
-            </div>
+          
           </div>
         </div>
         {/* Insights IA */}
@@ -277,8 +243,8 @@ export function ClientesTab() {
           </div>
         </div>
         {/* Filters and Actions Section */}
-        <div className="mb-6">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+        <div className="mb-3">
+          <div className="p-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl">
             <div className="flex flex-col lg:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full lg:max-w-md">
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -294,7 +260,7 @@ export function ClientesTab() {
               </div>
               <button
                 onClick={exportarCSV}
-                className="flex items-center gap-2 px-5 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded-xl border border-emerald-500/30 hover:border-emerald-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                className="flex cursor-pointer items-center gap-2 px-5 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded-xl border border-emerald-500/30 hover:border-emerald-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
               >
                 <Download size={18} /> Exportar CSV
               </button>
@@ -363,7 +329,6 @@ export function ClientesTab() {
                           >
                             <Users size={14} />
                           </button>
-                          {/* Adicionar botões de editar e excluir se necessário */}
                         </div>
                       </td>
                     </tr>
@@ -374,7 +339,7 @@ export function ClientesTab() {
           )}
         </div>
 
-        {/* Pagination Controls - fora do container da tabela */}
+        {/* Pagination Controls */}
         {!loading && !error && clientesFiltrados.length > 0 && (
           <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
             <div>
@@ -391,21 +356,21 @@ export function ClientesTab() {
                   {Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + clientesFiltrados.length)}
                 </span>
                 {' de '}
-                <span className="font-medium text-gray-200">{totalPages * itemsPerPage /* ou totalFilteredClientesCount, se quiser */}</span> clientes
+                <span className="font-medium text-gray-200">{totalPages * itemsPerPage}</span> clientes
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <ChevronLeft size={16} /> Anterior
               </button>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Próximo <ChevronRight size={16} />
               </button>
@@ -423,7 +388,7 @@ export function ClientesTab() {
                     <Users size={22} /> Perfil de {modalCliente.nome}
                   </h2>
                   <button
-                    className="p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                    className="p-2 cursor-pointer text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                     onClick={() => setModalCliente(null)}
                     aria-label="Fechar"
                   >
@@ -485,10 +450,10 @@ export function ClientesTab() {
                 <div>
                   <h4 className="text-sm font-semibold text-indigo-300 mb-2">Ações Rápidas</h4>
                   <div className="flex flex-wrap gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-sm font-medium transition-colors">
+                    <button className="flex cursor-pointer items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-sm font-medium transition-colors">
                       <MessageCircle size={16} /> Enviar Oferta
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-sm font-medium transition-colors">
+                    <button className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-sm font-medium transition-colors">
                       <Award size={16} /> Adicionar Pontos
                     </button>
                   </div>
@@ -504,7 +469,7 @@ export function ClientesTab() {
 
               <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0">
                 <button
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm text-white font-medium transition-colors"
+                  className="px-4 py-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm text-white font-medium transition-colors"
                   onClick={() => setModalCliente(null)}
                 >
                   Fechar
@@ -519,7 +484,7 @@ export function ClientesTab() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
             <div className="relative w-full max-w-lg bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex flex-col">
               <button
-                className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                className="cursor-pointer absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                 onClick={() => {
                   setIsNewClientModalOpen(false);
                   setNewClientForm({ nome: '', telefone: '', email: '', clubeAtivo: false });
@@ -587,14 +552,14 @@ export function ClientesTab() {
                     setIsNewClientModalOpen(false);
                     setNewClientForm({ nome: '', telefone: '', email: '', clubeAtivo: false });
                   }}
-                  className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                  className="px-5 cursor-pointer py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   onClick={handleSaveNewClient}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  className="px-5 py-2 cursor-pointer bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
                 >
                   Salvar Cliente
                 </button>
@@ -602,7 +567,6 @@ export function ClientesTab() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

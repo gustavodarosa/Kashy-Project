@@ -12,57 +12,98 @@
   --color-accent-hover: #000000;
   --color-border: #303030;
   --color-success: #10b981;
-  --color-success-hover: #059669; 
+  --color-success-hover: #059669;
   --color-danger: #ef4444;
-  --color-danger-hover: #dc2626; 
+  --color-danger-hover: #dc2626;
   --color-chart-primary: rgb(206, 55, 45);
   --color-divide: #303030;
-  --color-text-on-accent: #ffffff; 
+  --color-text-on-accent: #ffffff;
   --color-text-on-accent-hover: #000000;
-  --color-auth-bg: var(--color-accent); 
-  --color-auth-form-bg: var(--color-bg-secondary); 
-  --color-auth-text-primary: var(--color-text-primary); 
-  --color-auth-input-icon: var(--color-text-secondary); 
-  --color-auth-input-bg: var(--color-bg-primary); 
-  --color-auth-input-border: var(--color-border); 
-  --color-auth-link: var(--color-accent); 
-  --color-auth-link-hover: var(--color-accent-hover); 
+  --color-auth-bg: var(--color-accent);
+  --color-auth-form-bg: var(--color-bg-secondary);
+  --color-auth-text-primary: var(--color-text-primary);
+  --color-auth-input-icon: var(--color-text-secondary);
+  --color-auth-input-bg: var(--color-bg-primary);
+  --color-auth-input-border: var(--color-border);
+  --color-auth-link: var(--color-accent);
+  --color-auth-link-hover: var(--color-accent-hover);
 }
 
-/* Custom scrollbar for the chat area */
 .custom-scrollbar {
-  scrollbar-width: thin; 
-  scrollbar-color: #4b5563 #1f2937; 
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px; 
+  width: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937; 
+  background: #1f2937;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #2563eb); 
-  border-radius: 4px; 
+  background: linear-gradient(to bottom, #3b82f6, #2563eb);
+  border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #1d4ed8); 
+  background: linear-gradient(to bottom, #2563eb, #1d4ed8);
 }
 
-/* Adicione ao seu CSS global para customizar a scrollbar horizontal */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
+
 .scrollbar-thumb-blue-700::-webkit-scrollbar-thumb {
   background: #1d4ed8;
 }
+
 .scrollbar-track-transparent::-webkit-scrollbar-track {
   background: transparent;
 }
 
 body {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tailwind CSS classes for the main layout and components */
+.resumo-financeiro-card {
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .vendas-por-periodo-card {
+    width: auto;
+  }
+}
+
+/* Shine animation button */
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+
+  60% {
+    left: 120%;
+  }
+
+  100% {
+    left: 120%;
+  }
+}
+
+.group:hover .animate-shine {
+  animation: shine 1.2s linear 1;
+}
+
+.animate-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 120%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
+  opacity: 0.25;
+  pointer-events: none;
 }

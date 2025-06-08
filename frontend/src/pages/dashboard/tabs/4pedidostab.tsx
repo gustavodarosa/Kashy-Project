@@ -1,5 +1,5 @@
+import { Search, Landmark, CircleCheckBig, Bitcoin, User, Store, Settings, DollarSign, AlignJustify, CircleX, AlertTriangle, ChevronLeft, ChevronRight, ShoppingBasket, Edit2, Trash2, Copy, Printer, Clock, CheckCircle, XCircle, Plus, CreditCard, ShoppingCart, } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Search, Landmark, CircleCheckBig, Bitcoin, User, Store, Settings, DollarSign, AlignJustify, CircleX, AlertTriangle, ChevronLeft, ChevronRight, ShoppingBasket, Edit2, Trash2, Copy, Printer, Clock, CheckCircle, XCircle, Plus, CreditCard, ChartNoAxesCombined, ShoppingCart, } from 'lucide-react';
 import { Listbox } from '@headlessui/react';
 import QRCode from 'react-qr-code';
 
@@ -27,7 +27,7 @@ type Order = {
     status: 'pending' | 'confirmed' | 'failed';
   };
   merchantAddress?: string;
-  exchangeRateUsed?: number; // Changed from exchangeRate to exchangeRateUsed
+  exchangeRateUsed?: number;
 };
 
 type Product = {
@@ -76,9 +76,6 @@ export function PedidosTab() {
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
-
-  const [isPrintConfirmOpen, setIsPrintConfirmOpen] = useState(false);
-  const [orderToPrint, setOrderToPrint] = useState<Order | null>(null);
 
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
@@ -130,7 +127,7 @@ export function PedidosTab() {
       try {
         console.log("[PedidosTab] Iniciando fetch de pedidos. currentPage:", currentPage, "searchTerm:", searchTerm, "statusFilter:", statusFilter, "paymentFilter:", paymentFilter);
         setLoading(true);
-        const token = localStorage.getItem('token'); // Get token
+        const token = localStorage.getItem('token'); 
 
         const response = await fetch('http://localhost:3000/api/orders', {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -142,7 +139,6 @@ export function PedidosTab() {
 
         const data: Order[] = await response.json();
 
-        // Aplicar filtros
         console.log("[PedidosTab] Aplicando filtros nos pedidos recebidos:", data.length, "pedidos");
         const filteredOrders = data.filter((order) => {
           const matchesSearch =
@@ -227,7 +223,7 @@ export function PedidosTab() {
     } finally { setIsLoadingQr(false); console.log('[PedidosTab] openQrModal finalizado.'); }
   };
 
-  // Formatação de dados
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -294,7 +290,7 @@ export function PedidosTab() {
       paymentMethod,
       items: selectedProducts.map(p => ({
         product: p._id,
-        name: p.name, // <-- ADDED THIS LINE
+        name: p.name,
         quantity: p.quantity || 1,
         priceBRL: p.priceBRL,
         priceBCH: p.priceBCH
@@ -333,14 +329,14 @@ export function PedidosTab() {
       setIsOrderModalOpen(false);
       setCurrentPage(1);
 
-      setIsOrderSuccessOpen(true); // Abre o modal de sucesso
+      setIsOrderSuccessOpen(true); 
 
       // Se o pagamento for BCH, abra o modal de QR Code imediatamente
       if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
         openQrModal(savedOrder._id);
       } else {
         setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
-        setTotalPages(prev => Math.ceil((orders.length + 1) / itemsPerPage));
+
       }
 
     } catch (error: any) {
@@ -349,44 +345,8 @@ export function PedidosTab() {
     }
   };
 
-  // Função para atualizar um pedido (Comentada pois não está sendo usada - TS6133)
-  /*
-  const handleUpdateOrder = async (updatedOrder: Partial<Order>) => {
-    console.log('[PedidosTab] handleUpdateOrder chamado com:', updatedOrder);
-    if (!selectedOrder) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/orders/${selectedOrder._id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && {'Authorization': `Bearer ${token}`})
-        },
-        body: JSON.stringify(updatedOrder),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar pedido.');
-      }
-
-      const updatedData = await response.json();
-      console.log('[PedidosTab] Pedido atualizado no backend:', updatedData);
-      setOrders((prev) =>
-        prev.map((order) => (order._id === updatedData._id ? updatedData : order))
-      );
-      alert('Pedido atualizado com sucesso!');
-      setSelectedOrder(null);
-    } catch (error) {
-      console.error('[PedidosTab] Erro ao atualizar pedido:', error);
-      alert('Erro ao atualizar pedido.');
-    }
-  };
-  */
-
-  // Adicione este estado para o modal de sucesso
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
-  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false); // Novo estado para modal de sucesso do pedido
+  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false); 
 
   // Função para deletar um pedido
   const handleDeleteOrder = async (orderId: string) => {
@@ -401,7 +361,7 @@ export function PedidosTab() {
         throw new Error('Erro ao deletar pedido.');
       }
       setOrders((prev) => prev.filter((order) => order._id !== orderId));
-      setIsDeleteSuccessOpen(true); // Abre modal de sucesso
+      setIsDeleteSuccessOpen(true); 
     } catch (error) {
       alert('Erro ao deletar pedido.');
     }
@@ -485,10 +445,8 @@ export function PedidosTab() {
   return (
     <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white">
       <div className="container mx-auto px-2 py-2">
-        {/* Enhanced Hero Section */}
         <div className="relative overflow-hidden mb-4">
-          <div
-            className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
+          <div className="relative p-3 text-white text-center rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10"
             style={{
               background: `
                 radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
@@ -515,53 +473,20 @@ export function PedidosTab() {
                 <button
                   id="btn-novo-pedido"
                   onClick={() => setIsOrderModalOpen(true)}
-                  className="group relative px-8 py-3 bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-blue-400/40 text-base overflow-hidden"
+                  className="cursor-pointer group relative px-8 py-3 bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-blue-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">
                     <Plus size={20} />
                     <span>Novo Pedido</span>
                   </span>
-                  {/* Animated Shine Effect */}
                   <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
               </div>
             </div>
           </div>
-          {/* Custom Animations */}
-          <style>
-            {`
-              @keyframes pulse-slow {
-                0%, 100% { opacity: 0.7; transform: scale(1);}
-                50% { opacity: 1; transform: scale(1.08);}
-              }
-              @keyframes pulse-slower {
-                0%, 100% { opacity: 0.5; transform: scale(1);}
-                50% { opacity: 0.8; transform: scale(1.06);}
-              }
-              .animate-pulse-slow { animation: pulse-slow 6s ease-in-out infinite; }
-              .animate-pulse-slower { animation: pulse-slower 9s ease-in-out infinite; }
-              @keyframes shine {
-                0% { left: -100%; }
-                60% { left: 120%; }
-                100% { left: 120%; }
-              }
-              .group:hover .animate-shine {
-                animation: shine 1.2s linear 1;
-              }
-              .animate-shine {
-                position: absolute;
-                top: 0; left: -100%;
-                width: 120%;
-                height: 100%;
-                background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
-                opacity: 0.25;
-                pointer-events: none;
-              }
-            `}
-          </style>
         </div>
 
-        {/* Quick Stats - Styled like ProdutosTab hero stats */}
+        {/* Quick Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* Pagos */}
           <div className="group relative overflow-hidden p-5 bg-gradient-to-br from-emerald-700/20 via-emerald-500/10 to-emerald-400/5 rounded-2xl border border-emerald-400/30 shadow-xl hover:shadow-2xl hover:border-emerald-400/60 transition-all duration-300 hover:scale-[1.03]">
@@ -645,7 +570,7 @@ export function PedidosTab() {
                 <input
                   type="text"
                   placeholder="Buscar pedidos..."
-                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                  className="w-full pl-10 pr-3 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-white/10 transition-all text-sm"
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -658,7 +583,7 @@ export function PedidosTab() {
                 {/* Status Listbox */}
                 <Listbox value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
                   <div className="relative min-w-[180px]">
-                    <Listbox.Button className="flex items-center gap-2 w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                    <Listbox.Button className="flex items-center gap-2 w-full px-4 py-3 cursor-pointer bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
                       {statusFilter === 'all' && <AlignJustify size={16} className="text-gray-400" />}
                       {statusFilter === 'pending' && <AlertTriangle size={16} className="text-amber-400" />}
                       {statusFilter === 'paid' && <CheckCircle size={16} className="text-emerald-400" />}
@@ -696,7 +621,7 @@ export function PedidosTab() {
                 {/* Payment Method Listbox */}
                 <Listbox value={paymentFilter} onChange={(value) => { setPaymentFilter(value); setCurrentPage(1); }}>
                   <div className="relative min-w-[180px]">
-                    <Listbox.Button className="flex items-center gap-2 w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
+                    <Listbox.Button className="cursor-pointer flex items-center gap-2 w-full px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 transition-all text-sm text-left whitespace-nowrap hover:bg-[#2d3338] truncate">
                       {paymentFilter === 'all' && <AlignJustify size={16} className="text-gray-400" />}
                       {paymentFilter === 'bch' && <Bitcoin size={16} className="text-green-400" />}
                       {paymentFilter === 'pix' && <CreditCard size={16} className="text-blue-400" />}
@@ -732,8 +657,6 @@ export function PedidosTab() {
           </div>
         </div>
 
-
-
         {/* Tabela de pedidos */}
         <div
           className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
@@ -758,31 +681,31 @@ export function PedidosTab() {
                 <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
                   <tr className="text-xs">
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <span className="inline-block mr-1 text-blue-400"><Copy size={16} /></span> ID
+                      <span className="inline-block mr-1 text-gray-300"><Copy size={16} /></span> ID
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <Store size={16} className="inline mr-1 text-teal-400" /> Loja
+                      <Store size={16} className="inline mr-1 text-gray-300" /> Loja
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <User size={16} className="inline mr-1 text-cyan-400" /> Cliente
+                      <User size={16} className="inline mr-1 text-gray-300" /> Cliente
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <DollarSign size={16} className="inline mr-1 text-amber-500" /> Total
+                      <DollarSign size={16} className="inline mr-1 text-gray-300" /> Total
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <CreditCard size={16} className="inline mr-1 text-green-400" /> Pagamento
+                      <CreditCard size={16} className="inline mr-1 text-gray-300" /> Pagamento
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <Clock size={16} className="inline mr-1 text-blue-300" /> Data
+                      <Clock size={16} className="inline mr-1 text-gray-300" /> Data
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                      <CheckCircle size={16} className="inline mr-1 text-emerald-400" /> Status
+                      <CheckCircle size={16} className="inline mr-1 text-gray-300" /> Status
                     </th>
                     <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
-                      <Printer size={16} className="inline mr-1 text-zinc-400" /> Fatura
+                      <Printer size={16} className="inline mr-1 text-gray-300" /> Fatura
                     </th>
                     <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
-                      <Settings size={16} className="inline mr-1 text-zinc-400" /> Ações
+                      <Settings size={16} className="inline mr-1 text-gray-300" /> Ações
                     </th>
                   </tr>
                 </thead>
@@ -805,36 +728,69 @@ export function PedidosTab() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-1 text-xs text-white">
-                          <Store size={16} className="text-teal-400" /> {order.store}
+                          <Store size={16} className="text-gray-300" /> {order.store}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-1 text-xs text-gray-300">
-                          <User size={16} className="text-cyan-400" /> {order.customerEmail || 'Anônimo'}
+                          <User size={16} className="text-gray-300" /> {order.customerEmail || 'Anônimo'}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1 text-xs text-white">
-                          <DollarSign size={16} className="text-amber-500" /> {formatCurrency(order.totalAmount)}
+                          <DollarSign size={16} className="text-green-500" /> {formatCurrency(order.totalAmount)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1 text-xs text-gray-300">
-                          {order.paymentMethod === 'bch' && <Bitcoin size={16} className="text-green-400" />}
-                          {order.paymentMethod === 'pix' && <CreditCard size={16} className="text-blue-400" />}
-                          {order.paymentMethod === 'card' && <CreditCard size={16} className="text-blue-400" />}
+                          {order.paymentMethod === 'bch' && (
+                     
+                            <span className="inline-block w-5 h-5 align-middle">
+                              <svg viewBox="0 0 788 788" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="394" cy="394" r="394" fill="#fff"/>
+                                <path d="M516.9,261.7c-19.8-44.9-65.3-54.5-121-45.2L378,147.1l-42.2,10.9l17.6,69.2
+                                  c-11.1,2.8-22.5,5.2-33.8,8.4L302,166.8l-42.2,10.9l17.9,69.4c-9.1,2.6-85.2,22.1-85.2,22.1l11.6,45.2c0,0,31-8.7,30.7-8
+                                  c17.2-4.5,25.3,4.1,29.1,12.2l49.2,190.2c0.6,5.5-0.4,14.9-12.2,18.1c0.7,0.4-30.7,7.9-30.7,7.9l4.6,52.7c0,0,75.4-19.3,85.3-21.8
+                                  l18.1,70.2l42.2-10.9l-18.1-70.7c11.6-2.7,22.9-5.5,33.9-8.4l18,70.3l42.2-10.9l-18.1-70.1c65-15.8,110.9-56.8,101.5-119.5
+                                  c-6-37.8-47.3-68.8-81.6-72.3C519.3,324.7,530,297.4,516.9,261.7L516.9,261.7z M496.6,427.2c8.4,62.1-77.9,69.7-106.4,77.2
+                                  l-24.8-92.9C394,404,482.4,372.5,496.6,427.2z M444.6,300.7c8.9,55.2-64.9,61.6-88.7,67.7l-22.6-84.3
+                                  C357.2,278.2,426.5,249.6,444.6,300.7z"
+                                  fill="#0AC18E"/>
+                              </svg>
+                            </span>
+                          )}
+                          {order.paymentMethod === 'pix' && (
+                     
+                            <span className="inline-block w-5 h-5 align-middle">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
+                                <path fill="#4db6ac" d="M11.9,12h-0.68l8.04-8.04c2.62-2.61,6.86-2.61,9.48,0L36.78,12H36.1c-1.6,0-3.11,0.62-4.24,1.76	l-6.8,6.77c-0.59,0.59-1.53,0.59-2.12,0l-6.8-6.77C15.01,12.62,13.5,12,11.9,12z"></path>
+                                <path fill="#4db6ac" d="M36.1,36h0.68l-8.04,8.04c-2.62,2.61-6.86,2.61-9.48,0L11.22,36h0.68c1.6,0,3.11-0.62,4.24-1.76	l6.8-6.77c0.59-0.59,1.53-0.59,2.12,0l6.8,6.77C32.99,35.38,34.5,36,36.1,36z"></path>
+                                <path fill="#4db6ac" d="M44.04,28.74L38.78,34H36.1c-1.07,0-2.07-0.42-2.83-1.17l-6.8-6.78c-1.36-1.36-3.58-1.36-4.94,0	l-6.8,6.78C13.97,33.58,12.97,34,11.9,34H9.22l-5.26-5.26c-2.61-2.62-2.61-6.86,0-9.48L9.22,14h2.68c1.07,0,2.07,0.42,2.83,1.17	l6.8,6.78c0.68,0.68,1.58,1.02,2.47,1.02s1.79-0.34,2.47-1.02l6.8-6.78C34.03,14.42,35.03,14,36.1,14h2.68l5.26,5.26	C46.65,21.88,46.65,26.12,44.04,28.74z"></path>
+                              </svg>
+                            </span>
+                          )}
+                          {order.paymentMethod === 'card' && (
+                    
+                            <span className="inline-block w-5 h-5 align-middle">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <rect x="2" y="5" width="20" height="14" rx="2" fill="#3b82f6" />
+                                <rect x="2" y="8" width="20" height="2" fill="#fff" />
+                                <rect x="6" y="16" width="4" height="2" fill="#fff" />
+                              </svg>
+                            </span>
+                          )}
                           {getPaymentMethodLabel(order.paymentMethod)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-xs flex items-center gap-1 text-gray-400">
-                        <Clock size={16} className="text-blue-300" />{formatDate(order.createdAt)}
+                        <Clock size={16} className="text-gray-300" />{formatDate(order.createdAt)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${order.status === 'paid'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                            : order.status === 'pending'
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                              : 'bg-red-500/20 text-red-300 border-red-500/30'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          : order.status === 'pending'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                            : 'bg-red-500/20 text-red-300 border-red-500/30'
                           }`}>
                           {getStatusIconComponent(order.status)}
                           {getStatusLabelText(order.status)}
@@ -842,7 +798,7 @@ export function PedidosTab() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
-                          className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 text-xs font-medium transition-colors"
+                          className="cursor-pointer px-3 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 rounded-md border border-blue-500/30 text-xs font-medium transition-colors"
                           onClick={() => openQrModal(order._id)}
                         >
                           Detalhes
@@ -852,17 +808,14 @@ export function PedidosTab() {
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => fetchOrderDetails(order._id)}
-                            className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
+                            className="p-1.5 cursor-pointer bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
                             title="Editar Pedido"
                           >
                             <Edit2 size={14} />
                           </button>
                           <button
-                            onClick={() => {
-                              setOrderToPrint(order);
-                              setIsPrintConfirmOpen(true);
-                            }}
-                            className="p-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
+
+                            className="p-1.5 cursor-pointer bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
                             title="Imprimir"
                           >
                             <Printer size={14} />
@@ -872,7 +825,7 @@ export function PedidosTab() {
                               setOrderIdToDelete(order._id);
                               setIsDeleteConfirmOpen(true);
                             }}
-                            className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
+                            className="p-1.5 cursor-pointer bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110"
                             title="Excluir"
                           >
                             <Trash2 size={14} />
@@ -888,7 +841,7 @@ export function PedidosTab() {
         </div>
 
 
-        {/* Pagination Controls - fora do container da tabela */}
+        {/* Pagination Controls */}
         {!loading && !error && orders.length > 0 && (
           <div className="mt-6 flex items-center justify-between px-4 py-3 bg-[#2F363E]/60 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
             <div>
@@ -900,7 +853,7 @@ export function PedidosTab() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="cursor-pointer flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <ChevronLeft size={16} />
                 Anterior
@@ -908,7 +861,7 @@ export function PedidosTab() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="cursor-pointer flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Próximo
                 <ChevronRight size={16} />
@@ -917,7 +870,7 @@ export function PedidosTab() {
           </div>
         )}
 
-        {/* Modal Detalhes do Pedido (antigo Modal QR Code) - Styled like ProdutosTab modals */}
+        {/* Modal Detalhes do Pedido */}
         {qrOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
             <div className="relative w-full max-w-3xl bg-[#24292D]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-h-[90vh] flex flex-col">
@@ -927,7 +880,7 @@ export function PedidosTab() {
                     <ShoppingCart size={22} /> Detalhes do Pedido #{qrOrder._id.substring(qrOrder._id.length - 6)}
                   </h2>
                   <button
-                    className="p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                    className="p-2 cursor-pointer text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                     onClick={() => setQrOrder(null)}
                     aria-label="Fechar"
                   >
@@ -1040,12 +993,12 @@ export function PedidosTab() {
                 <button
                   onClick={() => handlePrint(qrOrder!)}
                   disabled={!qrOrder || isLoadingQr}
-                  className="px-4 py-2 rounded-lg border border-gray-500 hover:bg-gray-700/50 transition-colors text-sm text-gray-300 flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-2 cursor-pointer rounded-lg border border-gray-500 hover:bg-gray-700/50 transition-colors text-sm text-gray-300 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Printer size={16} /> Imprimir
                 </button>
                 <button
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white font-medium transition-colors"
+                  className="px-4 py-2 cursor-pointer bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white font-medium transition-colors"
                   onClick={() => setQrOrder(null)}
                   disabled={isLoadingQr}
                 >
@@ -1056,11 +1009,10 @@ export function PedidosTab() {
           </div>
         )}
 
-        {/* Modal Novo Pedido - Styled like ProdutosTab modals */}
+        {/* Modal Novo Pedido */}
         {isOrderModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
             <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border border-blue-400/30 shadow-2xl overflow-hidden flex flex-col">
-              {/* Header com ícone */}
               <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-blue-600/10 to-transparent">
                 <div className="p-2 bg-blue-500/20 rounded-xl border border-blue-400/30">
                   <ShoppingBasket size={28} className="text-blue-300" />
@@ -1070,7 +1022,7 @@ export function PedidosTab() {
                   <p className="text-gray-400 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
                 </div>
                 <button
-                  className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                  className="cursor-pointer absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                   onClick={() => {
                     setIsOrderModalOpen(false);
                     setSelectedStore("");
@@ -1090,15 +1042,15 @@ export function PedidosTab() {
                   e.preventDefault();
                   handleCreateOrder();
                 }}
-                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh]"
-              >
+                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh]">
+
                 {/* Grupo: Loja */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja <span className="text-blue-400">*</span></label>
                   <select
                     value={selectedStore}
                     onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                    className="w-full px-3 cursor-pointer py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
                     required
                   >
                     <option value="">Selecione uma loja</option>
@@ -1122,7 +1074,7 @@ export function PedidosTab() {
                   <div className="max-h-40 overflow-y-auto border border-blue-400/10 rounded-md bg-[#2F363E]/50">
                     {loadingProducts && <p className="text-gray-400 p-3 text-center text-sm">Carregando produtos...</p>}
                     {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-3 text-sm">Nenhum produto encontrado para esta loja.</p>}
-                    {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm">Selecione uma loja para ver os produtos.</p>}
+                    {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm ">Selecione uma loja para ver os produtos.</p>}
                     {products
                       .filter((product) =>
                         product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
@@ -1196,7 +1148,7 @@ export function PedidosTab() {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                    className="w-full cursor-pointer px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
                     required
                   >
                     <option value="">Selecione um método</option>
@@ -1219,14 +1171,14 @@ export function PedidosTab() {
                     setPaymentMethod("");
                     setModalSearchTerm("");
                   }}
-                  className="px-5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                  className="px-5 py-2 cursor-pointer bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   onClick={handleCreateOrder}
-                  className="px-5 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  className="px-5 py-2 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
                   disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
                 >
                   Criar Pedido
@@ -1250,7 +1202,7 @@ export function PedidosTab() {
                 </p>
                 <div className="flex gap-3">
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    className="flex-1 cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
                     onClick={() => {
                       setIsDeleteConfirmOpen(false);
                       setOrderIdToDelete(null);
@@ -1259,7 +1211,7 @@ export function PedidosTab() {
                     Cancelar
                   </button>
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white text-sm"
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white text-sm"
                     onClick={() => {
                       if (orderIdToDelete) handleDeleteOrder(orderIdToDelete);
                       setIsDeleteConfirmOpen(false);
@@ -1287,7 +1239,7 @@ export function PedidosTab() {
                   O pedido foi removido do sistema.
                 </p>
                 <button
-                  className="w-full rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                  className="w-full cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
                   onClick={() => setIsDeleteSuccessOpen(false)}
                 >
                   OK
@@ -1310,7 +1262,7 @@ export function PedidosTab() {
                   O novo pedido foi registrado no sistema.
                 </p>
                 <button
-                  className="w-full rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+                  className="w-full cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
                   onClick={() => setIsOrderSuccessOpen(false)}
                 >
                   OK

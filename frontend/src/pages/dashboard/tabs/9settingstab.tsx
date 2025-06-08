@@ -20,7 +20,6 @@ export function SettingsTab() {
   const [activeTab, setActiveTab] = useState('appearance');
   const [activeTheme, setActiveTheme] = useState<ThemeKey>(loadTheme());
   const [notifications, setNotifications] = useState({ email: true, push: true, promotions: false });
-  const [security, setSecurity] = useState({ twoFactorAuth: false, passwordChangeRequired: false });
   const [dataPreferences, setDataPreferences] = useState({ autoBackup: true, analytics: true });
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -56,7 +55,6 @@ export function SettingsTab() {
 
   const handleThemeChange = (themeKey: ThemeKey) => { applyTheme(themeKey); setActiveTheme(themeKey); };
   const handleNotificationChange = (type: keyof typeof notifications) => setNotifications(prev => ({ ...prev, [type]: !prev[type] }));
-  const handleSecurityChange = (type: keyof typeof security) => setSecurity(prev => ({ ...prev, [type]: !prev[type] }));
   const handleDataPreferenceChange = (type: keyof typeof dataPreferences) => setDataPreferences(prev => ({ ...prev, [type]: !prev[type] }));
 
   const timezonesForCurrentLanguage = translations[language]?.language?.timezones || translations['pt-BR'].language.timezones;

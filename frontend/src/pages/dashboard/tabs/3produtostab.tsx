@@ -49,49 +49,49 @@ export function ProdutosTab() {
     minimum: 1,
   });
   const categories = [
-    { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-orange-300" /> },
-    { value: 'bebidas', label: 'Bebidas', icon: <Coffee size={16} className="inline mr-1 text-blue-300" /> },
-    { value: 'eletronicos', label: 'Eletrônicos', icon: <MonitorSmartphone size={16} className="inline mr-1 text-green-300" /> },
-    { value: 'vestuario', label: 'Vestuário', icon: <Shirt size={16} className="inline mr-1 text-red-400" /> },
-    { value: 'servicos', label: 'Serviços', icon: <Wrench size={16} className="inline mr-1 text-yellow-300" /> },
+    { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-gray-300" /> },
+    { value: 'bebidas', label: 'Bebidas', icon: <Coffee size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'eletronicos', label: 'Eletrônicos', icon: <MonitorSmartphone size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'vestuario', label: 'Vestuário', icon: <Shirt size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'servicos', label: 'Serviços', icon: <Wrench size={16} className="inline mr-1 text-gray-300" /> },
   ];
   const stores = [
-    { value: 'all', label: 'Todas as Lojas', icon: <AlignJustify size={16} className="inline mr-1 text-gray-400" /> },
-    { value: 'Loja A', label: 'Loja A', icon: <Store size={16} className="inline mr-1 text-teal-400" /> },
-    { value: 'Loja B', label: 'Loja B', icon: <Store size={16} className="inline mr-1 text-blue-400" /> },
-    { value: 'Loja C', label: 'Loja C', icon: <Store size={16} className="inline mr-1 text-pink-400" /> },
+    { value: 'all', label: 'Todas as Lojas', icon: <AlignJustify size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'Loja A', label: 'Loja A', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'Loja B', label: 'Loja B', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
+    { value: 'Loja C', label: 'Loja C', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
   ];
   // Ícones para subcategorias
 function getSubcategoryIcon(category: string, subcategory: string) {
   if (category === 'alimentos') {
-    if (subcategory === 'Doces') return <Candy size={14} className="text-pink-500" />;
-    if (subcategory === 'Salgados') return <Ham size={14} className="text-orange-500" />;
-    if (subcategory === 'Orgânicos') return <Apple size={14} className="text-green-500" />;
-    if (subcategory === 'Congelados') return <Snowflake size={14} className="text-blue-300" />;
+    if (subcategory === 'Doces') return <Candy size={14} className="text-gray-300" />;
+    if (subcategory === 'Salgados') return <Ham size={14} className="text-gray-300" />;
+    if (subcategory === 'Orgânicos') return <Apple size={14} className="text-gray-300" />;
+    if (subcategory === 'Congelados') return <Snowflake size={14} className="text-gray-300" />;
   }
   if (category === 'bebidas') {
-    if (subcategory === 'Alcoólica') return <Beer size={14} className="text-amber-500" />;
-    if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-red-500" />;
-    if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-purple-400" />;
-    if (subcategory === 'Suco') return <GlassWater size={14} className="text-cyan-400" />;
-    if (subcategory === 'Energético') return <Zap size={14} className="text-yellow-400" />;
+    if (subcategory === 'Alcoólica') return <Beer size={14} className="text-gray-300" />;
+    if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-gray-300" />;
+    if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-gray-300" />;
+    if (subcategory === 'Suco') return <GlassWater size={14} className="text-gray-300" />;
+    if (subcategory === 'Energético') return <Zap size={14} className="text-gray-300" />;
   }
   if (category === 'eletronicos') {
-    if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-500" />;
-    if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-500" />;
-    if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-500" />;
-    if (subcategory === 'TV') return <Tv size={14} className="text-gray-500" />;
+    if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-300" />;
+    if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-300" />;
+    if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-300" />;
+    if (subcategory === 'TV') return <Tv size={14} className="text-gray-300" />;
   }
   if (category === 'vestuario') {
-    if (subcategory === 'Masculino') return <Mars size={14} className="text-blue-400" />;
-    if (subcategory === 'Feminino') return <Venus size={14} className="text-pink-400" />;
-    if (subcategory === 'Infantil') return <Baby size={14} className="text-yellow-400" />;
-    if (subcategory === 'Acessórios') return <Glasses size={14} className="text-black" />;
+    if (subcategory === 'Masculino') return <Mars size={14} className="text-gray-300" />;
+    if (subcategory === 'Feminino') return <Venus size={14} className="text-gray-300" />;
+    if (subcategory === 'Infantil') return <Baby size={14} className="text-gray-300" />;
+    if (subcategory === 'Acessórios') return <Glasses size={14} className="text-gray-300" />;
   }
   if (category === 'servicos') {
-    if (subcategory === 'Entrega') return <Truck size={14} className="text-green-500" />;
-    if (subcategory === 'Montagem') return <Drill size={14} className="text-yellow-300" />;
-    if (subcategory === 'Instalação') return <Wrench size={14} className="text-blue-400" />;
+    if (subcategory === 'Entrega') return <Truck size={14} className="text-gray-300" />;
+    if (subcategory === 'Montagem') return <Drill size={14} className="text-gray-300" />;
+    if (subcategory === 'Instalação') return <Wrench size={14} className="text-gray-300" />;
   }
   return <Tag size={14} className="text-gray-400" />;
 }
@@ -345,7 +345,7 @@ function getStoreIcon(store: string) {
                 <button
                   id="btn-novo-produto"
                   onClick={() => setIsFormOpen(true)}
-                  className="group relative px-8 py-3 bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-teal-400/40 text-base overflow-hidden"
+                  className="cursor-pointer group relative px-8 py-3 bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-teal-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">
                     <Plus size={20} />
@@ -353,27 +353,6 @@ function getStoreIcon(store: string) {
                   </span>
                   <span className="absolute left-0 top-0 w-full h-full rounded-2xl bg-gradient-to-r from-white/10 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none animate-shine" />
                 </button>
-                <style>
-                  {`
-                    @keyframes shine {
-                      0% { left: -100%; }
-                      60% { left: 120%; }
-                      100% { left: 120%; }
-                    }
-                    .group:hover .animate-shine {
-                      animation: shine 1.2s linear 1;
-                    }
-                    .animate-shine {
-                      position: absolute;
-                      top: 0; left: -100%;
-                      width: 120%;
-                      height: 100%;
-                      background: linear-gradient(120deg, transparent 0%, white 30%, transparent 60%);
-                      opacity: 0.25;
-                      pointer-events: none;
-                    }
-                  `}
-                </style>
               </div>
             </div>
           </div>
@@ -448,11 +427,11 @@ function getStoreIcon(store: string) {
 
         {/* View Mode Toggle */}
         <div className="flex justify-center mb-4.5">
-          <div className="p-1.5 bg-[#2F363E]/80 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl">
+          <div className="p-1.5  bg-[#2F363E]/80 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl">
             <div className="flex gap-1">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${viewMode === 'table'
+                className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${viewMode === 'table'
                   ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
@@ -461,7 +440,7 @@ function getStoreIcon(store: string) {
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${viewMode === 'grid'
+                className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-base ${viewMode === 'grid'
                   ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg'
                   : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
@@ -496,7 +475,7 @@ function getStoreIcon(store: string) {
                 {/* Categoria Listbox */}
                 <Listbox value={selectedCategory} onChange={(value) => { setSelectedCategory(value); setCurrentPage(1); }}>
                   <div className="relative min-w-[180px]">
-                    <Listbox.Button className="flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white transition-all text-base w-full text-left whitespace-nowrap truncate">
+                    <Listbox.Button className="cursor-pointer flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white transition-all text-base w-full text-left whitespace-nowrap truncate">
                       {selectedCategory === 'all'
                         ? <AlignJustify size={16} className="text-gray-400" />
                         : categories.find(c => c.value === selectedCategory)?.icon}
@@ -529,7 +508,7 @@ function getStoreIcon(store: string) {
                 {/* Loja Listbox */}
                 <Listbox value={selectedStore} onChange={(value) => { setSelectedStore(value); setCurrentPage(1); }}>
                   <div className="relative min-w-[180px]">
-                    <Listbox.Button className="flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-base w-full text-left whitespace-nowrap truncate">
+                    <Listbox.Button className="cursor-pointer flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-base w-full text-left whitespace-nowrap truncate">
                       {stores.find(s => s.value === selectedStore)?.icon}
                       {stores.find(s => s.value === selectedStore)?.label || 'Todas Lojas'}
                     </Listbox.Button>
@@ -579,28 +558,28 @@ function getStoreIcon(store: string) {
                   <thead className="bg-[#24292D]/80 backdrop-blur-sm border-b border-white/10">
                     <tr className="text-xs">
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <Package size={14} className="inline mr-1 text-teal-300" /> Produto
+                        <Package size={14} className="inline mr-1 text-gray-300" /> Produto
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <Barcode size={14} className="inline mr-1 text-cyan-400 " /> SKU
+                        <Barcode size={14} className="inline mr-1 text-gray-300 " /> SKU
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <DollarSign size={14} className="inline mr-1 text-amber-500" /> Preço
+                        <DollarSign size={14} className="inline mr-1 text-gray-300" /> Preço
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <AlertTriangle size={14} className="inline mr-1 text-yellow-300" /> Estoque
+                        <AlertTriangle size={14} className="inline mr-1 text-gray-300" /> Estoque
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <Tag size={14} className="inline mr-1 text-red-500" /> Categoria
+                        <Tag size={14} className="inline mr-1 text-gray-300" /> Categoria
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <Tags size={14} className="inline mr-1 text-purple-400" /> Subcategoria
+                        <Tags size={14} className="inline mr-1 text-gray-300" /> Subcategoria
                       </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-300 uppercase tracking-wider">
-                        <Store size={14} className="inline mr-1 text-blue-300" /> Loja
+                        <Store size={14} className="inline mr-1 text-gray-300" /> Loja
                       </th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-300 uppercase tracking-wider">
-                        <Settings size={15} className="inline mr-1 text-zinc-400" /> Ações
+                        <Settings size={15} className="inline mr-1 text-gray-300" /> Ações
                       </th>
                     </tr>
                   </thead>
@@ -631,18 +610,18 @@ function getStoreIcon(store: string) {
                         <tr key={product._id} className="hover:bg-white/5 transition-colors group">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Package size={18} className="text-teal-400" />
+                              <Package size={18} className="text-gray-300" />
                               <span className="text-xs text-white">{product.name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-white flex items-center gap-1">
-                              <Barcode size={18} className="text-cyan-400" /> {product.sku}
+                              <Barcode size={18} className="text-gray-300" /> {product.sku}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 text-xs text-white ">
-                              <DollarSign size={18} className="text-green-400" /> {product.priceBRL.toFixed(2)}
+                              <DollarSign size={18} className="text-green-500" /> {product.priceBRL.toFixed(2)}
                             </div>
                             <div className="text-xs text-gray-400 flex items-center gap-1">
                               <Bitcoin size={18} className="text-yellow-400" />{product.priceBCH.toFixed(6)} BCH
@@ -676,14 +655,14 @@ function getStoreIcon(store: string) {
                             <div className="flex gap-2 justify-center">
                               <button
                                 onClick={() => handleEdit(product)}
-                                className="p-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
+                                className="p-1.5 cursor-pointer bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
                                 title="Editar"
                               >
                                 <Edit size={14} />
                               </button>
                               <button
                                 onClick={() => handleDelete(product._id)}
-                                className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
+                                className="p-1.5 cursor-pointer bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-md border border-red-500/30 hover:border-red-500/50 transition-all duration-200 hover:scale-110 flex items-center gap-1 "
                                 title="Excluir"
                               >
                                 <Trash2 size={14} />
@@ -743,7 +722,7 @@ function getStoreIcon(store: string) {
                       <Bitcoin size={20} className="text-amber-400" /> {product.priceBCH.toFixed(6)} BCH
                     </div>
                     <div className="text-sm text-white flex items-center gap-1">
-                      <Barcode size={20} className="text-cyan-400" /> {product.sku} SKU
+                      <Barcode size={20} className="text-gray-300" /> {product.sku} SKU
                     </div>
                   </div>
 
@@ -787,14 +766,14 @@ function getStoreIcon(store: string) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(product)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-teal-600/30 to-teal-400/20 hover:from-teal-500 hover:to-teal-400 text-teal-200 rounded-lg border border-teal-400/30 hover:border-teal-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
+                      className="cursor-pointer flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-teal-600/30 to-teal-400/20 hover:from-teal-500 hover:to-teal-400 text-teal-200 rounded-lg border border-teal-400/30 hover:border-teal-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
                     >
                       <Edit size={14} />
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(product._id)}
-                      className="flex items-center justify-center p-2 bg-gradient-to-r from-red-600/30 to-red-400/20 hover:from-red-500 hover:to-red-400 text-red-300 rounded-lg border border-red-400/30 hover:border-red-400/60 transition-all duration-200 hover:scale-105 shadow"
+                      className="cursor-pointer flex items-center justify-center p-2 bg-gradient-to-r from-red-600/30 to-red-400/20 hover:from-red-500 hover:to-red-400 text-red-300 rounded-lg border border-red-400/30 hover:border-red-400/60 transition-all duration-200 hover:scale-105 shadow"
                       title="Excluir"
                     >
                       <Trash2 size={14} />
@@ -830,7 +809,7 @@ function getStoreIcon(store: string) {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <ChevronLeft size={16} />
                 Anterior
@@ -838,7 +817,7 @@ function getStoreIcon(store: string) {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex cursor-pointer items-center gap-1 px-3 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 rounded-md border border-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Próximo
                 <ChevronRight size={16} />
@@ -866,7 +845,7 @@ function getStoreIcon(store: string) {
                   </p>
                 </div>
                 <button
-                  className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
+                  className="absolute cursor-pointer top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                   onClick={resetForm}
                   aria-label="Fechar"
                 >
@@ -918,7 +897,7 @@ function getStoreIcon(store: string) {
                         name="store"
                         value={formData.store}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        className="cursor-pointer w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
                         required
                       >
                         <option value="">Selecione uma Loja</option>
@@ -1012,7 +991,7 @@ function getStoreIcon(store: string) {
                         name="category"
                         value={formData.category}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        className="cursor-pointer w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
                         required
                       >
                         <option value="">Selecione uma Categoria</option>
@@ -1031,7 +1010,7 @@ function getStoreIcon(store: string) {
                         name="subcategory"
                         value={formData.subcategory}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''
+                        className={`cursor-pointer w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''
                           }`}
                         required
                         disabled={!formData.category || formData.category === ''}
@@ -1052,14 +1031,14 @@ function getStoreIcon(store: string) {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-5 py-2 bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
+                    className="px-5 py-2 cursor-pointer bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
-                    className={`px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${currentProduct
+                    className={`cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${currentProduct
                       ? 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
                       : 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
                       }`}
@@ -1090,7 +1069,7 @@ function getStoreIcon(store: string) {
                 </p>
 
                 <button
-                  className={`w-full rounded-lg py-2 font-semibold transition-colors text-sm ${modalContent.type === 'success' ? 'bg-teal-600 hover:bg-teal-700 text-white' :
+                  className={`cursor-pointer w-full rounded-lg py-2 font-semibold transition-colors text-sm ${modalContent.type === 'success' ? 'bg-teal-600 hover:bg-teal-700 text-white' :
                     modalContent.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
                       'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
@@ -1119,7 +1098,7 @@ function getStoreIcon(store: string) {
 
                 <div className="flex gap-3">
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white text-sm"
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white text-sm"
                     onClick={() => {
                       setIsDeleteConfirmModalOpen(false);
                       setProductToDeleteId(null);
@@ -1128,7 +1107,7 @@ function getStoreIcon(store: string) {
                     Cancelar
                   </button>
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
                     onClick={confirmDelete}
                   >
                     Excluir
@@ -1148,20 +1127,20 @@ function getStoreIcon(store: string) {
                   <AlertTriangle size={36} className="text-orange-400" />
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2">Confirmar Atualização</h3>
+                <h3 className="text-xl font-bold  text-white mb-2">Confirmar Atualização</h3>
                 <p className="text-gray-300 mb-6 text-sm">
                   Tem certeza que deseja salvar as alterações para o produto "{currentProduct.name}"?
                 </p>
 
                 <div className="flex gap-3">
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
                     onClick={() => setIsUpdateConfirmModalOpen(false)}
                   >
                     Cancelar
                   </button>
                   <button
-                    className="flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
                     onClick={handleConfirmUpdate} 
                   >
                     Confirmar
@@ -1171,7 +1150,6 @@ function getStoreIcon(store: string) {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

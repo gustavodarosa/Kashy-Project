@@ -1,19 +1,12 @@
-import {
-    Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
-    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
-    Sun, Moon, Globe
-} from 'lucide-react';
-import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
-import { useState, useEffect, useMemo } from 'react';
+import { Search, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket, NotepadText, Wallet, Users, Package, Settings, UserCircle, LogOut, Edit, Bell, X, Pencil, Sun, Moon, Globe } from 'lucide-react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
+import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; 
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
-
+import { useNotification } from '../../context/NotificationContext'; 
 
 export function Dashboard() {
-    const isOpen = true;
 
-    // Tipos e constantes para categorias de notificação
     type NotificationCategory = "todas" | "transacoes" | "produtos" | "pedidos" | "relatorios";
 
     const notificationCategoryTabs: Array<{ id: NotificationCategory; label: string }> = [
@@ -25,7 +18,6 @@ export function Dashboard() {
     ];
 
     const [activeNotificationTab, setActiveNotificationTab] = useState<NotificationCategory>("todas");
-
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -34,24 +26,17 @@ export function Dashboard() {
     const [username, setUsername] = useState<string | null>(null);
     const [email, setEmail] = useState<string | null>(null);
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-    const { notifications, clearNotifications, addNotification } = useNotification();
+    const { notifications, clearNotifications } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-    const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
-    const [emailEditError, setEmailEditError] = useState<string | null>(null);
-    const [emailEditSuccess, setEmailEditSuccess] = useState<string | null>(null);
     const [phone, setPhone] = useState<string | null>(null);
-
-    // Chatbot state
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
+    const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot", message: string }[]>([]);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [language, setLanguage] = useState<'pt-BR' | 'en-US'>('pt-BR');
-
     const navigate = useNavigate();
-
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
@@ -195,8 +180,8 @@ export function Dashboard() {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token'); 
-            const userId = localStorage.getItem('userId'); 
+            const token = localStorage.getItem('token');
+            const userId = localStorage.getItem('userId');
 
             if (!token || !userId) {
                 console.error('Usuário não autenticado ou ID do usuário não encontrado.');
@@ -278,7 +263,7 @@ export function Dashboard() {
                     const data = await response.json();
                     setPhone(data.phone || null);
                 }
-            } catch {}
+            } catch { }
         };
         fetchUserPhone();
     }, []);
@@ -645,7 +630,7 @@ export function Dashboard() {
             {/* Mobile Bottom Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] shadow-lg">
                 <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent"
-                     style={{ WebkitOverflowScrolling: 'touch' }}>
+                    style={{ WebkitOverflowScrolling: 'touch' }}>
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
@@ -794,9 +779,8 @@ export function Dashboard() {
                             <button
                                 onClick={handleSaveImage}
                                 disabled={!selectedImage}
-                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${
-                                    !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
+                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${!selectedImage ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
                             >
                                 Salvar
                             </button>
@@ -837,11 +821,10 @@ export function Dashboard() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveNotificationTab(tab.id)}
-                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                                        activeNotificationTab === tab.id
+                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${activeNotificationTab === tab.id
                                             ? 'border-b-2 border-blue-500 text-blue-400'
                                             : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
-                                    }`}
+                                        }`}
                                 >
                                     {tab.label}
                                 </button>
@@ -913,22 +896,19 @@ export function Dashboard() {
                                     {chatMessages.map((msg, index) => (
                                         <div
                                             key={index}
-                                            className={`flex animate-fadeIn ${
-                                                msg.sender === "user" ? "justify-end" : "justify-start"
-                                            }`}
+                                            className={`flex animate-fadeIn ${msg.sender === "user" ? "justify-end" : "justify-start"
+                                                }`}
                                         >
                                             <div
-                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${
-                                                    msg.sender === "user"
+                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${msg.sender === "user"
                                                         ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
                                                         : "bg-gray-700/50 text-gray-200 rounded-tl-none"
-                                                }`}
+                                                    }`}
                                             >
                                                 {renderChatMessage(msg.message)}
                                                 <div
-                                                    className={`text-xs mt-2 ${
-                                                        msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
-                                                    }`}
+                                                    className={`text-xs mt-2 ${msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
+                                                        }`}
                                                 >
                                                     {new Date().toLocaleTimeString([], {
                                                         hour: "2-digit",
@@ -973,11 +953,10 @@ export function Dashboard() {
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className={`p-3 rounded-xl ${
-                                        isChatLoading || !chatInput.trim()
+                                    className={`p-3 rounded-xl ${isChatLoading || !chatInput.trim()
                                             ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
                                             : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
-                                    } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                                        } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                                     disabled={isChatLoading || !chatInput.trim()}
                                     aria-label="Send message"
                                 >
