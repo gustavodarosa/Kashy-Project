@@ -9,7 +9,7 @@ interface StandardInventoryPreviewData {
   mostStockedCategory?: string;
 
   lowStockProductDetails?: Array<{ name: string; sku?: string; category?: string; quantity: number }>;
-  outOfStockProductDetails?: Array<{ name: string; sku?: string; category?: string; }>;
+  outOfStockProductDetails?: Array<{ name: string; sku?: string; category?: string }>;
 }
 
 interface SalesPreviewData {
@@ -183,6 +183,44 @@ export function RelatoriosTab() {
   const [aiPrompt, setAiPrompt] = useState('');
 
   const aiPromptOptions = [
+    // --- Novos prompts para pedidos ---
+    {
+      value: 'count_orders',
+      label: 'Quantos pedidos existem?',
+      prompt: 'Conte quantos pedidos existem no sistema. Responda apenas com o número total de pedidos.'
+    },
+    {
+      value: 'highest_order_value',
+      label: 'Qual o maior valor de pedido?',
+      prompt: 'Identifique qual pedido possui o maior valor total. Informe o valor, o ID do pedido e a loja correspondente.'
+    },
+    {
+      value: 'store_with_most_orders',
+      label: 'Qual loja teve mais pedidos?',
+      prompt: 'Analise os dados e diga qual loja recebeu o maior número de pedidos. Informe o nome da loja e a quantidade de pedidos.'
+    },
+    {
+      value: 'most_frequent_customer',
+      label: 'Qual cliente mais comprou?',
+      prompt: 'Identifique o cliente que mais realizou pedidos. Informe o e-mail do cliente e a quantidade de pedidos feitos.'
+    },
+    // --- Fim dos prompts de pedidos ---
+    {
+      value: 'count_products',
+      label: 'Quantos produtos existem?',
+      prompt: 'Conte quantos produtos existem no inventário. Responda apenas com o número total de produtos.'
+    },
+    {
+      value: 'most_expensive_product',
+      label: 'Qual o produto mais caro?',
+      prompt: 'Identifique qual é o produto mais caro do inventário e informe o nome, o preço e a loja correspondente.'
+    },
+    {
+      value: 'store_with_most_products',
+      label: 'Qual loja tem mais produtos?',
+      prompt: 'Analise os dados e diga qual loja possui o maior número de produtos cadastrados. Informe o nome da loja e a quantidade de produtos.'
+    },
+    // --- Fim dos prompts de produto ---
     {
       value: 'default_select',
       label: 'Selecione um modelo ou escreva seu prompt abaixo...',
@@ -681,23 +719,54 @@ export function RelatoriosTab() {
                         }`}
                     >
                       <Sparkles size={24} className="mx-auto mb-2" />
-                      <span className="text-base font-semibold">Análise IA</span>
-                      <span className="block text-xs text-gray-400 mt-1">Insights via prompt</span>
+                      <span className="text-base font-semibold">IA</span>
+                      <span className="block text-xs text-gray-400 mt-1">Modelos dinâmicos</span>
                     </button>
                   </div>
                 )}
 
-                {/* Form Fields */}
-                <div>
-                  <label htmlFor="reportTitle" className="block text-xs font-medium mb-1.5 text-gray-300">Título do Relatório</label>
-                  <input
-                    id="reportTitle"
-                    type="text"
-                    value={reportTitle}
-                    onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder={newReportType === 'ai' ? "Ex: Análise vendas Q1 com IA" : "Ex: Vendas - Maio 2024"}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
-                  />
+                {/* Report Title and Date Range */}
+                <div className="mb-4">
+                  <div>
+                    <label htmlFor="reportTitle" className="block text-xs font-medium mb-1.5 text-gray-300">
+                      Título do Relatório <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="reportTitle"
+                      type="text"
+                      value={reportTitle}
+                      onChange={(e) => setReportTitle(e.target.value)}
+                      placeholder="Insira um título para o relatório..."
+                      className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label htmlFor="dateRangeStart" className="block text-xs font-medium mb-1.5 text-gray-300">
+                        Data Início
+                      </label>
+                      <input
+                        id="dateRangeStart"
+                        type="date"
+                        value={dateRange.start}
+                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="dateRangeEnd" className="block text-xs font-medium mb-1.5 text-gray-300">
+                        Data Fim
+                      </label>
+                      <input
+                        id="dateRangeEnd"
+                        type="date"
+                        value={dateRange.end}
+                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* AI Prompt */}

@@ -1,6 +1,7 @@
 // backend/src/controllers/reportController.js
 const { generateInsights } = require("../services/generativeAIService"); // Importa a função do serviço
 const Report = require('../models/report'); // Importa o modelo de relatório
+const Order = require('../models/Order');
 
 /**
  * Lida com a requisição para gerar um relatório de IA.
@@ -12,50 +13,23 @@ async function generateAIReport(req, res) {
   }
 
   try {
-    let contexto = '';
-    // Exemplo: adapte os nomes dos models conforme seu projeto
-    if (prompt.toLowerCase().includes('usuário')) {
-      const User = require('../models/user');
-      const totalUsuarios = await User.countDocuments();
-      contexto = `Atualmente existem ${totalUsuarios} usuários cadastrados no sistema.`;
-    } else if (prompt.toLowerCase().includes('estoque baixo')) {
-      const Product = require('../models/product');
-      const lowStock = await Product.find({ quantity: { $lt: 5 } });
-      contexto = `Produtos com estoque baixo (${lowStock.length}):\n` +
-        lowStock.map(p => `- ${p.name}: ${p.quantity} unidades`).join('\n');
-    } else if (prompt.toLowerCase().includes('produtos existem')) {
-      const Product = require('../models/product');
-      const totalProdutos = await Product.countDocuments();
-      contexto = `Existem atualmente ${totalProdutos} produtos cadastrados no estoque.`;
-    } else if (prompt.toLowerCase().includes('alerta de estoque')) {
-      const Product = require('../models/product');
-      // Considera alerta de estoque como produtos com quantidade <= mínimo (ou < 5 se não houver campo mínimo)
-      const produtosAlerta = await Product.find({ $or: [{ quantity: { $lte: 5 } }, { minimum: { $exists: true, $gt: 0 }, $expr: { $lte: ["$quantity", "$minimum"] } }] });
-      contexto = `Produtos em alerta de estoque (${produtosAlerta.length}):\n` +
-        produtosAlerta.map(p => `- ${p.name}: ${p.quantity} unidades (mínimo: ${p.minimum ?? 5})`).join('\n');
-    } else if (prompt.toLowerCase().includes('número de pedidos') || prompt.toLowerCase().includes('numero de pedidos')) {
-      const Order = require('../models/order');
-      const totalPedidos = await Order.countDocuments();
-      contexto = `O sistema possui atualmente ${totalPedidos} pedidos registrados.`;
-    } else if (prompt.toLowerCase().includes('número de transações') || prompt.toLowerCase().includes('numero de transações')) {
-      const Transaction = require('../models/transaction');
-      const totalTransacoes = await Transaction.countDocuments();
-      contexto = `O sistema possui atualmente ${totalTransacoes} transações registradas.`;
-    } else {
-      contexto = 'Dados não encontrados para este tipo de relatório.';
-    }
+    // Busca todos os pedidos e monta o contexto textual
+    const orders = await Order.find().populate('items.product');
+    const contexto = 'Lista de pedidos:\n' + orders.map(o =>
+      `- ID: ${o._id}, Loja: ${o.store}, Cliente: ${o.customerEmail || 'Anônimo'}, Total: ${o.totalAmount}, Status: ${o.status}, Pagamento: ${o.paymentMethod}, Data: ${o.createdAt}, Itens: [${o.items.map(i => i.product ? `${i.product.name} (Qtd: ${i.quantity}, Preço: ${i.priceBRL})` : '').join('; ')}]`
+    ).join('\n');
 
-    // Monte o histórico em formato de texto
     let historyText = '';
     if (Array.isArray(history)) {
       historyText = history.map(msg => `${msg.role === "user" ? "Usuário" : "IA"}: ${msg.message}`).join('\n');
     }
 
     const fullPrompt = `${historyText}\n${contexto}\nUsuário: ${prompt}`;
-    const insights = await generateInsights(fullPrompt);
+    const insights = await generateInsights(fullPrompt); // Sua função de IA
+
     res.status(200).json({ insights });
   } catch (error) {
-    console.error("[Controller] Erro ao processar a geração do relatório:", error.message);
+    console.error("[Controller] Erro ao processar a geração do relatório:", error);
     res.status(500).json({ message: "Erro interno no servidor ao gerar o relatório com IA." });
   }
 }
