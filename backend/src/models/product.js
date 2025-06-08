@@ -7,10 +7,21 @@ const productSchema = new mongoose.Schema({
   quantity: { type: Number, required: true },
   sku: { type: String, required: true, unique: true },
   category: { type: String, required: true },
-  subcategory: { type: String }, 
-  createdAt: { type: Date, default: Date.now },
+  subcategory: { type: String },
   minimum: { type: Number, required: true },
   store: { type: String, required: true },
-});
+  description: { type: String },
+  brand: { type: String },
+  weight: { type: Number }, 
+  expirationDate: { type: Date }, 
+  images: [{ type: String }], 
+  status: { type: String, enum: ['ativo', 'inativo', 'descontinuado'], default: 'ativo' },
+  taxation: {
+    ncm: { type: String },
+    cest: { type: String }
+  },
+  warranty: { type: String }, 
+  tags: [{ type: String }],
+}, { timestamps: true }); 
 
 module.exports = mongoose.model('Product', productSchema);

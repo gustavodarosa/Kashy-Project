@@ -1,16 +1,15 @@
-// c:\Users\natan.bagatoli\Desktop\Kashy-Project\backend\src\models\order.js
 const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product', // Assuming you have a Product model
-    // required: true, // Uncomment if product ID is always required
+    ref: 'Product', 
+  
   },
-  name: { type: String, required: true }, // Product name at the time of order
+  name: { type: String, required: true }, 
   quantity: { type: Number, required: true, min: 1 },
-  priceBRL: { type: Number, required: true }, // Price in BRL at time of order
-  priceBCH: { type: Number }, // Price in BCH at time of order (optional if not always BCH)
+  priceBRL: { type: Number, required: true }, 
+  priceBCH: { type: Number }, 
 }, { _id: false });
 
 
@@ -21,32 +20,32 @@ const orderSchema = new mongoose.Schema({
   },
   customerEmail: {
     type: String,
-    // Not strictly required, can be 'Não identificado'
+
   },
-  items: [orderItemSchema], // Array of order items
-  totalAmount: { // This is likely in BRL
+  items: [orderItemSchema],
+  totalAmount: { 
     type: Number,
     required: true,
   },
   paymentMethod: {
     type: String,
-    enum: ['bch', 'pix', 'card'], // Example payment methods
+    enum: ['bch', 'pix', 'card'], 
     required: true,
   },
-  // Fields specific to BCH payments
-  merchantAddress: { // Specific address for BCH payment (derived)
+
+  merchantAddress: { 
     type: String,
     required: function() { return this.paymentMethod === 'bch'; }
   },
-  invoicePath: { // Derivation path for the merchantAddress
+  invoicePath: { 
     type: String,
     required: function() { return this.paymentMethod === 'bch'; }
   },
-  amountBCH: { // Total amount expected in BCH
+  amountBCH: { 
     type: Number,
     required: function() { return this.paymentMethod === 'bch'; }
   },
-  exchangeRateUsed: { // BCH/BRL rate at the time of order creation
+  exchangeRateUsed: {
     type: Number,
     required: function() { return this.paymentMethod === 'bch'; }
   },
@@ -55,19 +54,19 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'payment_detected', 'paid', 'confirmed_paid', 'cancelled', 'refunded', 'expired'],
     default: 'pending',
   },
-  transaction: { // Optional: details of the payment transaction (if applicable)
+  transaction: { 
     txHash: { type: String },
     status: { type: String, enum: ['pending', 'confirmed', 'failed'] },
-    paidAmountBCH: { type: Number }, // Actual amount paid in BCH
-    paymentReceivedAt: { type: Date }, // Timestamp when payment was detected/confirmed
+    paidAmountBCH: { type: Number },
+    paymentReceivedAt: { type: Date },
     confirmations: { type: Number, default: 0 }
   },
-  user: { // Optional: link to the user who created/owns the order
+  user: { 
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true, // Make user field required to associate order with a user
+    required: true, 
   }
-}, { timestamps: true }); // Adds createdAt and updatedAt automatically
+}, { timestamps: true }); 
 
 module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
