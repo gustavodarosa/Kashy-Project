@@ -163,127 +163,6 @@ export function Dashboard() {
     };
 
     useEffect(() => {
-        const fetchUsername = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.error('Usuário não autenticado.');
-                    return;
-                }
-
-                const response = await fetch('http://localhost:3000/api/user/username', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setUsername(data.username);
-                } else {
-                    console.error('Erro ao obter username:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao conectar ao servidor:', error);
-            }
-        };
-
-        fetchUsername();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token'); 
-            const userId = localStorage.getItem('userId'); 
-
-            if (!token || !userId) {
-                console.error('Usuário não autenticado ou ID do usuário não encontrado.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setSavedImage(data.profileImage); // Atualiza a imagem salva no estado
-                    setUsername(data.username); // Atualiza o username no estado
-                } else {
-                    console.error('Erro ao buscar dados do usuário:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar os dados do usuário:', error);
-            }
-        };
-
-        fetchUserData();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            const userId = localStorage.getItem('userId');
-
-            if (!token || !userId) {
-                console.error('Usuário não autenticado ou ID do usuário não encontrado.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Dados do usuário:', data);
-                    setEmail(data.email);
-                } else {
-                    console.error('Erro ao buscar dados do usuário:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar os dados do usuário:', error);
-            }
-        };
-
-        fetchUserData();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserPhone = async () => {
-            const token = localStorage.getItem('token');
-            const userId = localStorage.getItem('userId');
-            if (!token || !userId) return;
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setPhone(data.phone || null);
-                }
-            } catch {}
-        };
-        fetchUserPhone();
-    }, []);
-
-    useEffect(() => {
         const fetchUserData = async () => {
             const token = localStorage.getItem('token');
             const userId = localStorage.getItem('userId');
@@ -307,7 +186,7 @@ export function Dashboard() {
                     setSavedImage(data.profileImage);
                     setUsername(data.username);
                     setEmail(data.email);
-                    setPhone(data.phone || null); // <-- Adicione esta linha
+                    setPhone(data.phone || null);
                 } else {
                     console.error('Erro ao buscar dados do usuário:', response.statusText);
                 }
@@ -464,21 +343,24 @@ export function Dashboard() {
                 </div>
 
                 {/* Sidebar Navigation */}
-                <nav className="flex flex-col p-2 sm:p-4 gap-2 overflow-y-auto">
+                <nav className="flex flex-col p-0 sm:p-0 gap-0 overflow-y-auto">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             title={tab.label}
-                            className={`py-5 px-2 sm:px-4 rounded-[10px] flex items-center justify-start gap-6
+                            className={`py-5 px-4 flex items-center justify-start gap-6 w-full relative
                                        ${activeTab === tab.id
-                                         ? 'bg-gradient-to-r from-[rgb(112,254,192)] to-[rgba(112,254,192,0.1)] text-black font-semibold border border-[rgb(112,254,192)]'
-                                         : 'text-white border border-transparent hover:border-[rgb(112,254,192)]'
+                                         ? 'bg-gradient-to-r from-[rgb(112,254,192)] to-black text-white font-semibold'
+                                         : 'text-white hover:bg-[rgba(112,254,192,0.1)]'
                                        }
                                        transition-colors duration-200`}
                         >
                             <div className="w-5 h-5 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
                             <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>
+                            {activeTab === tab.id && (
+                                <div className="absolute right-0 top-0 h-full w-1 bg-[rgb(112,254,192)] rounded-l-[10px]"></div>
+                            )}
                         </button>
                     ))}
                 </nav>
