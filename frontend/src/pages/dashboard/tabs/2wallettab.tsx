@@ -87,6 +87,7 @@ export function WalletTab() {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [hiddenDots, setHiddenDots] = useState(0);
   const [pulseIndex, setPulseIndex] = useState<number | null>(null);
+  const [receiveModalClosing, setReceiveModalClosing] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -649,10 +650,17 @@ export function WalletTab() {
         {/* Send Modal */}
         {sendModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition duration-200 ease-in-out hover:-translate-y-1 hover:scale-115">
-            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+            <div className={`bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70 transition-all duration-250 ease-in-out
+        ${receiveModalClosing ? 'scale-90 opacity-0' : 'scale-100 opacity-100'}`}>
               <button
                 className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
-                onClick={() => setSendModalOpen(false)}
+                onClick={() => {
+                  setReceiveModalClosing(true);
+                  setTimeout(() => {
+                    setSendModalOpen(false);
+                    setReceiveModalClosing(false);
+                  }, 170);
+                }}
               >
                 ×
               </button>
@@ -742,11 +750,18 @@ export function WalletTab() {
 
         {/* Receive Modal */}
         {receiveModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition delay-0 duration-200 ease-in-out hover:-translate-y-1 hover:scale-115">
-            <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-all delay-0 duration-200 ease-in-out hover:-translate-y-1 hover:scale-115">
+            <div className={`bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70 transition-all duration-250 ease-in-out
+        ${receiveModalClosing ? 'scale-90 opacity-0' : 'scale-100 opacity-100'}`}>
               <button
                 className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
-                onClick={() => setReceiveModalOpen(false)}
+                onClick={() => {
+                  setReceiveModalClosing(true);
+                  setTimeout(() => {
+                    setReceiveModalOpen(false);
+                    setReceiveModalClosing(false);
+                  }, 170);
+                }}
               >
                 ×
               </button>
