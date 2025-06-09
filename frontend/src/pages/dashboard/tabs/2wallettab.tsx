@@ -85,6 +85,28 @@ export function WalletTab() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastSent, setLastSent] = useState<{ address: string; amount: string; amountBRL: string } | null>(null);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [hiddenDots, setHiddenDots] = useState(0);
+  const [pulseIndex, setPulseIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (!balanceVisible) {
+      setHiddenDots(0);
+      setPulseIndex(null);
+      let dots = 0;
+      interval = setInterval(() => {
+        dots++;
+        setHiddenDots(dots);
+        setPulseIndex(dots - 1); // faz o último ponto anterior "pular"
+        setTimeout(() => setPulseIndex(null), 180); // tempo do pulo
+        if (dots >= 8) clearInterval(interval);
+      }, 120); // velocidade da animação
+    } else {
+      setHiddenDots(0);
+      setPulseIndex(null);
+    }
+    return () => clearInterval(interval);
+  }, [balanceVisible]);
 
   // UI state
   const [activeTab, setActiveTab] = useState<'tokens' | 'nft' | 'activity'>('tokens');
@@ -268,7 +290,20 @@ export function WalletTab() {
                     {balanceVisible ? (
                       <h2 className="text-4xl font-bold text-white">0.1827 BCH</h2>
                     ) : (
-                      <h2 className="text-4xl font-bold text-white">••••••••</h2>
+                      <h2 className="text-4xl font-bold text-white flex gap-1">
+                        {Array.from({ length: hiddenDots }).map((_, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              display: 'inline-block',
+                              transition: 'transform 0.18s cubic-bezier(.4,2,.6,1)',
+                              transform: pulseIndex === i ? 'scale(1.7)' : 'scale(1)'
+                            }}
+                          >
+                            •
+                          </span>
+                        ))}
+                      </h2>
                     )}
                     <button
                       onClick={() => setBalanceVisible(!balanceVisible)}
@@ -613,7 +648,7 @@ export function WalletTab() {
 
         {/* Send Modal */}
         {sendModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition duration-200 ease-in-out hover:-translate-y-1 hover:scale-115">
             <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
               <button
                 className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
@@ -707,7 +742,7 @@ export function WalletTab() {
 
         {/* Receive Modal */}
         {receiveModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition delay-0 duration-200 ease-in-out hover:-translate-y-1 hover:scale-115">
             <div className="bg-[#2F363E] rounded-2xl w-full max-w-md shadow-2xl relative border border-[#3A414A]/70">
               <button
                 className="absolute top-4 right-6 text-gray-400 hover:text-white text-2xl transition-colors"
