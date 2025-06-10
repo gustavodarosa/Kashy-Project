@@ -15,17 +15,23 @@ export type Product = {
   subcategory: string;
   store: string;
   createdAt: string;
-  // Novos campos:
+  barcode?: string;
   description?: string;
   brand?: string;
   weight?: number;
-  expirationDate?: string;
   images?: string[];
   status?: string;
   taxation?: { ncm?: string; cest?: string };
   warranty?: string;
   tags?: string[];
   updatedAt?: string;
+  cfop?: string;
+  unit?: string;
+  origin?: number;
+  icmsRate?: number;
+  ipiRate?: number;
+  pisRate?: number;
+  cofinsRate?: number;
 };
 
 type ProductFormData = {
@@ -41,12 +47,20 @@ type ProductFormData = {
   description: string;
   brand: string;
   weight: number;
-  expirationDate: string;
+ 
   images: string[];
   status: string;
   taxation: { ncm: string; cest: string };
   warranty: string;
   tags: string[];
+  barcode: string;
+  cfop: string;
+  unit: string;
+  origin: number;
+  icmsRate: number;
+  ipiRate: number;
+  pisRate: number;
+  cofinsRate: number;
 };
 
 export function ProdutosTab() {
@@ -79,16 +93,22 @@ export function ProdutosTab() {
     subcategory: '',
     store: '',
     minimum: 1,
-    // Novos campos:
     description: '',
     brand: '',
     weight: 0,
-    expirationDate: '',
     images: [],
     status: 'ativo',
     taxation: { ncm: '', cest: '' },
     warranty: '',
     tags: [],
+    barcode: '',
+    cfop: '',
+    unit: '',
+    origin: 0,
+    icmsRate: 0,
+    ipiRate: 0,
+    pisRate: 0,
+    cofinsRate: 0,
   });
   const categories = [
     { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-gray-300" /> },
@@ -104,49 +124,49 @@ export function ProdutosTab() {
     { value: 'Loja C', label: 'Loja C', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
   ];
   // Ícones para subcategorias
-function getSubcategoryIcon(category: string, subcategory: string) {
-  if (category === 'alimentos') {
-    if (subcategory === 'Doces') return <Candy size={14} className="text-gray-300" />;
-    if (subcategory === 'Salgados') return <Ham size={14} className="text-gray-300" />;
-    if (subcategory === 'Orgânicos') return <Apple size={14} className="text-gray-300" />;
-    if (subcategory === 'Congelados') return <Snowflake size={14} className="text-gray-300" />;
+  function getSubcategoryIcon(category: string, subcategory: string) {
+    if (category === 'alimentos') {
+      if (subcategory === 'Doces') return <Candy size={14} className="text-gray-300" />;
+      if (subcategory === 'Salgados') return <Ham size={14} className="text-gray-300" />;
+      if (subcategory === 'Orgânicos') return <Apple size={14} className="text-gray-300" />;
+      if (subcategory === 'Congelados') return <Snowflake size={14} className="text-gray-300" />;
+    }
+    if (category === 'bebidas') {
+      if (subcategory === 'Alcoólica') return <Beer size={14} className="text-gray-300" />;
+      if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-gray-300" />;
+      if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-gray-300" />;
+      if (subcategory === 'Suco') return <GlassWater size={14} className="text-gray-300" />;
+      if (subcategory === 'Energético') return <Zap size={14} className="text-gray-300" />;
+    }
+    if (category === 'eletronicos') {
+      if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-300" />;
+      if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-300" />;
+      if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-300" />;
+      if (subcategory === 'TV') return <Tv size={14} className="text-gray-300" />;
+    }
+    if (category === 'vestuario') {
+      if (subcategory === 'Masculino') return <Mars size={14} className="text-gray-300" />;
+      if (subcategory === 'Feminino') return <Venus size={14} className="text-gray-300" />;
+      if (subcategory === 'Infantil') return <Baby size={14} className="text-gray-300" />;
+      if (subcategory === 'Acessórios') return <Glasses size={14} className="text-gray-300" />;
+    }
+    if (category === 'servicos') {
+      if (subcategory === 'Entrega') return <Truck size={14} className="text-gray-300" />;
+      if (subcategory === 'Montagem') return <Drill size={14} className="text-gray-300" />;
+      if (subcategory === 'Instalação') return <Wrench size={14} className="text-gray-300" />;
+    }
+    return <Tag size={14} className="text-gray-400" />;
   }
-  if (category === 'bebidas') {
-    if (subcategory === 'Alcoólica') return <Beer size={14} className="text-gray-300" />;
-    if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-gray-300" />;
-    if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-gray-300" />;
-    if (subcategory === 'Suco') return <GlassWater size={14} className="text-gray-300" />;
-    if (subcategory === 'Energético') return <Zap size={14} className="text-gray-300" />;
-  }
-  if (category === 'eletronicos') {
-    if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-300" />;
-    if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-300" />;
-    if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-300" />;
-    if (subcategory === 'TV') return <Tv size={14} className="text-gray-300" />;
-  }
-  if (category === 'vestuario') {
-    if (subcategory === 'Masculino') return <Mars size={14} className="text-gray-300" />;
-    if (subcategory === 'Feminino') return <Venus size={14} className="text-gray-300" />;
-    if (subcategory === 'Infantil') return <Baby size={14} className="text-gray-300" />;
-    if (subcategory === 'Acessórios') return <Glasses size={14} className="text-gray-300" />;
-  }
-  if (category === 'servicos') {
-    if (subcategory === 'Entrega') return <Truck size={14} className="text-gray-300" />;
-    if (subcategory === 'Montagem') return <Drill size={14} className="text-gray-300" />;
-    if (subcategory === 'Instalação') return <Wrench size={14} className="text-gray-300" />;
-  }
-  return <Tag size={14} className="text-gray-400" />;
-}
 
-// Ícones para lojas
-function getStoreIcon(store: string) {
-  switch (store) {
-    case 'Loja A': return <Store size={16} className="text-teal-400" />;
-    case 'Loja B': return <Store size={16} className="text-blue-400" />;
-    case 'Loja C': return <Store size={16} className="text-pink-400" />;
-    default: return <Store size={16} className="text-gray-400" />;
+  // Ícones para lojas
+  function getStoreIcon(store: string) {
+    switch (store) {
+      case 'Loja A': return <Store size={16} className="text-teal-400" />;
+      case 'Loja B': return <Store size={16} className="text-blue-400" />;
+      case 'Loja C': return <Store size={16} className="text-pink-400" />;
+      default: return <Store size={16} className="text-gray-400" />;
+    }
   }
-}
   const subcategoriesMap: Record<string, string[]> = {
     alimentos: ['Doces', 'Salgados', 'Orgânicos', 'Congelados'],
     bebidas: ['Alcoólica', 'Não alcoólica', 'Refrigerante', 'Suco', 'Energético'],
@@ -280,16 +300,23 @@ function getStoreIcon(store: string) {
       subcategory: '',
       store: '',
       minimum: 1,
-      // Novos campos:
       description: '',
       brand: '',
       weight: 0,
-      expirationDate: '',
+     
       images: [],
       status: 'ativo',
       taxation: { ncm: '', cest: '' },
       warranty: '',
       tags: [],
+      barcode: '',
+      cfop: '',
+      unit: '',
+      origin: 0,
+      icmsRate: 0,
+      ipiRate: 0,
+      pisRate: 0,
+      cofinsRate: 0,
     });
     setCurrentProduct(null);
     setIsFormOpen(false);
@@ -317,11 +344,9 @@ function getStoreIcon(store: string) {
       subcategory: product.subcategory,
       store: product.store,
       minimum: 1,
-      // Novos campos:
       description: product.description || '',
       brand: product.brand || '',
       weight: product.weight || 0,
-      expirationDate: product.expirationDate || '',
       images: product.images || [],
       status: product.status || 'ativo',
       taxation: {
@@ -330,6 +355,14 @@ function getStoreIcon(store: string) {
       },
       warranty: product.warranty || '',
       tags: product.tags || [],
+      barcode: product.barcode || '',
+      cfop: '',
+      unit: '',
+      origin: 0,
+      icmsRate: 0,
+      ipiRate: 0,
+      pisRate: 0,
+      cofinsRate: 0,
     });
     setIsFormOpen(true);
   };
@@ -765,7 +798,7 @@ function getStoreIcon(store: string) {
                 <div
                   key={product._id}
                   className="group relative p-5 bg-[#2F363E]/60 rounded-2xl border border-white/10 hover:border-teal-400/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.04] overflow-hidden"
-                >         
+                >
                   <div className="absolute top-4 right-4 opacity-50 group-hover:opacity-70 transition-all pointer-events-none select-none">
                     {categories.find(c => c.value === product.category)?.icon}
                   </div>
@@ -918,315 +951,410 @@ function getStoreIcon(store: string) {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="relative p-6 pt-2 max-h-[80vh] overflow-y-auto space-y-10">
+              <form onSubmit={handleSubmit} className="relative p-6 pt-2 max-h-[90vh] overflow-y-auto space-y-10">
 
-  {/* Grupo: Identificação */}
-  <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
-    <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
-      <Package size={18} /> Identificação
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Nome <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
-          placeholder="Ex: Coca-Cola Lata 350ml"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          SKU <span className="text-teal-400">*</span>
-          <span className="ml-1 text-gray-500" title="Código único do produto">(?)</span>
-        </label>
-        <input
-          type="text"
-          name="sku"
-          value={formData.sku}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
-          placeholder="Ex: BEB-COCA-350"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Loja <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="store"
-          value={formData.store}
-          onChange={handleInputChange}
-          className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        >
-          <option value="">Selecione uma Loja</option>
-          <option value="Loja A">Loja A</option>
-          <option value="Loja B">Loja B</option>
-          <option value="Loja C">Loja C</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Quantidade <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="number"
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleInputChange}
-          min="0"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Preço (BRL) <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="number"
-          name="priceBRL"
-          value={formData.priceBRL}
-          onChange={handleInputChange}
-          min="0.01"
-          step="0.01"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Preço (BCH)
-        </label>
-        <input
-          type="number"
-          name="priceBCH"
-          value={formData.priceBCH}
-          onChange={handleInputChange}
-          min="0.000001"
-          step="0.000001"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white opacity-60 focus:outline-none text-sm"
-          disabled
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Categoria <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="category"
-          value={formData.category}
-          onChange={handleInputChange}
-          className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        >
-          <option value="">Selecione uma Categoria</option>
-          {categories.map((cat) => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Subcategoria <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="subcategory"
-          value={formData.subcategory}
-          onChange={handleInputChange}
-          className={`cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''}`}
-          required
-          disabled={!formData.category || formData.category === ''}
-        >
-          <option value="">Selecione uma Subcategoria</option>
-          {(formData.category && subcategoriesMap[formData.category])
-            ? subcategoriesMap[formData.category].map((subcat) => (
-              <option key={subcat} value={subcat}>{subcat}</option>
-            ))
-            : null}
-        </select>
-      </div>
-    </div>
-  </section>
+                {/* Grupo: Identificação */}
+                <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
+                  <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
+                    <Package size={18} /> Identificação
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Nome <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: Coca-Cola Lata 350ml"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        SKU <span className="text-teal-400">*</span>
+                        <span className="ml-1 text-gray-500" title="Código único do produto">(?)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="sku"
+                        value={formData.sku}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: BEB-COCA-350"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Loja <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="store"
+                        value={formData.store}
+                        onChange={handleInputChange}
+                        className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      >
+                        <option value="">Selecione uma Loja</option>
+                        <option value="Loja A">Loja A</option>
+                        <option value="Loja B">Loja B</option>
+                        <option value="Loja C">Loja C</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Quantidade <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="quantity"
+                        value={formData.quantity}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BRL) <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBRL"
+                        value={formData.priceBRL}
+                        onChange={handleInputChange}
+                        min="0.01"
+                        step="0.01"
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BCH)
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBCH"
+                        value={formData.priceBCH}
+                        onChange={handleInputChange}
+                        min="0.000001"
+                        step="0.000001"
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white opacity-60 focus:outline-none text-sm"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Categoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      >
+                        <option value="">Selecione uma Categoria</option>
+                        {categories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Subcategoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="subcategory"
+                        value={formData.subcategory}
+                        onChange={handleInputChange}
+                        className={`cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        required
+                        disabled={!formData.category || formData.category === ''}
+                      >
+                        <option value="">Selecione uma Subcategoria</option>
+                        {(formData.category && subcategoriesMap[formData.category])
+                          ? subcategoriesMap[formData.category].map((subcat) => (
+                            <option key={subcat} value={subcat}>{subcat}</option>
+                          ))
+                          : null}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Código de Barras
+                      </label>
+                      <input
+                        type="text"
+                        name="barcode"
+                        value={formData.barcode || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, barcode: e.target.value }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 7891234567890"
+                      />
+                    </div>
+                  </div>
 
-  {/* Grupo: Informações Adicionais */}
-  <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
-    <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
-      <Info size={18} /> Informações Adicionais
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Descrição
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          rows={2}
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Peso (g ou kg)
-        </label>
-        <input
-          type="number"
-          name="weight"
-          value={formData.weight}
-          onChange={handleInputChange}
-          min="0"
-          step="0.01"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Status
-        </label>
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        >
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-          <option value="descontinuado">Descontinuado</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          NCM
-        </label>
-        <input
-          type="text"
-          name="taxation.ncm"
-          value={formData.taxation?.ncm || ''}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            taxation: { ...prev.taxation, ncm: e.target.value }
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Garantia (ex: 12 meses)
-        </label>
-        <input
-          type="text"
-          name="warranty"
-          value={formData.warranty}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Marca/Fabricante
-        </label>
-        <input
-          type="text"
-          name="brand"
-          value={formData.brand}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Data de Validade
-        </label>
-        <input
-          type="date"
-          name="expirationDate"
-          value={formData.expirationDate}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Imagens (URLs separadas por vírgula)
-        </label>
-        <input
-          type="text"
-          name="images"
-          value={formData.images.join(',')}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            images: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          placeholder="https://img.com/1.jpg, https://img.com/2.jpg"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          CEST
-        </label>
-        <input
-          type="text"
-          name="taxation.cest"
-          value={formData.taxation?.cest || ''}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            taxation: { ...prev.taxation, cest: e.target.value }
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Tags/Palavras-chave (separadas por vírgula)
-        </label>
-        <input
-          type="text"
-          name="tags"
-          value={formData.tags.join(',')}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          placeholder="promoção, verão, lançamento"
-        />
-      </div>
-    </div>
-  </section>
+                </section>
 
-  {/* Rodapé fixo para ações */}
-  <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent pt-4 mt-8 -mx-6 px-6 border-t border-white/10 flex justify-end gap-3 z-20">
-    <button
-      type="button"
-      onClick={resetForm}
-      className="px-5 py-2 cursor-pointer bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
-    >
-      Cancelar
-    </button>
-    <button
-      type="submit"
-      onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
-      className={`cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${currentProduct
-        ? 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
-        : 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
-        }`}
-    >
-      {currentProduct ? 'Atualizar' : 'Salvar'}
-    </button>
-  </div>
-</form>
+                {/* Grupo: Informações Adicionais */}
+                <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
+                  <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
+                    <Info size={18} /> Informações Adicionais
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Descrição
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Peso (g ou kg)
+                      </label>
+                      <input
+                        type="number"
+                        name="weight"
+                        value={formData.weight}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="0.01"
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Status
+                      </label>
+                      <select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      >
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                        <option value="descontinuado">Descontinuado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        NCM
+                      </label>
+                      <input
+                        type="text"
+                        name="taxation.ncm"
+                        value={formData.taxation?.ncm || ''}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          taxation: { ...prev.taxation, ncm: e.target.value }
+                        }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Garantia (ex: 12 meses)
+                      </label>
+                      <input
+                        type="text"
+                        name="warranty"
+                        value={formData.warranty}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Marca/Fabricante
+                      </label>
+                      <input
+                        type="text"
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Imagens (URLs separadas por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        name="images"
+                        value={formData.images.join(',')}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          images: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                        }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="https://img.com/1.jpg, https://img.com/2.jpg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        CEST
+                      </label>
+                      <input
+                        type="text"
+                        name="taxation.cest"
+                        value={formData.taxation?.cest || ''}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          taxation: { ...prev.taxation, cest: e.target.value }
+                        }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Tags/Palavras-chave (separadas por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        name="tags"
+                        value={formData.tags.join(',')}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                        }))}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="promoção, verão, lançamento"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        CFOP (Código Fiscal de Operações e Prestações)
+                      </label>
+                      <input
+                        type="text"
+                        name="cfop"
+                        value={formData.cfop}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 5102"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Unidade de Medida
+                      </label>
+                      <input
+                        type="text"
+                        name="unit"
+                        value={formData.unit}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: UN, KG, L"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Origem do Produto
+                      </label>
+                      <select
+                        name="origin"
+                        value={formData.origin}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      >
+                        <option value="0">0 - Nacional</option>
+                        <option value="1">1 - Importado</option>
+                        <option value="2">2 - Nacional com mais de 40% de conteúdo importado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Alíquota do ICMS (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="icmsRate"
+                        value={formData.icmsRate}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 18"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Alíquota do IPI (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="ipiRate"
+                        value={formData.ipiRate}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 5"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Alíquota do PIS (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="pisRate"
+                        value={formData.pisRate}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 1.65"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Alíquota do COFINS (%)
+                      </label>
+                      <input
+                        type="number"
+                        name="cofinsRate"
+                        value={formData.cofinsRate}
+                        onChange={handleInputChange}
+                        className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 7.6"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Rodapé fixo para ações */}
+                <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent pt-4 mt-8 -mx-6 px-6 border-t border-white/10 flex justify-end gap-3 z-20">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-5 py-2 cursor-pointer bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
+                    className={`cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${currentProduct
+                      ? 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
+                      : 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
+                      }`}
+                  >
+                    {currentProduct ? 'Atualizar' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -1321,7 +1449,7 @@ function getStoreIcon(store: string) {
                   </button>
                   <button
                     className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
-                    onClick={handleConfirmUpdate} 
+                    onClick={handleConfirmUpdate}
                   >
                     Confirmar
                   </button>
