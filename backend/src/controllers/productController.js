@@ -59,10 +59,27 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const getProductByBarcode = async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    console.log('Searching for product with barcode:', barcode); 
+    const product = await Product.findOne({ barcode });
+    if (!product) {
+      console.log('Product not found for barcode:', barcode); 
+      return res.status(404).json({ message: 'Produto não encontrado.' });
+    }
+    res.json(product);
+  } catch (error) {
+    console.error('Erro ao buscar produto por código de barras:', error);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
+  }
+};
+
 module.exports = {
   createProduct,
   getProducts,
   getMarketplaceProducts,
   updateProduct,
   deleteProduct,
+  getProductByBarcode,
 };

@@ -77,6 +77,29 @@ export function PedidosTab() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
 
+  const [barcodeSearchTerm, setBarcodeSearchTerm] = useState('');
+  const [barcodeError, setBarcodeError] = useState<string | null>(null);
+
+  const handleSearchByBarcode = async () => {
+    if (!barcodeSearchTerm.trim()) {
+      setBarcodeError('Por favor, insira um código de barras.');
+      return;
+    }
+
+    try {
+      setBarcodeError(null);
+      const response = await fetch(`http://localhost:3000/api/products/barcode/${barcodeSearchTerm}`);
+      if (!response.ok) {
+        throw new Error('Produto não encontrado.');
+      }
+      const product = await response.json();
+      setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+      setBarcodeSearchTerm(''); // Limpa o campo após adicionar o produto
+    } catch (error: any) {
+      setBarcodeError(error.message || 'Erro ao buscar produto.');
+    }
+  };
+
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
     console.log('[PedidosTab] useEffect - selectedOrder mudou:', selectedOrder);
@@ -127,7 +150,7 @@ export function PedidosTab() {
       try {
         console.log("[PedidosTab] Iniciando fetch de pedidos. currentPage:", currentPage, "searchTerm:", searchTerm, "statusFilter:", statusFilter, "paymentFilter:", paymentFilter);
         setLoading(true);
-        const token = localStorage.getItem('token'); 
+        const token = localStorage.getItem('token');
 
         const response = await fetch('http://localhost:3000/api/orders', {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -329,7 +352,7 @@ export function PedidosTab() {
       setIsOrderModalOpen(false);
       setCurrentPage(1);
 
-      setIsOrderSuccessOpen(true); 
+      setIsOrderSuccessOpen(true);
 
       // Se o pagamento for BCH, abra o modal de QR Code imediatamente
       if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
@@ -346,7 +369,7 @@ export function PedidosTab() {
   };
 
   const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
-  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false); 
+  const [isOrderSuccessOpen, setIsOrderSuccessOpen] = useState(false);
 
   // Função para deletar um pedido
   const handleDeleteOrder = async (orderId: string) => {
@@ -361,7 +384,7 @@ export function PedidosTab() {
         throw new Error('Erro ao deletar pedido.');
       }
       setOrders((prev) => prev.filter((order) => order._id !== orderId));
-      setIsDeleteSuccessOpen(true); 
+      setIsDeleteSuccessOpen(true);
     } catch (error) {
       alert('Erro ao deletar pedido.');
     }
@@ -744,10 +767,10 @@ export function PedidosTab() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1 text-xs text-gray-300">
                           {order.paymentMethod === 'bch' && (
-                     
+
                             <span className="inline-block w-5 h-5 align-middle">
                               <svg viewBox="0 0 788 788" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="394" cy="394" r="394" fill="#fff"/>
+                                <circle cx="394" cy="394" r="394" fill="#fff" />
                                 <path d="M516.9,261.7c-19.8-44.9-65.3-54.5-121-45.2L378,147.1l-42.2,10.9l17.6,69.2
                                   c-11.1,2.8-22.5,5.2-33.8,8.4L302,166.8l-42.2,10.9l17.9,69.4c-9.1,2.6-85.2,22.1-85.2,22.1l11.6,45.2c0,0,31-8.7,30.7-8
                                   c17.2-4.5,25.3,4.1,29.1,12.2l49.2,190.2c0.6,5.5-0.4,14.9-12.2,18.1c0.7,0.4-30.7,7.9-30.7,7.9l4.6,52.7c0,0,75.4-19.3,85.3-21.8
@@ -755,12 +778,12 @@ export function PedidosTab() {
                                   c-6-37.8-47.3-68.8-81.6-72.3C519.3,324.7,530,297.4,516.9,261.7L516.9,261.7z M496.6,427.2c8.4,62.1-77.9,69.7-106.4,77.2
                                   l-24.8-92.9C394,404,482.4,372.5,496.6,427.2z M444.6,300.7c8.9,55.2-64.9,61.6-88.7,67.7l-22.6-84.3
                                   C357.2,278.2,426.5,249.6,444.6,300.7z"
-                                  fill="#0AC18E"/>
+                                  fill="#0AC18E" />
                               </svg>
                             </span>
                           )}
                           {order.paymentMethod === 'pix' && (
-                     
+
                             <span className="inline-block w-5 h-5 align-middle">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
                                 <path fill="#4db6ac" d="M11.9,12h-0.68l8.04-8.04c2.62-2.61,6.86-2.61,9.48,0L36.78,12H36.1c-1.6,0-3.11,0.62-4.24,1.76	l-6.8,6.77c-0.59,0.59-1.53,0.59-2.12,0l-6.8-6.77C15.01,12.62,13.5,12,11.9,12z"></path>
@@ -770,7 +793,7 @@ export function PedidosTab() {
                             </span>
                           )}
                           {order.paymentMethod === 'card' && (
-                    
+
                             <span className="inline-block w-5 h-5 align-middle">
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <rect x="2" y="5" width="20" height="14" rx="2" fill="#3b82f6" />
@@ -1129,7 +1152,27 @@ export function PedidosTab() {
                     <p className="text-right font-semibold mt-2 text-lg text-white">Total: {formatCurrency(calculateTotal())}</p>
                   </div>
                 )}
-
+                {/* Grupo: Buscar por Código de Barras */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Buscar por Código de Barras</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Digite o código de barras..."
+                      value={barcodeSearchTerm}
+                      onChange={(e) => setBarcodeSearchTerm(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSearchByBarcode}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all text-sm"
+                    >
+                      Buscar
+                    </button>
+                  </div>
+                  {barcodeError && <p className="text-red-400 text-sm mt-2">{barcodeError}</p>}
+                </div>
                 {/* Grupo: Cliente */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente <span className="text-gray-500">(Opcional)</span></label>

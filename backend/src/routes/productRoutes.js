@@ -22,4 +22,6 @@ router.get('/products', productController.getProducts);
 
 router.get('/marketplace', productController.getMarketplaceProducts);
 
+router.get('/barcode/:barcode', productController.getProductByBarcode);
+
 module.exports = router;

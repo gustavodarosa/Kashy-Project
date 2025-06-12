@@ -19,13 +19,13 @@ export type Product = {
   description?: string;
   brand?: string;
   weight?: number;
-  expirationDate?: string;
   images?: string[];
   status?: string;
   taxation?: { ncm?: string; cest?: string };
   warranty?: string;
   tags?: string[];
   updatedAt?: string;
+  barcode?: string;
 };
 
 type ProductFormData = {
@@ -41,12 +41,12 @@ type ProductFormData = {
   description: string;
   brand: string;
   weight: number;
-  expirationDate: string;
   images: string[];
   status: string;
   taxation: { ncm: string; cest: string };
   warranty: string;
   tags: string[];
+  barcode: string;
 };
 
 export function ProdutosTab() {
@@ -83,12 +83,12 @@ export function ProdutosTab() {
     description: '',
     brand: '',
     weight: 0,
-    expirationDate: '',
     images: [],
     status: 'ativo',
     taxation: { ncm: '', cest: '' },
     warranty: '',
     tags: [],
+    barcode: '', // Novo campo
   });
   const categories = [
     { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-gray-300" /> },
@@ -280,16 +280,15 @@ function getStoreIcon(store: string) {
       subcategory: '',
       store: '',
       minimum: 1,
-      // Novos campos:
       description: '',
       brand: '',
       weight: 0,
-      expirationDate: '',
       images: [],
       status: 'ativo',
       taxation: { ncm: '', cest: '' },
       warranty: '',
       tags: [],
+      barcode: '', 
     });
     setCurrentProduct(null);
     setIsFormOpen(false);
@@ -321,7 +320,6 @@ function getStoreIcon(store: string) {
       description: product.description || '',
       brand: product.brand || '',
       weight: product.weight || 0,
-      expirationDate: product.expirationDate || '',
       images: product.images || [],
       status: product.status || 'ativo',
       taxation: {
@@ -330,6 +328,7 @@ function getStoreIcon(store: string) {
       },
       warranty: product.warranty || '',
       tags: product.tags || [],
+      barcode: product.barcode || '',
     });
     setIsFormOpen(true);
   };
@@ -1055,6 +1054,20 @@ function getStoreIcon(store: string) {
             : null}
         </select>
       </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-300 mb-1.5">
+          Código de Barras <span className="text-teal-400">*</span>
+        </label>
+        <input
+          type="text"
+          name="barcode"
+          value={formData.barcode}
+          onChange={handleInputChange}
+          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+          placeholder="Ex: 7891234567890"
+          required
+        />
+      </div>
     </div>
   </section>
 
@@ -1140,18 +1153,6 @@ function getStoreIcon(store: string) {
           type="text"
           name="brand"
           value={formData.brand}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Data de Validade
-        </label>
-        <input
-          type="date"
-          name="expirationDate"
-          value={formData.expirationDate}
           onChange={handleInputChange}
           className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
         />

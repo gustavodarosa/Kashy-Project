@@ -12,8 +12,7 @@ const productSchema = new mongoose.Schema({
   store: { type: String, required: true },
   description: { type: String },
   brand: { type: String },
-  weight: { type: Number }, 
-  expirationDate: { type: Date }, 
+  weight: { type: Number },  
   images: [{ type: String }], 
   status: { type: String, enum: ['ativo', 'inativo', 'descontinuado'], default: 'ativo' },
   taxation: {
@@ -22,6 +21,7 @@ const productSchema = new mongoose.Schema({
   },
   warranty: { type: String }, 
   tags: [{ type: String }],
+  barcode: { type: String, required: true, unique: true }, // Novo campo
 }, { timestamps: true }); 
 
 module.exports = mongoose.model('Product', productSchema);
