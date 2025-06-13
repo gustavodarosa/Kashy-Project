@@ -78,6 +78,9 @@ export function PedidosTab() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
 
+  // Adicione um novo estado para o modal de confirmação
+  const [isOrderConfirmationOpen, setIsOrderConfirmationOpen] = useState(false);
+
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
     console.log('[PedidosTab] useEffect - selectedOrder mudou:', selectedOrder);
@@ -1013,7 +1016,7 @@ export function PedidosTab() {
         {/* Modal Novo Pedido */}
         {isOrderModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
-            <div className="relative w-full max-w-2xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border border-blue-400/30 shadow-2xl overflow-hidden flex flex-col">
+            <div className="relative w-full max-w-5xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border border-blue-400/30 shadow-2xl overflow-hidden flex flex-col">
               <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-blue-600/10 to-transparent">
                 <div className="p-2 bg-blue-500/20 rounded-xl border border-blue-400/30">
                   <ShoppingBasket size={28} className="text-blue-300" />
@@ -1043,67 +1046,120 @@ export function PedidosTab() {
                   e.preventDefault();
                   handleCreateOrder();
                 }}
-                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh]">
+                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh] flex gap-6"
+              >
+                {/* Coluna Esquerda */}
+                <div className="flex-1 space-y-6">
+                  {/* Grupo: Loja */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                      Loja <span className="text-blue-400">*</span>
+                    </label>
+                    <select
+                      value={selectedStore}
+                      onChange={(e) => setSelectedStore(e.target.value)}
+                      className="w-full px-3 cursor-pointer py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                      required
+                    >
+                      <option value="">Selecione uma loja</option>
+                      <option value="Loja A">Loja A</option>
+                      <option value="Loja B">Loja B</option>
+                      <option value="Loja C">Loja C</option>
+                    </select>
+                  </div>
 
-                {/* Grupo: Loja */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Loja <span className="text-blue-400">*</span></label>
-                  <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full px-3 cursor-pointer py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                    required
-                  >
-                    <option value="">Selecione uma loja</option>
-                    <option value="Loja A">Loja A</option>
-                    <option value="Loja B">Loja B</option>
-                    <option value="Loja C">Loja C</option>
-                  </select>
-                </div>
+                  {/* Grupo: Produtos */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                      Adicionar Produtos
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Digite ou escaneie o código de barras..."
+                      value={modalSearchTerm}
+                      onChange={(e) => {
+                        const input = e.target.value.trim();
+                        setModalSearchTerm(input);
 
-                {/* Grupo: Produtos */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Adicionar Produtos</label>
-                  <input
-                    type="text"
-                    placeholder="Digite ou escaneie o código de barras..."
-                    value={modalSearchTerm}
-                    onChange={(e) => {
-                      const input = e.target.value.trim();
-                      setModalSearchTerm(input);
+                        // Verifica se o código de barras corresponde a algum produto
+                        const product = products.find((p) => p.barcode === input);
+                        if (product) {
+                          setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                          setModalSearchTerm(""); // Limpa o campo de entrada
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm mb-2"
+                      disabled={!selectedStore || loadingProducts}
+                    />
+                    <div className="max-h-40 overflow-y-auto border border-blue-400/10 rounded-md bg-[#2F363E]/50">
+                      {loadingProducts && (
+                        <p className="text-gray-400 p-3 text-center text-sm">
+                          Carregando produtos...
+                        </p>
+                      )}
+                      {!loadingProducts && products.length === 0 && selectedStore && (
+                        <p className="text-gray-400 p-3 text-sm">
+                          Nenhum produto encontrado para esta loja.
+                        </p>
+                      )}
+                      {!loadingProducts && !selectedStore && (
+                        <p className="text-gray-400 p-3 text-sm ">
+                          Selecione uma loja para ver os produtos.
+                        </p>
+                      )}
+                      {products.map((product) => (
+                        <div
+                          key={product._id}
+                          className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+                          onClick={() =>
+                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])
+                          }
+                        >
+                          <span className="text-gray-200">{product.name}</span>
+                          <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                      // Verifica se o código de barras corresponde a algum produto
-                      const product = products.find((p) => p.barcode === input);
-                      if (product) {
-                        setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-                        setModalSearchTerm(''); // Limpa o campo de entrada
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm mb-2"
-                    disabled={!selectedStore || loadingProducts}
-                  />
-                  <div className="max-h-40 overflow-y-auto border border-blue-400/10 rounded-md bg-[#2F363E]/50">
-                    {loadingProducts && <p className="text-gray-400 p-3 text-center text-sm">Carregando produtos...</p>}
-                    {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-3 text-sm">Nenhum produto encontrado para esta loja.</p>}
-                    {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm ">Selecione uma loja para ver os produtos.</p>}
-                    {products.map((product) => (
-                      <div
-                        key={product._id}
-                        className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                        onClick={() => setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])}
-                      >
-                        <span className="text-gray-200">{product.name}</span>
-                        <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
-                      </div>
-                    ))}
+                  {/* Grupo: Cliente */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                      E-mail do Cliente <span className="text-gray-500">(Opcional)</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                      placeholder="cliente@email.com"
+                    />
+                  </div>
+
+                  {/* Grupo: Pagamento */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                      Método de Pagamento <span className="text-blue-400">*</span>
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full cursor-pointer px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                      required
+                    >
+                      <option value="">Selecione um método</option>
+                      <option value="bch">Bitcoin Cash</option>
+                      <option value="pix">PIX</option>
+                      <option value="card">Cartão</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Grupo: Carrinho */}
-                {selectedProducts.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-300 mb-1.5">Produtos no Pedido</h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto border border-blue-400/10 rounded-md p-2 bg-[#2F363E]/50">
+                {/* Coluna Direita */}
+                <div className="flex-1 bg-[#2F363E]/70 rounded-lg p-4 border border-blue-400/20">
+                  <h4 className="text-lg font-semibold text-white mb-4">Carrinho de Compras</h4>
+                  {selectedProducts.length > 0 ? (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
                       {selectedProducts.map((product, index) => (
                         <div
                           key={`${product._id}-${index}`}
@@ -1133,36 +1189,14 @@ export function PedidosTab() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-right font-semibold mt-2 text-lg text-white">Total: {formatCurrency(calculateTotal())}</p>
+                  ) : (
+                    <p className="text-gray-400 text-sm">Nenhum produto no carrinho.</p>
+                  )}
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <p className="text-right font-semibold text-lg text-white">
+                      Total: {formatCurrency(calculateTotal())}
+                    </p>
                   </div>
-                )}
-
-                {/* Grupo: Cliente */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente <span className="text-gray-500">(Opcional)</span></label>
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                    placeholder="cliente@email.com"
-                  />
-                </div>
-
-                {/* Grupo: Pagamento */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Método de Pagamento <span className="text-blue-400">*</span></label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full cursor-pointer px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                    required
-                  >
-                    <option value="">Selecione um método</option>
-                    <option value="bch">Bitcoin Cash</option>
-                    <option value="pix">PIX</option>
-                    <option value="card">Cartão</option>
-                  </select>
                 </div>
               </form>
 
@@ -1183,8 +1217,8 @@ export function PedidosTab() {
                   Cancelar
                 </button>
                 <button
-                  type="submit"
-                  onClick={handleCreateOrder}
+                  type="button"
+                  onClick={() => setIsOrderConfirmationOpen(true)} // Abre o modal de confirmação
                   className="px-5 py-2 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
                   disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
                 >
@@ -1273,6 +1307,61 @@ export function PedidosTab() {
                   onClick={() => setIsOrderSuccessOpen(false)}
                 >
                   OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de confirmação de pedido */}
+        {isOrderConfirmationOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+            <div className="relative w-full max-w-lg bg-[#2F363E]/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white">Confirmar Pedido</h2>
+                <p className="text-gray-400 mt-1 text-sm">Revise os detalhes do pedido antes de confirmar.</p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <h4 className="text-md font-semibold text-gray-300">Loja:</h4>
+                  <p className="text-white">{selectedStore}</p>
+                </div>
+                <div>
+                  <h4 className="text-md font-semibold text-gray-300">Cliente:</h4>
+                  <p className="text-white">{customerEmail || 'Não identificado'}</p>
+                </div>
+                <div>
+                  <h4 className="text-md font-semibold text-gray-300">Produtos:</h4>
+                  <ul className="space-y-2">
+                    {selectedProducts.map((product, index) => (
+                      <li key={index} className="text-white">
+                        {product.name} - {product.quantity}x ({formatCurrency(product.priceBRL)})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-md font-semibold text-gray-300">Total:</h4>
+                  <p className="text-white">{formatCurrency(calculateTotal())}</p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 p-6 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setIsOrderConfirmationOpen(false)} // Fecha o modal de confirmação
+                  className="px-5 py-2 cursor-pointer bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCreateOrder(); // Executa a lógica de criação do pedido
+                    setIsOrderConfirmationOpen(false); // Fecha o modal de confirmação
+                  }}
+                  className="px-5 py-2 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
+                  Confirmar Pedido
                 </button>
               </div>
             </div>
