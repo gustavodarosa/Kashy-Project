@@ -36,6 +36,7 @@ type Product = {
   priceBRL: number;
   priceBCH: number;
   quantity?: number;
+  barcode?: string;
 };
 
 export function PedidosTab() {
@@ -76,29 +77,6 @@ export function PedidosTab() {
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [orderIdToDelete, setOrderIdToDelete] = useState<string | null>(null);
-
-  const [barcodeSearchTerm, setBarcodeSearchTerm] = useState('');
-  const [barcodeError, setBarcodeError] = useState<string | null>(null);
-
-  const handleSearchByBarcode = async () => {
-    if (!barcodeSearchTerm.trim()) {
-      setBarcodeError('Por favor, insira um código de barras.');
-      return;
-    }
-
-    try {
-      setBarcodeError(null);
-      const response = await fetch(`http://localhost:3000/api/products/barcode/${barcodeSearchTerm}`);
-      if (!response.ok) {
-        throw new Error('Produto não encontrado.');
-      }
-      const product = await response.json();
-      setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-      setBarcodeSearchTerm(''); // Limpa o campo após adicionar o produto
-    } catch (error: any) {
-      setBarcodeError(error.message || 'Erro ao buscar produto.');
-    }
-  };
 
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
@@ -1088,9 +1066,19 @@ export function PedidosTab() {
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">Adicionar Produtos</label>
                   <input
                     type="text"
-                    placeholder="Buscar produtos na loja selecionada..."
+                    placeholder="Digite ou escaneie o código de barras..."
                     value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      const input = e.target.value.trim();
+                      setModalSearchTerm(input);
+
+                      // Verifica se o código de barras corresponde a algum produto
+                      const product = products.find((p) => p.barcode === input);
+                      if (product) {
+                        setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                        setModalSearchTerm(''); // Limpa o campo de entrada
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm mb-2"
                     disabled={!selectedStore || loadingProducts}
                   />
@@ -1098,20 +1086,16 @@ export function PedidosTab() {
                     {loadingProducts && <p className="text-gray-400 p-3 text-center text-sm">Carregando produtos...</p>}
                     {!loadingProducts && products.length === 0 && selectedStore && <p className="text-gray-400 p-3 text-sm">Nenhum produto encontrado para esta loja.</p>}
                     {!loadingProducts && !selectedStore && <p className="text-gray-400 p-3 text-sm ">Selecione uma loja para ver os produtos.</p>}
-                    {products
-                      .filter((product) =>
-                        product.name.toLowerCase().includes(modalSearchTerm.toLowerCase())
-                      )
-                      .map((product) => (
-                        <div
-                          key={product._id}
-                          className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                          onClick={() => setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])}
-                        >
-                          <span className="text-gray-200">{product.name}</span>
-                          <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
-                        </div>
-                      ))}
+                    {products.map((product) => (
+                      <div
+                        key={product._id}
+                        className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+                        onClick={() => setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])}
+                      >
+                        <span className="text-gray-200">{product.name}</span>
+                        <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1152,27 +1136,7 @@ export function PedidosTab() {
                     <p className="text-right font-semibold mt-2 text-lg text-white">Total: {formatCurrency(calculateTotal())}</p>
                   </div>
                 )}
-                {/* Grupo: Buscar por Código de Barras */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">Buscar por Código de Barras</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Digite o código de barras..."
-                      value={barcodeSearchTerm}
-                      onChange={(e) => setBarcodeSearchTerm(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSearchByBarcode}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all text-sm"
-                    >
-                      Buscar
-                    </button>
-                  </div>
-                  {barcodeError && <p className="text-red-400 text-sm mt-2">{barcodeError}</p>}
-                </div>
+
                 {/* Grupo: Cliente */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5">E-mail do Cliente <span className="text-gray-500">(Opcional)</span></label>
