@@ -15,7 +15,6 @@ export type Product = {
   subcategory: string;
   store: string;
   createdAt: string;
-  // Novos campos:
   description?: string;
   brand?: string;
   weight?: number;
@@ -58,7 +57,6 @@ export function ProdutosTab() {
   const [totalFilteredProductsCount, setTotalFilteredProductsCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStore, setSelectedStore] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
@@ -77,9 +75,8 @@ export function ProdutosTab() {
     sku: '',
     category: '',
     subcategory: '',
-    store: '',
+    store: localStorage.getItem('store') || '', // <-- aqui
     minimum: 1,
-    // Novos campos:
     description: '',
     brand: '',
     weight: 0,
@@ -88,7 +85,7 @@ export function ProdutosTab() {
     taxation: { ncm: '', cest: '' },
     warranty: '',
     tags: [],
-    barcode: '', // Novo campo
+    barcode: '', 
   });
   const categories = [
     { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-gray-300" /> },
@@ -96,12 +93,6 @@ export function ProdutosTab() {
     { value: 'eletronicos', label: 'Eletrônicos', icon: <MonitorSmartphone size={16} className="inline mr-1 text-gray-300" /> },
     { value: 'vestuario', label: 'Vestuário', icon: <Shirt size={16} className="inline mr-1 text-gray-300" /> },
     { value: 'servicos', label: 'Serviços', icon: <Wrench size={16} className="inline mr-1 text-gray-300" /> },
-  ];
-  const stores = [
-    { value: 'all', label: 'Todas as Lojas', icon: <AlignJustify size={16} className="inline mr-1 text-gray-300" /> },
-    { value: 'Loja A', label: 'Loja A', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
-    { value: 'Loja B', label: 'Loja B', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
-    { value: 'Loja C', label: 'Loja C', icon: <Store size={16} className="inline mr-1 text-gray-300" /> },
   ];
   // Ícones para subcategorias
 function getSubcategoryIcon(category: string, subcategory: string) {
@@ -172,9 +163,7 @@ function getStoreIcon(store: string) {
             searchTerm === '' ||
             product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-          const matchesStore =
-            selectedStore === 'all' || product.store === selectedStore;
-          return matchesCategory && matchesSearch && matchesStore;
+          return matchesCategory && matchesSearch;
         });
 
         setTotalFilteredProductsCount(filteredProducts.length);
@@ -194,7 +183,7 @@ function getStoreIcon(store: string) {
     };
 
     fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory, selectedStore, addNotification, itemsPerPage]);
+  }, [currentPage, searchTerm, selectedCategory, addNotification, itemsPerPage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -278,7 +267,7 @@ function getStoreIcon(store: string) {
       sku: '',
       category: '',
       subcategory: '',
-      store: '',
+      store: localStorage.getItem('store') || '', // <-- aqui também
       minimum: 1,
       description: '',
       brand: '',
@@ -314,7 +303,7 @@ function getStoreIcon(store: string) {
       sku: product.sku,
       category: product.category,
       subcategory: product.subcategory,
-      store: product.store,
+      store: product.store, // mantém a loja do produto existente
       minimum: 1,
       // Novos campos:
       description: product.description || '',
@@ -570,27 +559,7 @@ function getStoreIcon(store: string) {
                 </Listbox>
 
                 {/* Loja Listbox */}
-                <Listbox value={selectedStore} onChange={(value) => { setSelectedStore(value); setCurrentPage(1); }}>
-                  <div className="relative min-w-[180px]">
-                    <Listbox.Button className="cursor-pointer flex items-center gap-2 px-4 py-3 bg-[#24292D]/80 backdrop-blur-sm border hover:bg-[#2d3338] border-white/10 rounded-xl text-white  transition-all text-base w-full text-left whitespace-nowrap truncate">
-                      {stores.find(s => s.value === selectedStore)?.icon}
-                      {stores.find(s => s.value === selectedStore)?.label || 'Todas Lojas'}
-                    </Listbox.Button>
-                    <Listbox.Options className="text-white absolute w-full bg-[#24292D] border border-white/10 rounded-xl shadow-lg z-20">
-                      {stores.map((store, idx) => (
-                        <Listbox.Option
-                          key={store.value}
-                          value={store.value}
-                          className={`px-4 py-2 hover:bg-[#2d3338] cursor-pointer whitespace-nowrap text-base
-                            ${idx === 0 ? 'rounded-t-xl' : ''} ${idx === stores.length - 1 ? 'rounded-b-xl' : ''}
-                          `}
-                        >
-                          {store.icon} {store.label}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </div>
-                </Listbox>
+                {/* Removido o select de loja */}
               </div>
             </div>
           </div>
@@ -954,37 +923,7 @@ function getStoreIcon(store: string) {
           required
         />
       </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Loja <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="store"
-          value={formData.store}
-          onChange={handleInputChange}
-          className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        >
-          <option value="">Selecione uma Loja</option>
-          <option value="Loja A">Loja A</option>
-          <option value="Loja B">Loja B</option>
-          <option value="Loja C">Loja C</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Quantidade <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="number"
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleInputChange}
-          min="0"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        />
-      </div>
+      
       <div>
         <label className="block text-xs font-medium text-gray-300 mb-1.5">
           Preço (BRL) <span className="text-teal-400">*</span>

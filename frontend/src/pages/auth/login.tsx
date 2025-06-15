@@ -28,6 +28,9 @@ const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
 const [message, setMessage] = useState("");
 const [loading, setLoading] = useState(false);
+const [showStoreModal, setShowStoreModal] = useState(false);
+const [selectedStore, setSelectedStore] = useState<string>("Loja A");
+const [pendingLogin, setPendingLogin] = useState<{email: string, password: string} | null>(null);
   useEffect(() => {
 const interval = setInterval(() => {
       renewToken();
@@ -39,15 +42,20 @@ const handleGoogleLogin = () => {
   };
 const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
+    setLoading(true);
+    setPendingLogin({ email, password });
+    setShowStoreModal(true);
+  };
+const handleStoreConfirm = async () => {
+    if (!pendingLogin) return;
     try {
 const response = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: pendingLogin.email, password: pendingLogin.password }),
       });
 const data = await response.json();
       if (response.ok) {
@@ -56,6 +64,7 @@ const data = await response.json();
         localStorage.setItem("username", data.username);
         localStorage.setItem("email", data.email);
         localStorage.setItem("userId", data.userId);
+        localStorage.setItem("store", selectedStore); // Salva a loja escolhida
         setTimeout(() => {
           window.location.href = data.redirectTo || "/";
         }, 1000);
@@ -63,10 +72,11 @@ const data = await response.json();
         setMessage(data.message || "Erro ao realizar login. Verifique suas credenciais.");
       }
     } catch (error) {
-      console.error("Erro de conexão:", error);
       setMessage("Erro ao conectar ao servidor. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
+      setShowStoreModal(false);
+      setPendingLogin(null);
     }
   };
 const messageColor = message.includes("sucesso") ? "text-green-400" : "text-red-400";
@@ -171,6 +181,38 @@ className="text-[rgb(112,255,189)] hover:text-[rgb(90,230,160)] hover:underline 
 </Link>
 </p>
 </form>
+
+{/* Modal de seleção de loja */}
+{showStoreModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-xs text-white shadow-xl">
+      <h3 className="text-lg font-bold mb-4">Selecione sua Loja</h3>
+      <select
+        className="w-full p-2 rounded bg-gray-700 mb-4"
+        value={selectedStore}
+        onChange={e => setSelectedStore(e.target.value)}
+      >
+        <option value="Loja A">Loja A</option>
+        <option value="Loja B">Loja B</option>
+        <option value="Loja C">Loja C</option>
+      </select>
+      <div className="flex gap-2">
+        <button
+          className="flex-1 bg-gray-600 hover:bg-gray-700 rounded py-2"
+          onClick={() => { setShowStoreModal(false); setLoading(false); setPendingLogin(null); }}
+        >
+          Cancelar
+        </button>
+        <button
+          className="flex-1 bg-emerald-500 hover:bg-emerald-600 rounded py-2"
+          onClick={handleStoreConfirm}
+        >
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 </div>
 </div>
   );

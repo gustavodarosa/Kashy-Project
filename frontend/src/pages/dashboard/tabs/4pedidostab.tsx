@@ -59,7 +59,7 @@ export function PedidosTab() {
   // Estado para o modal de novo pedido
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
-  const [selectedStore, setSelectedStore] = useState('');
+  const [selectedStore, setSelectedStore] = useState<string>(localStorage.getItem('store') || '');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [modalSearchTerm, setModalSearchTerm] = useState('');
@@ -288,7 +288,7 @@ export function PedidosTab() {
     console.log("[PedidosTab] Total calculado para novo pedido:", totalAmount);
 
     const orderData = {
-      store: selectedStore,
+      store: selectedStore, // já vem do localStorage/login
       customerEmail: customerEmail || "Não identificado",
       totalAmount,
       paymentMethod,
@@ -1029,7 +1029,6 @@ export function PedidosTab() {
                   className="cursor-pointer absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
                   onClick={() => {
                     setIsOrderModalOpen(false);
-                    setSelectedStore("");
                     setCustomerEmail("");
                     setSelectedProducts([]);
                     setPaymentMethod("");
@@ -1053,19 +1052,11 @@ export function PedidosTab() {
                   {/* Grupo: Loja */}
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Loja <span className="text-blue-400">*</span>
+                      Loja
                     </label>
-                    <select
-                      value={selectedStore}
-                      onChange={(e) => setSelectedStore(e.target.value)}
-                      className="w-full px-3 cursor-pointer py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                      required
-                    >
-                      <option value="">Selecione uma loja</option>
-                      <option value="Loja A">Loja A</option>
-                      <option value="Loja B">Loja B</option>
-                      <option value="Loja C">Loja C</option>
-                    </select>
+                    <div className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white text-sm">
+                      {selectedStore || "Nenhuma loja selecionada"}
+                    </div>
                   </div>
 
                   {/* Grupo: Produtos */}
@@ -1206,7 +1197,6 @@ export function PedidosTab() {
                   type="button"
                   onClick={() => {
                     setIsOrderModalOpen(false);
-                    setSelectedStore("");
                     setCustomerEmail("");
                     setSelectedProducts([]);
                     setPaymentMethod("");
@@ -1295,7 +1285,7 @@ export function PedidosTab() {
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-[#23272F] rounded-xl w-full max-w-sm shadow-2xl relative border border-emerald-400/20">
               <div className="p-6 text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
+                               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
                   <CheckCircle size={36} className="text-emerald-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Pedido criado com sucesso!</h3>
