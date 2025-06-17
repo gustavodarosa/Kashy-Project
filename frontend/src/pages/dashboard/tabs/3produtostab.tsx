@@ -1026,7 +1026,7 @@ export function ProdutosTab() {
                     <Info size={18} /> Informações Adicionais
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  
+
                     <div>
                       <label className="block text-xs font-medium text-gray-300 mb-1.5">
                         Peso (g ou kg)
@@ -1198,20 +1198,49 @@ export function ProdutosTab() {
           </div>
         )}
 
+        {/* Action Feedback Modal */}
+        {isActionModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10 animate-modalIn">
+              <div className="p-6 text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 ${modalContent.type === 'success' ? 'bg-teal-500/20 border-teal-500/50' :
+                  modalContent.type === 'error' ? 'bg-red-500/20 border-red-500/50' :
+                    'bg-blue-500/20 border-blue-500/50'
+                  }`}>
+                  {modalContent.icon || (modalContent.type === 'success' ? <CheckCircle size={48} className="text-teal-400" /> : <Info size={48} className="text-blue-400" />)}
+                </div>
+
+                <h3 className="text-xl font-bold text-white mb-2">{modalContent.title}</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  {modalContent.message}
+                </p>
+
+                <button
+                  className={`cursor-pointer w-full rounded-lg py-2 font-semibold transition-colors text-sm ${modalContent.type === 'success' ? 'bg-teal-600 hover:bg-teal-700 text-white' :
+                    modalContent.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                      'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  onClick={() => setIsActionModalOpen(false)}
+                >
+                  Ok, Entendi!
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Delete Confirmation Modal */}
         {isDeleteConfirmModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10">
+            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10 animate-modalIn">
               <div className="p-6 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-500/50 bg-red-500/20">
                   <AlertTriangle size={36} className="text-red-400" />
                 </div>
-
                 <h3 className="text-xl font-bold text-white mb-2">Confirmar Exclusão</h3>
                 <p className="text-gray-300 mb-6 text-sm">
                   Tem certeza que deseja excluir este produto? Esta ação não poderá ser desfeita.
                 </p>
-
                 <div className="flex gap-3">
                   <button
                     className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white text-sm"

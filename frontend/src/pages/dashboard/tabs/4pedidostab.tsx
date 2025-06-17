@@ -59,7 +59,7 @@ export function PedidosTab() {
   // Estado para o modal de novo pedido
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
-  const [selectedStore, setSelectedStore] = useState<string>(localStorage.getItem('store') || '');
+  const [selectedStore] = useState<string>(localStorage.getItem('store') || '');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [modalSearchTerm, setModalSearchTerm] = useState('');
@@ -80,6 +80,16 @@ export function PedidosTab() {
 
   // Adicione um novo estado para o modal de confirmação
   const [isOrderConfirmationOpen, setIsOrderConfirmationOpen] = useState(false);
+
+  // Estado para o modal de confirmação de impressão
+  const [isPrintConfirmOpen, setIsPrintConfirmOpen] = useState(false);
+  const [orderToPrint, setOrderToPrint] = useState<Order | null>(null);
+
+  // Função para abrir o modal de confirmação de impressão
+  const confirmPrint = (order: Order) => {
+    setOrderToPrint(order);
+    setIsPrintConfirmOpen(true);
+  };
 
   // Atualize o estado `editedOrder` quando o modal for aberto
   useEffect(() => {
@@ -816,7 +826,7 @@ export function PedidosTab() {
                             <Edit2 size={14} />
                           </button>
                           <button
-
+                            onClick={() => confirmPrint(order)}
                             className="p-1.5 cursor-pointer bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-md border border-sky-500/30 hover:border-sky-500/50 transition-all duration-200 hover:scale-110"
                             title="Imprimir"
                           >
@@ -1048,7 +1058,7 @@ export function PedidosTab() {
               >
                 {/* Coluna Esquerda */}
                 <div className="flex-1 space-y-6">
-              
+
 
                   {/* Grupo: Produtos */}
                   <div>
@@ -1103,7 +1113,7 @@ export function PedidosTab() {
                       ))}
                     </div>
                   </div>
-              </div>
+                </div>
 
                 {/* Coluna Direita */}
                 <div className="flex-1 bg-[#2F363E]/70 rounded-lg p-4 border border-blue-400/20">
@@ -1269,7 +1279,7 @@ export function PedidosTab() {
                 <h2 className="text-xl font-bold text-white">Confirmar Pedido</h2>
                 <p className="text-gray-400 mt-1 text-sm">Revise os detalhes do pedido antes de confirmar.</p>
               </div>
-                           <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4">
                 <div>
                   <h4 className="text-md font-semibold text-gray-300">Loja:</h4>
                   <p className="text-white">{selectedStore}</p>
@@ -1336,6 +1346,40 @@ export function PedidosTab() {
                 >
                   Confirmar Pedido
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de confirmação de impressão */}
+        {isPrintConfirmOpen && orderToPrint && (
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#2F363E] rounded-xl w-full max-w-sm shadow-2xl relative border border-white/10">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-blue-500/50 bg-blue-500/20">
+                  <Printer size={36} className="text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Deseja imprimir este pedido?</h3>
+                <p className="text-gray-300 mb-6 text-sm">
+                  Pedido #{orderToPrint._id.substring(orderToPrint._id.length - 6)}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-gray-600 hover:bg-gray-700 text-white text-sm"
+                    onClick={() => setIsPrintConfirmOpen(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                    onClick={() => {
+                      handlePrint(orderToPrint);
+                      setIsPrintConfirmOpen(false);
+                    }}
+                  >
+                    Imprimir
+                  </button>
+                </div>
               </div>
             </div>
           </div>
