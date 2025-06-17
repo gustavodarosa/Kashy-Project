@@ -326,7 +326,6 @@ export function PedidosTab() {
       }
       const savedOrder = await response.json();
 
-      setSelectedStore("");
       setCustomerEmail("");
       setSelectedProducts([]);
       setPaymentMethod("");
@@ -340,7 +339,6 @@ export function PedidosTab() {
         openQrModal(savedOrder._id);
       } else {
         setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
-
       }
 
     } catch (error: any) {
@@ -1016,14 +1014,15 @@ export function PedidosTab() {
         {/* Modal Novo Pedido */}
         {isOrderModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
-            <div className="relative w-full max-w-5xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border border-blue-400/30 shadow-2xl overflow-hidden flex flex-col">
-              <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-blue-600/10 to-transparent">
-                <div className="p-2 bg-blue-500/20 rounded-xl border border-blue-400/30">
-                  <ShoppingBasket size={28} className="text-blue-300" />
+            <div className="relative w-full max-w-5xl bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#3B82F6]/10 rounded-2xl border-2 border-blue-400/40 shadow-2xl overflow-hidden flex flex-col animate-modalIn">
+              {/* Header */}
+              <div className="flex items-center gap-3 p-6 border-b border-blue-400/20 bg-gradient-to-r from-blue-600/20 to-transparent shadow-lg">
+                <div className="p-2 bg-blue-500/30 rounded-xl border border-blue-400/40">
+                  <ShoppingBasket size={32} className="text-blue-300" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Novo Pedido</h2>
-                  <p className="text-gray-400 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
+                  <h2 className="text-2xl font-bold text-white drop-shadow">Novo Pedido</h2>
+                  <p className="text-gray-300 mt-1 text-sm">Crie um novo pedido para um cliente.</p>
                 </div>
                 <button
                   className="cursor-pointer absolute top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
@@ -1039,25 +1038,17 @@ export function PedidosTab() {
                   ×
                 </button>
               </div>
-
+              {/* Formulário */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleCreateOrder();
                 }}
-                className="p-6 flex-grow overflow-y-auto space-y-6 max-h-[70vh] flex gap-6"
+                className="p-8 flex-grow overflow-y-auto space-y-8 max-h-[70vh] flex gap-8"
               >
                 {/* Coluna Esquerda */}
                 <div className="flex-1 space-y-6">
-                  {/* Grupo: Loja */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Loja
-                    </label>
-                    <div className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white text-sm">
-                      {selectedStore || "Nenhuma loja selecionada"}
-                    </div>
-                  </div>
+              
 
                   {/* Grupo: Produtos */}
                   <div>
@@ -1112,39 +1103,7 @@ export function PedidosTab() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Grupo: Cliente */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      E-mail do Cliente <span className="text-gray-500">(Opcional)</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                      placeholder="cliente@email.com"
-                    />
-                  </div>
-
-                  {/* Grupo: Pagamento */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      Método de Pagamento <span className="text-blue-400">*</span>
-                    </label>
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full cursor-pointer px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
-                      required
-                    >
-                      <option value="">Selecione um método</option>
-                      <option value="bch">Bitcoin Cash</option>
-                      <option value="pix">PIX</option>
-                      <option value="card">Cartão</option>
-                    </select>
-                  </div>
-                </div>
+              </div>
 
                 {/* Coluna Direita */}
                 <div className="flex-1 bg-[#2F363E]/70 rounded-lg p-4 border border-blue-400/20">
@@ -1190,9 +1149,8 @@ export function PedidosTab() {
                   </div>
                 </div>
               </form>
-
-              {/* Rodapé fixo para ações */}
-              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent">
+              {/* Footer */}
+              <div className="flex justify-end gap-3 p-6 border-t border-blue-400/10 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent">
                 <button
                   type="button"
                   onClick={() => {
@@ -1208,9 +1166,9 @@ export function PedidosTab() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsOrderConfirmationOpen(true)} // Abre o modal de confirmação
+                  onClick={() => setIsOrderConfirmationOpen(true)}
                   className="px-5 py-2 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
-                  disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
+                  disabled={selectedProducts.length === 0 || !selectedStore}
                 >
                   Criar Pedido
                 </button>
@@ -1285,7 +1243,7 @@ export function PedidosTab() {
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-[#23272F] rounded-xl w-full max-w-sm shadow-2xl relative border border-emerald-400/20">
               <div className="p-6 text-center">
-                               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-500/50 bg-emerald-500/20">
                   <CheckCircle size={36} className="text-emerald-400" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Pedido criado com sucesso!</h3>
@@ -1311,17 +1269,37 @@ export function PedidosTab() {
                 <h2 className="text-xl font-bold text-white">Confirmar Pedido</h2>
                 <p className="text-gray-400 mt-1 text-sm">Revise os detalhes do pedido antes de confirmar.</p>
               </div>
-              <div className="p-6 space-y-4">
+                           <div className="p-6 space-y-4">
                 <div>
                   <h4 className="text-md font-semibold text-gray-300">Loja:</h4>
                   <p className="text-white">{selectedStore}</p>
                 </div>
                 <div>
                   <h4 className="text-md font-semibold text-gray-300">Cliente:</h4>
-                  <p className="text-white">{customerEmail || 'Não identificado'}</p>
+                  <input
+                    type="email"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                    value={customerEmail}
+                    onChange={e => setCustomerEmail(e.target.value)}
+                    placeholder="cliente@email.com"
+                  />
                 </div>
                 <div>
-                  <h4 className="text-md font-semibold text-gray-300">Produtos:</h4>
+                  <h4 className="text-md font-semibold text-gray-300">Método de Pagamento <span className="text-blue-400">*</span></h4>
+                  <select
+                    value={paymentMethod}
+                    onChange={e => setPaymentMethod(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 border border-blue-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400/40 transition-all text-sm"
+                    required
+                  >
+                    <option value="">Selecione um método</option>
+                    <option value="bch">Bitcoin Cash</option>
+                    <option value="pix">PIX</option>
+                    <option value="card">Cartão</option>
+                  </select>
+                </div>
+                <div>
+                  <h4 className="text-md font-semibold text-gray-300">Itens do Pedido:</h4>
                   <ul className="space-y-2">
                     {selectedProducts.map((product, index) => (
                       <li key={index} className="text-white">
@@ -1335,7 +1313,7 @@ export function PedidosTab() {
                   <p className="text-white">{formatCurrency(calculateTotal())}</p>
                 </div>
               </div>
-              <div className="flex justify-end gap-3 p-6 border-t border-white/10">
+              <div className="flex justify-end gap-3 p-6 border-t border-white/10 flex-shrink-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent">
                 <button
                   type="button"
                   onClick={() => setIsOrderConfirmationOpen(false)} // Fecha o modal de confirmação
@@ -1346,10 +1324,15 @@ export function PedidosTab() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!paymentMethod) {
+                      alert("Selecione o método de pagamento.");
+                      return;
+                    }
                     handleCreateOrder(); // Executa a lógica de criação do pedido
                     setIsOrderConfirmationOpen(false); // Fecha o modal de confirmação
                   }}
                   className="px-5 py-2 cursor-pointer bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  disabled={selectedProducts.length === 0 || !selectedStore || !paymentMethod}
                 >
                   Confirmar Pedido
                 </button>

@@ -85,7 +85,7 @@ export function ProdutosTab() {
     taxation: { ncm: '', cest: '' },
     warranty: '',
     tags: [],
-    barcode: '', 
+    barcode: '',
   });
   const categories = [
     { value: 'alimentos', label: 'Alimentos', icon: <Utensils size={14} className="inline mr-1 text-gray-300" /> },
@@ -95,49 +95,49 @@ export function ProdutosTab() {
     { value: 'servicos', label: 'Serviços', icon: <Wrench size={16} className="inline mr-1 text-gray-300" /> },
   ];
   // Ícones para subcategorias
-function getSubcategoryIcon(category: string, subcategory: string) {
-  if (category === 'alimentos') {
-    if (subcategory === 'Doces') return <Candy size={14} className="text-gray-300" />;
-    if (subcategory === 'Salgados') return <Ham size={14} className="text-gray-300" />;
-    if (subcategory === 'Orgânicos') return <Apple size={14} className="text-gray-300" />;
-    if (subcategory === 'Congelados') return <Snowflake size={14} className="text-gray-300" />;
+  function getSubcategoryIcon(category: string, subcategory: string) {
+    if (category === 'alimentos') {
+      if (subcategory === 'Doces') return <Candy size={14} className="text-gray-300" />;
+      if (subcategory === 'Salgados') return <Ham size={14} className="text-gray-300" />;
+      if (subcategory === 'Orgânicos') return <Apple size={14} className="text-gray-300" />;
+      if (subcategory === 'Congelados') return <Snowflake size={14} className="text-gray-300" />;
+    }
+    if (category === 'bebidas') {
+      if (subcategory === 'Alcoólica') return <Beer size={14} className="text-gray-300" />;
+      if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-gray-300" />;
+      if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-gray-300" />;
+      if (subcategory === 'Suco') return <GlassWater size={14} className="text-gray-300" />;
+      if (subcategory === 'Energético') return <Zap size={14} className="text-gray-300" />;
+    }
+    if (category === 'eletronicos') {
+      if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-300" />;
+      if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-300" />;
+      if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-300" />;
+      if (subcategory === 'TV') return <Tv size={14} className="text-gray-300" />;
+    }
+    if (category === 'vestuario') {
+      if (subcategory === 'Masculino') return <Mars size={14} className="text-gray-300" />;
+      if (subcategory === 'Feminino') return <Venus size={14} className="text-gray-300" />;
+      if (subcategory === 'Infantil') return <Baby size={14} className="text-gray-300" />;
+      if (subcategory === 'Acessórios') return <Glasses size={14} className="text-gray-300" />;
+    }
+    if (category === 'servicos') {
+      if (subcategory === 'Entrega') return <Truck size={14} className="text-gray-300" />;
+      if (subcategory === 'Montagem') return <Drill size={14} className="text-gray-300" />;
+      if (subcategory === 'Instalação') return <Wrench size={14} className="text-gray-300" />;
+    }
+    return <Tag size={14} className="text-gray-400" />;
   }
-  if (category === 'bebidas') {
-    if (subcategory === 'Alcoólica') return <Beer size={14} className="text-gray-300" />;
-    if (subcategory === 'Não alcoólica') return <BeerOff size={14} className="text-gray-300" />;
-    if (subcategory === 'Refrigerante') return <CupSoda size={14} className="text-gray-300" />;
-    if (subcategory === 'Suco') return <GlassWater size={14} className="text-gray-300" />;
-    if (subcategory === 'Energético') return <Zap size={14} className="text-gray-300" />;
-  }
-  if (category === 'eletronicos') {
-    if (subcategory === 'Celular') return <Smartphone size={14} className="text-gray-300" />;
-    if (subcategory === 'Notebook') return <Monitor size={14} className="text-gray-300" />;
-    if (subcategory === 'Impressora') return <Printer size={14} className="text-gray-300" />;
-    if (subcategory === 'TV') return <Tv size={14} className="text-gray-300" />;
-  }
-  if (category === 'vestuario') {
-    if (subcategory === 'Masculino') return <Mars size={14} className="text-gray-300" />;
-    if (subcategory === 'Feminino') return <Venus size={14} className="text-gray-300" />;
-    if (subcategory === 'Infantil') return <Baby size={14} className="text-gray-300" />;
-    if (subcategory === 'Acessórios') return <Glasses size={14} className="text-gray-300" />;
-  }
-  if (category === 'servicos') {
-    if (subcategory === 'Entrega') return <Truck size={14} className="text-gray-300" />;
-    if (subcategory === 'Montagem') return <Drill size={14} className="text-gray-300" />;
-    if (subcategory === 'Instalação') return <Wrench size={14} className="text-gray-300" />;
-  }
-  return <Tag size={14} className="text-gray-400" />;
-}
 
-// Ícones para lojas
-function getStoreIcon(store: string) {
-  switch (store) {
-    case 'Loja A': return <Store size={16} className="text-teal-400" />;
-    case 'Loja B': return <Store size={16} className="text-blue-400" />;
-    case 'Loja C': return <Store size={16} className="text-pink-400" />;
-    default: return <Store size={16} className="text-gray-400" />;
+  // Ícones para lojas
+  function getStoreIcon(store: string) {
+    switch (store) {
+      case 'Loja A': return <Store size={16} className="text-teal-400" />;
+      case 'Loja B': return <Store size={16} className="text-blue-400" />;
+      case 'Loja C': return <Store size={16} className="text-pink-400" />;
+      default: return <Store size={16} className="text-gray-400" />;
+    }
   }
-}
   const subcategoriesMap: Record<string, string[]> = {
     alimentos: ['Doces', 'Salgados', 'Orgânicos', 'Congelados'],
     bebidas: ['Alcoólica', 'Não alcoólica', 'Refrigerante', 'Suco', 'Energético'],
@@ -277,7 +277,7 @@ function getStoreIcon(store: string) {
       taxation: { ncm: '', cest: '' },
       warranty: '',
       tags: [],
-      barcode: '', 
+      barcode: '',
     });
     setCurrentProduct(null);
     setIsFormOpen(false);
@@ -733,7 +733,7 @@ function getStoreIcon(store: string) {
                 <div
                   key={product._id}
                   className="group relative p-5 bg-[#2F363E]/60 rounded-2xl border border-white/10 hover:border-teal-400/40 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.04] overflow-hidden"
-                >         
+                >
                   <div className="absolute top-4 right-4 opacity-50 group-hover:opacity-70 transition-all pointer-events-none select-none">
                     {categories.find(c => c.value === product.category)?.icon}
                   </div>
@@ -862,20 +862,15 @@ function getStoreIcon(store: string) {
         {/* Form Modal */}
         {isFormOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
-            <div className="relative bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-2xl border border-teal-400/30 shadow-2xl overflow-hidden">
-              <div className="flex items-center gap-3 p-6 border-b border-white/10 bg-gradient-to-r from-teal-600/10 to-transparent">
-                <div className="p-2 bg-teal-500/20 rounded-xl border border-teal-400/30">
+            <div className="relative bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-3xl border-2 border-teal-400/40 shadow-2xl overflow-hidden animate-modalIn max-w-9/12 w-full">
+              {/* Cabeçalho aprimorado */}
+              <div className="flex items-center gap-3 p-6 border-b border-teal-400/20 bg-gradient-to-r from-teal-700/20 to-transparent">
+                <div className="p-2 bg-teal-500/30 rounded-xl border border-teal-400/30 shadow">
                   <Package size={28} className="text-teal-300" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">
-                    {currentProduct ? 'Editar Produto' : 'Novo Produto'}
-                  </h2>
-                  <p className="text-gray-400 mt-1 text-sm">
-                    {currentProduct
-                      ? 'Atualize as informações do produto'
-                      : 'Adicione um novo produto ao inventário'}
-                  </p>
+                  <h2 className="text-2xl font-bold text-white drop-shadow">Novo Produto</h2>
+                  <p className="text-gray-400 mt-1 text-sm">Adicione um novo produto ao inventário</p>
                 </div>
                 <button
                   className="absolute cursor-pointer top-6 right-6 p-2 text-gray-400 hover:text-white transition-colors z-10 bg-white/5 hover:bg-white/10 rounded-xl"
@@ -886,287 +881,288 @@ function getStoreIcon(store: string) {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="relative p-6 pt-2 max-h-[80vh] overflow-y-auto space-y-10">
+              {/* Formulário */}
+              <form onSubmit={handleSubmit} className="relative p-8 pt-4 max-h-[80vh] overflow-y-auto space-y-10">
+                {/* Grupo: Identificação */}
+                <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
+                  <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
+                    <Package size={18} /> Identificação
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Nome <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: Coca-Cola Lata 350ml"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        SKU <span className="text-teal-400">*</span>
+                        <span className="ml-1 text-gray-500" title="Código único do produto">(?)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="sku"
+                        value={formData.sku}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
+                        placeholder="Ex: BEB-COCA-350"
+                        required
+                      />
+                    </div>
 
-  {/* Grupo: Identificação */}
-  <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
-    <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
-      <Package size={18} /> Identificação
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Nome <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
-          placeholder="Ex: Coca-Cola Lata 350ml"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          SKU <span className="text-teal-400">*</span>
-          <span className="ml-1 text-gray-500" title="Código único do produto">(?)</span>
-        </label>
-        <input
-          type="text"
-          name="sku"
-          value={formData.sku}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm placeholder:text-gray-500"
-          placeholder="Ex: BEB-COCA-350"
-          required
-        />
-      </div>
-      
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Preço (BRL) <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="number"
-          name="priceBRL"
-          value={formData.priceBRL}
-          onChange={handleInputChange}
-          min="0.01"
-          step="0.01"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Preço (BCH)
-        </label>
-        <input
-          type="number"
-          name="priceBCH"
-          value={formData.priceBCH}
-          onChange={handleInputChange}
-          min="0.000001"
-          step="0.000001"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white opacity-60 focus:outline-none text-sm"
-          disabled
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Categoria <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="category"
-          value={formData.category}
-          onChange={handleInputChange}
-          className="cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          required
-        >
-          <option value="">Selecione uma Categoria</option>
-          {categories.map((cat) => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Subcategoria <span className="text-teal-400">*</span>
-        </label>
-        <select
-          name="subcategory"
-          value={formData.subcategory}
-          onChange={handleInputChange}
-          className={`cursor-pointer w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''}`}
-          required
-          disabled={!formData.category || formData.category === ''}
-        >
-          <option value="">Selecione uma Subcategoria</option>
-          {(formData.category && subcategoriesMap[formData.category])
-            ? subcategoriesMap[formData.category].map((subcat) => (
-              <option key={subcat} value={subcat}>{subcat}</option>
-            ))
-            : null}
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Código de Barras <span className="text-teal-400">*</span>
-        </label>
-        <input
-          type="text"
-          name="barcode"
-          value={formData.barcode}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          placeholder="Ex: 7891234567890"
-          required
-        />
-      </div>
-    </div>
-  </section>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BRL) <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBRL"
+                        value={formData.priceBRL}
+                        onChange={handleInputChange}
+                        min="0.01"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Preço (BCH)
+                      </label>
+                      <input
+                        type="number"
+                        name="priceBCH"
+                        value={formData.priceBCH}
+                        onChange={handleInputChange}
+                        min="0.000001"
+                        step="0.000001"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white opacity-60 focus:outline-none text-sm"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Categoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                        className="cursor-pointer w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      >
+                        <option value="">Selecione uma Categoria</option>
+                        {categories.map((cat) => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Subcategoria <span className="text-teal-400">*</span>
+                      </label>
+                      <select
+                        name="subcategory"
+                        value={formData.subcategory}
+                        onChange={handleInputChange}
+                        className={`cursor-pointer w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm ${!formData.category ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        required
+                        disabled={!formData.category || formData.category === ''}
+                      >
+                        <option value="">Selecione uma Subcategoria</option>
+                        {(formData.category && subcategoriesMap[formData.category])
+                          ? subcategoriesMap[formData.category].map((subcat) => (
+                            <option key={subcat} value={subcat}>{subcat}</option>
+                          ))
+                          : null}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Código de Barras <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="barcode"
+                        value={formData.barcode}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="Ex: 7891234567890"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Quantidade <span className="text-teal-400">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="quantity"
+                        value={formData.quantity}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="1"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+                </section>
 
-  {/* Grupo: Informações Adicionais */}
-  <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
-    <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
-      <Info size={18} /> Informações Adicionais
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Descrição
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          rows={2}
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Peso (g ou kg)
-        </label>
-        <input
-          type="number"
-          name="weight"
-          value={formData.weight}
-          onChange={handleInputChange}
-          min="0"
-          step="0.01"
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Status
-        </label>
-        <select
-          name="status"
-          value={formData.status}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        >
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-          <option value="descontinuado">Descontinuado</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          NCM
-        </label>
-        <input
-          type="text"
-          name="taxation.ncm"
-          value={formData.taxation?.ncm || ''}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            taxation: { ...prev.taxation, ncm: e.target.value }
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Garantia (ex: 12 meses)
-        </label>
-        <input
-          type="text"
-          name="warranty"
-          value={formData.warranty}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Marca/Fabricante
-        </label>
-        <input
-          type="text"
-          name="brand"
-          value={formData.brand}
-          onChange={handleInputChange}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Imagens (URLs separadas por vírgula)
-        </label>
-        <input
-          type="text"
-          name="images"
-          value={formData.images.join(',')}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            images: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          placeholder="https://img.com/1.jpg, https://img.com/2.jpg"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          CEST
-        </label>
-        <input
-          type="text"
-          name="taxation.cest"
-          value={formData.taxation?.cest || ''}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            taxation: { ...prev.taxation, cest: e.target.value }
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-300 mb-1.5">
-          Tags/Palavras-chave (separadas por vírgula)
-        </label>
-        <input
-          type="text"
-          name="tags"
-          value={formData.tags.join(',')}
-          onChange={e => setFormData(prev => ({
-            ...prev,
-            tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-          }))}
-          className="w-100 px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
-          placeholder="promoção, verão, lançamento"
-        />
-      </div>
-    </div>
-  </section>
+                {/* Grupo: Informações Adicionais */}
+                <section className="rounded-xl bg-[#23272F]/60 border border-teal-400/10 p-4 mb-2 shadow-sm">
+                  <h3 className="mb-4 text-base font-bold text-teal-300 flex items-center gap-2 uppercase tracking-wider border-b border-teal-400/20 pb-2">
+                    <Info size={18} /> Informações Adicionais
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Peso (g ou kg)
+                      </label>
+                      <input
+                        type="number"
+                        name="weight"
+                        value={formData.weight}
+                        onChange={handleInputChange}
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Status
+                      </label>
+                      <select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      >
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                        <option value="descontinuado">Descontinuado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        NCM
+                      </label>
+                      <input
+                        type="text"
+                        name="taxation.ncm"
+                        value={formData.taxation?.ncm || ''}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          taxation: { ...prev.taxation, ncm: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Garantia (ex: 12 meses)
+                      </label>
+                      <input
+                        type="text"
+                        name="warranty"
+                        value={formData.warranty}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Marca/Fabricante
+                      </label>
+                      <input
+                        type="text"
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Imagens (URLs separadas por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        name="images"
+                        value={formData.images.join(',')}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          images: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                        }))}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="https://img.com/1.jpg, https://img.com/2.jpg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        CEST
+                      </label>
+                      <input
+                        type="text"
+                        name="taxation.cest"
+                        value={formData.taxation?.cest || ''}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          taxation: { ...prev.taxation, cest: e.target.value }
+                        }))}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                        Tags/Palavras-chave (separadas por vírgula)
+                      </label>
+                      <input
+                        type="text"
+                        name="tags"
+                        value={formData.tags.join(',')}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                        }))}
+                        className="w-full px-3 py-2 bg-[#2F363E]/80 border border-teal-400/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400/40 transition-all text-sm"
+                        placeholder="promoção, verão, lançamento"
+                      />
+                    </div>
+                  </div>
+                </section>
 
-  {/* Rodapé fixo para ações */}
-  <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent pt-4 mt-8 -mx-6 px-6 border-t border-white/10 flex justify-end gap-3 z-20">
-    <button
-      type="button"
-      onClick={resetForm}
-      className="px-5 py-2 cursor-pointer bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
-    >
-      Cancelar
-    </button>
-    <button
-      type="submit"
-      onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
-      className={`cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm ${currentProduct
-        ? 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
-        : 'bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white'
-        }`}
-    >
-      {currentProduct ? 'Atualizar' : 'Salvar'}
-    </button>
-  </div>
-</form>
+                {/* Rodapé fixo para ações */}
+                <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-[#23272F] via-[#24292D]/90 to-transparent pt-4 mt-8 -mx-6 px-6 border-t border-white/10 flex justify-end gap-3 z-20">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="px-5 py-2 cursor-pointer bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
+                    className="cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white"
+                  >
+                    {currentProduct ? 'Atualizar' : 'Salvar'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -1261,7 +1257,7 @@ function getStoreIcon(store: string) {
                   </button>
                   <button
                     className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
-                    onClick={handleConfirmUpdate} 
+                    onClick={handleConfirmUpdate}
                   >
                     Confirmar
                   </button>
@@ -1274,8 +1270,3 @@ function getStoreIcon(store: string) {
     </div>
   );
 }
-
-
-
-
-
