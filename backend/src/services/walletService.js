@@ -495,8 +495,8 @@ async function getWalletTransactions(userId) {
                 const feeBCH = (type === 'sent' || type === 'self') ? (feeSatoshis / SATOSHIS_PER_BCH) : undefined;
 
                 processedTxs.push({
-                    _id: txid, type, amountBCH, amountBRL, address: displayAddress, txid,
-                    timestamp, status, confirmations, blockHeight, fee: feeBCH,
+                    type, amountSatoshis, amountBCH, amountBRL, address: displayAddress, txid, // _id will be handled by Mongoose schema
+                    timestamp, status, confirmations, blockHeight, feeBCH, // Renamed 'fee' to 'feeBCH' and added amountSatoshis
                 });
 
             } catch (procError) {
