@@ -143,7 +143,8 @@ const getTransactions = async (req, res, next) => {
                         address: String(tx.address || ''),
                         status: String(tx.status || 'pending'),
                         blockHeight: typeof tx.blockHeight === 'number' ? tx.blockHeight : 0,
-                        timestamp: (tx.timestamp && !isNaN(new Date(tx.timestamp))) ? new Date(tx.timestamp) : null,
+                        // Confia que walletService fornece um ISOString válido e o converte para Date.
+                        timestamp: new Date(tx.timestamp),
                         confirmations: typeof tx.confirmations === 'number' ? tx.confirmations : 0,
                         feeBCH: typeof tx.feeBCH === 'number' ? tx.feeBCH : 0,
                     };
