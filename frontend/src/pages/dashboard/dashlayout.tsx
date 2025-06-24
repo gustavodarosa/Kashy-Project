@@ -1,12 +1,19 @@
-import { Search, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket, NotepadText, Wallet, Users, Package, Settings, UserCircle, LogOut, Edit, Bell, X, Pencil, Sun, Moon, Globe } from 'lucide-react';
-import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
-import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; 
+import {
+    Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
+    NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
+    Sun, Moon, Globe
+} from 'lucide-react';
+import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
 import { useState, useEffect, useMemo } from 'react';
+import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
-import { useNotification } from '../../context/NotificationContext'; 
+import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
+
 
 export function Dashboard() {
+    const isOpen = true;
 
+    // Tipos e constantes para categorias de notificação
     type NotificationCategory = "todas" | "transacoes" | "produtos" | "pedidos" | "relatorios";
 
     const notificationCategoryTabs: Array<{ id: NotificationCategory; label: string }> = [
@@ -18,6 +25,7 @@ export function Dashboard() {
     ];
 
     const [activeNotificationTab, setActiveNotificationTab] = useState<NotificationCategory>("todas");
+
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -26,17 +34,24 @@ export function Dashboard() {
     const [username, setUsername] = useState<string | null>(null);
     const [email, setEmail] = useState<string | null>(null);
     const [notificationModalOpen, setNotificationModalOpen] = useState(false);
-    const { notifications, clearNotifications } = useNotification();
+    const { notifications, clearNotifications, addNotification } = useNotification();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+    const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+    const [emailEditError, setEmailEditError] = useState<string | null>(null);
+    const [emailEditSuccess, setEmailEditSuccess] = useState<string | null>(null);
     const [phone, setPhone] = useState<string | null>(null);
+
+    // Chatbot state
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot", message: string }[]>([]);
+    const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [language, setLanguage] = useState<'pt-BR' | 'en-US'>('pt-BR');
+
     const navigate = useNavigate();
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
@@ -148,127 +163,6 @@ export function Dashboard() {
     };
 
     useEffect(() => {
-        const fetchUsername = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    console.error('Usuário não autenticado.');
-                    return;
-                }
-
-                const response = await fetch('http://localhost:3000/api/user/username', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setUsername(data.username);
-                } else {
-                    console.error('Erro ao obter username:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao conectar ao servidor:', error);
-            }
-        };
-
-        fetchUsername();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            const userId = localStorage.getItem('userId');
-
-            if (!token || !userId) {
-                console.error('Usuário não autenticado ou ID do usuário não encontrado.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setSavedImage(data.profileImage); // Atualiza a imagem salva no estado
-                    setUsername(data.username); // Atualiza o username no estado
-                } else {
-                    console.error('Erro ao buscar dados do usuário:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar os dados do usuário:', error);
-            }
-        };
-
-        fetchUserData();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            const userId = localStorage.getItem('userId');
-
-            if (!token || !userId) {
-                console.error('Usuário não autenticado ou ID do usuário não encontrado.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Dados do usuário:', data);
-                    setEmail(data.email);
-                } else {
-                    console.error('Erro ao buscar dados do usuário:', response.statusText);
-                }
-            } catch (error) {
-                console.error('Erro ao carregar os dados do usuário:', error);
-            }
-        };
-
-        fetchUserData();
-    }, []);
-
-    useEffect(() => {
-        const fetchUserPhone = async () => {
-            const token = localStorage.getItem('token');
-            const userId = localStorage.getItem('userId');
-            if (!token || !userId) return;
-            try {
-                const response = await fetch(`http://localhost:3000/api/user/${userId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setPhone(data.phone || null);
-                }
-            } catch { }
-        };
-        fetchUserPhone();
-    }, []);
-
-    useEffect(() => {
         const fetchUserData = async () => {
             const token = localStorage.getItem('token');
             const userId = localStorage.getItem('userId');
@@ -292,7 +186,7 @@ export function Dashboard() {
                     setSavedImage(data.profileImage);
                     setUsername(data.username);
                     setEmail(data.email);
-                    setPhone(data.phone || null); // <-- Adicione esta linha
+                    setPhone(data.phone || null);
                 } else {
                     console.error('Erro ao buscar dados do usuário:', response.statusText);
                 }
@@ -315,12 +209,6 @@ export function Dashboard() {
         setHasUnreadNotifications(false);
     };
 
-    // Filtra as notificações com base na aba ativa
-    // IMPORTANTE: Isso assume que seus objetos de 'notification' (do useNotification hook)
-    // possuem uma propriedade 'category' do tipo NotificationCategory.
-    // Ex: { id: '1', message: '...', timestamp: '...', category: 'transacoes' }
-    // Se não, apenas a aba "Todas" funcionará corretamente, e as outras ficarão vazias.
-    // Você precisará adaptar seu NotificationContext para incluir essa propriedade.
     const filteredNotifications = useMemo(() => {
         return notifications.filter(notification => {
             if (activeNotificationTab === "todas") {
@@ -433,105 +321,104 @@ export function Dashboard() {
     };
 
     return (
-        <div className="flex min-h-screen bg-[#181c24]">
+        <div className="flex min-h-screen">
             {/* Sidebar Desktop */}
-            <div className="fixed top-0 left-0 h-screen z-30 border-r border-[#232428] hidden sm:flex w-72 bg-[#20232a] shadow-2xl text-white transition-all duration-300 flex-shrink-0 flex-col">
+            <div className="fixed top-0 left-0 h-screen z-30 border-r border-[var(--color-border)] hidden sm:flex w-72 bg-[rgb(42,48,54)] shadow-sm text-white transition-all duration-300 flex-shrink-0 flex-col">
 
-                <div className="flex items-center gap-4 justify-center h-20 px-2 flex-shrink-0 border-b border-[#232428]/60 bg-[#232428]">
-                    <img
-                        src="/logokashy.svg"
-                        alt="Kashy Logo Header"
-                        className="h-20 w-auto max-w-[10rem] drop-shadow-lg"
-                    />
+                <div className="flex items-center gap-4 justify-center h-20 px-2  flex-shrink-0">
+
+                    <div>
+                        <img
+                            src="/logokashy.svg"
+                            alt="Kashy Logo Header"
+                            className="h-24 w-auto max-w-[9rem] sm:max-w-[12rem]" // Ajustado para melhor responsividade do logo na sidebar
+                        />
+                    </div>
                 </div>
 
                 {/* Sidebar Navigation */}
-                <nav className="flex flex-col p-4 gap-2 overflow-y-auto flex-1">
+                <nav className="flex flex-col p-0 sm:p-0 gap-0 overflow-y-auto">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             title={tab.label}
-                            className={`
-                                group flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200
-                                font-medium text-base
-                                ${activeTab === tab.id
-                                    ? 'bg-[#14B498]/90 shadow-lg text-white ring-2 ring-[#14B498]/40'
-                                    : 'hover:bg-[#232428] hover:shadow-md text-gray-300'}
-                            `}
+                            className={`py-3 px-3 flex items-center justify-start gap-4 w-full relative
+                                       ${activeTab === tab.id
+                                         ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
+                                         : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
+                                       transition-colors duration-200`}
                         >
-                            <span className={`w-6 h-6 flex items-center justify-center transition-transform duration-200 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-105'}`}>
-                                {tab.icon}
-                            </span>
-                            <span className="whitespace-nowrap overflow-hidden text-ellipsis">{tab.label}</span>
+                            <div className="w-4 h-4 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
+                            <span className="whitespace-nowrap overflow-hidden text-ellipsis text-sm">{tab.label}</span>
+                            {activeTab === tab.id && (
+                                <div className="absolute right-0 top-0 h-full w-1 bg-[rgb(20,143,122)] rounded-l-[10px]"></div>
+                            )}
                         </button>
                     ))}
-                    <div className="mt-auto pt-4 border-t border-[#232428]/40 flex flex-col gap-2">
-                        <button
-                            onClick={toggleTheme}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#232428] transition-colors text-gray-400 hover:text-white"
-                        >
-                            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-                            <span>{theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</span>
-                        </button>
-                        <button
-                            onClick={toggleLanguage}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#232428] transition-colors text-gray-400 hover:text-white"
-                        >
-                            <Globe size={18} />
-                            <span>{language === 'pt-BR' ? 'Português' : 'English'}</span>
-                        </button>
-                    </div>
                 </nav>
+                <div className="mt-auto text-center text-gray-400 text-xs p-4">
+                    <p>Kashy</p>
+                    <p>Venda com liberdade</p>
+                    <p>---------------------------------------</p>
+                    <p>©2025 All Rights Reserved</p>
+                    <p>Made with ♥ By Gustavo, Natan, Samuel & Shaiane</p>
+                </div>
             </div>
 
             {/* Navbar Area */}
             <div className="flex-1 flex flex-col min-w-0 pb-16 sm:pb-0 sm:ml-72">
-                <header className="border-b border-[#232428] bg-[#232428] py-3 px-4 sm:px-6 text-white shadow-lg flex items-center justify-between sticky top-0 z-20 gap-4">
+
+                <header className="border-b border-[var(--color-border)] bg-[rgb(32,36,39)] py-3 px-4 sm:px-6 text-white shadow-sm flex items-center justify-between sticky top-0 z-20 gap-4">
+
                     <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-sm md:max-w-xl">
                         <input
                             type="text"
                             id="search"
                             placeholder="Pesquisar..."
-                            className="w-full pl-10 pr-4 py-2 border border-[#232428] rounded-lg bg-[#181c24] text-white focus:outline-none focus:border-[#14B498] focus:ring-2 focus:ring-[#14B498]/40 text-sm sm:text-base shadow-inner"
+                            className="w-full pl-10 pr-4 py-2 border border-[var(--color-border)] rounded-lg bg-[rgb(26,28,30)] text-white focus:outline-none focus:border-[rgb(20,143,122)] focus:ring-1 focus:ring-[rgb(20,143,122)] text-sm sm:text-base"
                         />
-                        <Search className='text-[#14B498] absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
+                        <Search className='text-white absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 pointer-events-none' />
                     </div>
+
+
+
                     <div className="flex items-center gap-4">
-                        {/* Chatbot Button */}
+                         {/* Chatbot Button */}
                         <button
                             onClick={() => setIsChatbotOpen(true)}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#232428] hover:bg-[#14B498]/80 text-[#14B498] hover:text-white transition-colors shadow-lg"
+                            className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(21,151,129,0.1)] hover:bg-[rgba(21,151,129,0.2)] text-[rgb(21,151,129)] transition-colors shadow"
                             title="Abrir Chatbot"
                         >
                             <FiMessageCircle size={22} />
                         </button>
-                        {/* Notificações */}
+                        {/* Notification Button */}
                         <button
                             onClick={handleOpenNotificationModal}
-                            className="relative flex items-center justify-center w-10 h-10 rounded-full bg-[#232428] hover:bg-[#14B498]/80 transition-colors shadow-lg"
+                            className="relative flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(21,151,129,0.1)] hover:bg-[rgba(21,151,129,0.2)] text-[rgb(21,151,129)] transition-colors"
                             title="Notificações"
                         >
-                            <Bell className="h-6 w-6 text-[#14B498] group-hover:text-white transition-colors" />
+                            <Bell className="h-6 w-6" />
                             {hasUnreadNotifications && (
-                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#232428]"></span>
+                                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[rgba(21,151,129,0.1)]"></span>
                             )}
                         </button>
-                        {/* User Dropdown */}
-                        <div className="flex items-center gap-2">
-                            <div className="relative text-white flex-shrink-0">
+
+                           <div className="flex items-center gap-2">
+                            {/* User Icon/Button */}
+                            <div className="relative text-[rgb(21,151,129)] flex-shrink-0">
                                 <button
                                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                                    className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group border-2 border-transparent hover:border-[#14B498] transition-all"
+                                    className="flex items-center space-x-2 sm:space-x-3 focus:outline-none rounded-full group"
                                 >
                                     {savedImage ? (
                                         <img
                                             src={savedImage}
                                             alt="User"
-                                            className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 rounded-full object-cover border-2 border-[#232428] group-hover:border-[#14B498] transition-colors"
+                                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-[10px] object-cover border-2 border-[rgb(21,151,129)] group-hover:border-white transition-colors"
                                         />
                                     ) : (
-                                        <UserCircle className="h-10 w-10 sm:h-12 md:h-14 sm:w-12 md:w-14 text-gray-400 group-hover:text-[#14B498] transition-colors" />
+                                        <UserCircle className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 group-hover:text-[rgb(21,151,129)] transition-colors" />
                                     )}
                                 </button>
                                 {showUserDropdown && (
@@ -563,7 +450,7 @@ export function Dashboard() {
                                                         <img
                                                             src={savedImage}
                                                             alt="User Preview"
-                                                            className="h-28 w-28 rounded-full object-cover mb-2 border-2 border-white hover:opacity-50"
+                                                            className="h-24 w-24 rounded-[10px] object-cover mb-2 border-2 border-[rgb(112,254,192)] hover:opacity-50"
                                                         />
                                                     ) : (
                                                         <UserCircle className="h-16 w-16 text-gray-400 mb-2" />
@@ -612,7 +499,7 @@ export function Dashboard() {
                                             >
                                                 <LogOut className="mr-2 h-4 w-4" />
                                                 Sair
-                                            </button>
+                                            </button>                  
                                         </div>
                                     </div>
                                 )}
@@ -630,7 +517,7 @@ export function Dashboard() {
             {/* Mobile Bottom Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] shadow-lg">
                 <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent"
-                    style={{ WebkitOverflowScrolling: 'touch' }}>
+                     style={{ WebkitOverflowScrolling: 'touch' }}>
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
@@ -680,7 +567,7 @@ export function Dashboard() {
                                         <img
                                             src={selectedImage || savedImage || "/default-avatar.png"}
                                             alt="Preview"
-                                            className="w-44 h-44 object-cover rounded-full border-4 border-[#232428] group-hover:opacity-50 transition"
+                                            className="w-40 h-40 object-cover rounded-[10px] border-4 border-[rgb(112,254,192)] group-hover:opacity-50 transition"
                                         />
                                         <div className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 shadow-lg transition pointer-events-none">
                                             <Pencil className="h-5 w-5" />
@@ -779,8 +666,9 @@ export function Dashboard() {
                             <button
                                 onClick={handleSaveImage}
                                 disabled={!selectedImage}
-                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${!selectedImage ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${
+                                    !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
                             >
                                 Salvar
                             </button>
@@ -821,10 +709,11 @@ export function Dashboard() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveNotificationTab(tab.id)}
-                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${activeNotificationTab === tab.id
+                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
+                                        activeNotificationTab === tab.id
                                             ? 'border-b-2 border-blue-500 text-blue-400'
                                             : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
-                                        }`}
+                                    }`}
                                 >
                                     {tab.label}
                                 </button>
@@ -896,19 +785,22 @@ export function Dashboard() {
                                     {chatMessages.map((msg, index) => (
                                         <div
                                             key={index}
-                                            className={`flex animate-fadeIn ${msg.sender === "user" ? "justify-end" : "justify-start"
-                                                }`}
+                                            className={`flex animate-fadeIn ${
+                                                msg.sender === "user" ? "justify-end" : "justify-start"
+                                            }`}
                                         >
                                             <div
-                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${msg.sender === "user"
+                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${
+                                                    msg.sender === "user"
                                                         ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
                                                         : "bg-gray-700/50 text-gray-200 rounded-tl-none"
-                                                    }`}
+                                                }`}
                                             >
                                                 {renderChatMessage(msg.message)}
                                                 <div
-                                                    className={`text-xs mt-2 ${msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
-                                                        }`}
+                                                    className={`text-xs mt-2 ${
+                                                        msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
+                                                    }`}
                                                 >
                                                     {new Date().toLocaleTimeString([], {
                                                         hour: "2-digit",
@@ -953,10 +845,11 @@ export function Dashboard() {
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className={`p-3 rounded-xl ${isChatLoading || !chatInput.trim()
+                                    className={`p-3 rounded-xl ${
+                                        isChatLoading || !chatInput.trim()
                                             ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
                                             : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
-                                        } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                                    } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                                     disabled={isChatLoading || !chatInput.trim()}
                                     aria-label="Send message"
                                 >
