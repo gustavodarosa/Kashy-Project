@@ -1143,34 +1143,36 @@ export function PedidosTab() {
                           Selecione uma loja para ver os produtos.
                         </p>
                       )}
-                      {products.map((product) => (
-                        <div
-                          key={product._id}
-                          className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                          onClick={() => {
-                            const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
-                            if (!alreadyInCart) {
-                              setSelectedProducts((prev) => [
-                                ...prev,
-                                {
-                                  ...product,
-                                  quantity: 1,
-                                  originalQuantity: product.quantity, // Salva o estoque original
-                                },
-                              ]);
-                              setProducts((prev) => prev.filter((p) => p._id !== product._id));
-                            }
-                          }}
-                        >
-                          <span className="text-gray-200">{product.name}</span>
-                          <span className="text-gray-300">
-                            {formatCurrency(product.priceBRL)}
-                            <span className="ml-2 text-xs text-blue-400">
-                              {typeof product.quantity === "number" ? `Estoque: ${product.quantity}` : ""}
-                            </span>
-                          </span>
-                        </div>
-                      ))}
+                      {products
+  .filter((product) => (typeof product.quantity === "number" ? product.quantity > 0 : true))
+  .map((product) => (
+    <div
+      key={product._id}
+      className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+      onClick={() => {
+        const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
+        if (!alreadyInCart) {
+          setSelectedProducts((prev) => [
+            ...prev,
+            {
+              ...product,
+              quantity: 1,
+              originalQuantity: product.quantity, // Salva o estoque original
+            },
+          ]);
+          setProducts((prev) => prev.filter((p) => p._id !== product._id));
+        }
+      }}
+    >
+      <span className="text-gray-200">{product.name}</span>
+      <span className="text-gray-300">
+        {formatCurrency(product.priceBRL)}
+        <span className="ml-2 text-xs text-blue-400">
+          {typeof product.quantity === "number" ? `Estoque: ${product.quantity}` : ""}
+        </span>
+      </span>
+    </div>
+  ))}
                     </div>
                   </div>
                 </div>

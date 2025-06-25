@@ -7,6 +7,7 @@ const cryptoUtils = require('../utils/cryptoUtils');
 const spvMonitorServiceInstance = require('../services/spvMonitorService');
 const UserOrderIndex = require('../models/UserOrderIndex');
 const logger = require('../utils/logger'); // Certifique-se de que o caminho está correto
+const Product = require('../models/product'); // Certifique-se de importar o model Product
 
 const createOrder = async (req, res) => {
   try {
@@ -84,6 +85,16 @@ const createOrder = async (req, res) => {
 
     const newOrder = new Order(orderData);
     const savedOrder = await newOrder.save();
+
+    // Atualiza o estoque dos produtos
+    for (const item of savedOrder.items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } }, // subtrai a quantidade comprada
+        { new: true }
+      );
+    }
+
     logger.info(`[createOrder] Order ${savedOrder._id} created successfully for merchant ${userId}.`);
 
     if (paymentMethod === 'bch' && savedOrder.merchantAddress) {
@@ -120,7 +131,6 @@ const verifyOrderPayment = async (req, res) => {
     // verifyPayment expects the amount in BCH
     const isPaid = await verifyPayment(order.merchantAddress, order.amountBCH); 
 
-    // ...existing code...
     if (isPaid) {
       order.status = 'paid'; // <-- Aqui também, mantenha apenas 'paid'
       // ...outros campos...
