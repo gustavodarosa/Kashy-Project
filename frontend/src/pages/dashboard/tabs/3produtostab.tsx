@@ -155,8 +155,10 @@ export function ProdutosTab() {
         if (!response.ok) {
           throw new Error('Erro ao buscar produtos');
         }
-        const data = await response.json();
-        const filteredProducts = data.filter((product: Product) => {
+        const data: Product[] = await response.json();
+
+        // Verifica se o campo quantity está presente
+        const filteredProducts = data.filter((product) => {
           const matchesCategory =
             selectedCategory === 'all' || product.category === selectedCategory;
           const matchesSearch =
@@ -172,6 +174,8 @@ export function ProdutosTab() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+        // Atualiza o estado com os produtos filtrados
         setProducts(paginatedProducts);
         setError(null);
       } catch (err) {
@@ -183,7 +187,7 @@ export function ProdutosTab() {
     };
 
     fetchProducts();
-  }, [currentPage, searchTerm, selectedCategory, addNotification, itemsPerPage]);
+  }, [currentPage, searchTerm, selectedCategory, itemsPerPage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

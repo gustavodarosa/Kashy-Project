@@ -116,7 +116,7 @@ export function PedidosTab() {
         throw new Error('Erro ao buscar produtos');
       }
       const data = await response.json();
-      console.log('[PedidosTab] Produtos buscados para a loja', store, ':', data);
+      console.log('[PedidosTab] Produtos buscados para a loja', store, ':', data); // Verifique se o campo quantity está presente
       setProducts(data); // Define os produtos da loja selecionada
     } catch (error) {
       console.error('[PedidosTab] Erro em fetchProductsByStore:', error);
@@ -1076,7 +1076,13 @@ export function PedidosTab() {
                         // Verifica se o código de barras corresponde a algum produto
                         const product = products.find((p) => p.barcode === input);
                         if (product) {
-                          setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                          // Verifica se o produto já está no carrinho
+                          const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
+                          if (!alreadyInCart) {
+                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                            // Remove o produto da lista de produtos disponíveis
+                            setProducts((prev) => prev.filter((p) => p._id !== product._id));
+                          }
                           setModalSearchTerm(""); // Limpa o campo de entrada
                         }
                       }}
@@ -1103,9 +1109,14 @@ export function PedidosTab() {
                         <div
                           key={product._id}
                           className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                          onClick={() =>
-                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])
-                          }
+                          onClick={() => {
+                            const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
+                            if (!alreadyInCart) {
+                              setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                              // Remove o produto da lista de produtos disponíveis
+                              setProducts((prev) => prev.filter((p) => p._id !== product._id));
+                            }
+                          }}
                         >
                           <span className="text-gray-200">{product.name}</span>
                           <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
@@ -1121,18 +1132,16 @@ export function PedidosTab() {
                   {selectedProducts.length > 0 ? (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {selectedProducts.map((product, index) => (
-                        <div
-                          key={`${product._id}-${index}`}
-                          className="flex justify-between items-center px-3 py-2 bg-[#24292D]/70 rounded-lg text-sm"
-                        >
+                        <div key={`${product._id}-${index}`} className="flex justify-between items-center px-3 py-2 bg-[#24292D]/70 rounded-lg text-sm">
                           <span className="truncate max-w-[50%] text-gray-200">{product.name}</span>
                           <div className="flex items-center gap-2">
                             <input
                               type="number"
                               min="1"
+                              max={product.quantity || 0} // Garante que o valor máximo seja um número
                               value={product.quantity || 1}
                               onChange={(e) => {
-                                const newQuantity = parseInt(e.target.value, 10);
+                                const newQuantity = Math.min(parseInt(e.target.value, 10), product.quantity || 0); // Garante que o valor máximo seja válido
                                 updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
                               }}
                               className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-blue-400/10 focus:outline-none text-center text-white text-xs"
@@ -1164,6 +1173,7 @@ export function PedidosTab() {
                 <button
                   type="button"
                   onClick={() => {
+                    setProducts((prev) => [...prev, ...selectedProducts]);
                     setIsOrderModalOpen(false);
                     setCustomerEmail("");
                     setSelectedProducts([]);
