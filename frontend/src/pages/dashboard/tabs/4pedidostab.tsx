@@ -37,6 +37,7 @@ type Product = {
   priceBCH: number;
   quantity?: number;
   barcode?: string;
+  originalQuantity?: number;
 };
 
 export function PedidosTab() {
@@ -273,7 +274,19 @@ export function PedidosTab() {
 
   // Remove um produto do carrinho
   const removeProductFromCart = (index: number) => {
-    setSelectedProducts((prev) => prev.filter((_, i) => i !== index));
+    setSelectedProducts((prev) => {
+      const removed = prev[index];
+      setProducts((productsPrev) => {
+        // Só adiciona de volta se não existir já na lista de produtos disponíveis
+        if (!productsPrev.some((p) => p._id === removed._id)) {
+          // Restaura a quantidade original do estoque
+          const { originalQuantity, ...rest } = removed;
+          return [...productsPrev, { ...rest, quantity: originalQuantity }];
+        }
+        return productsPrev;
+      });
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Calcula o total do pedido
@@ -335,6 +348,31 @@ export function PedidosTab() {
         throw new Error(errorData.message || "Erro ao criar pedido");
       }
       const savedOrder = await response.json();
+
+      // Atualize o estoque local dos produtos
+      setProducts((prevProducts) => {
+        // Atualiza o estoque dos produtos vendidos
+        let updatedProducts = [...prevProducts];
+        selectedProducts.forEach((cartProduct) => {
+          const idx = updatedProducts.findIndex(p => p._id === cartProduct._id);
+          if (idx !== -1) {
+            // Atualiza o estoque se o produto já está na lista
+            updatedProducts[idx] = {
+              ...updatedProducts[idx],
+              quantity: (updatedProducts[idx].quantity || 0) - (cartProduct.quantity || 1)
+            };
+          } else {
+            // Se não está na lista (foi removido ao adicionar ao carrinho), adiciona de volta se ainda houver estoque
+            const newQuantity = (cartProduct.originalQuantity || 0) - (cartProduct.quantity || 1);
+            if (newQuantity > 0) {
+              const { originalQuantity, ...rest } = cartProduct;
+              updatedProducts.push({ ...rest, quantity: newQuantity });
+            }
+          }
+        });
+        // Remove produtos que ficaram com estoque <= 0
+        return updatedProducts.filter(p => (p.quantity || 0) > 0);
+      });
 
       setCustomerEmail("");
       setSelectedProducts([]);
@@ -1112,14 +1150,25 @@ export function PedidosTab() {
                           onClick={() => {
                             const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
                             if (!alreadyInCart) {
-                              setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
-                              // Remove o produto da lista de produtos disponíveis
+                              setSelectedProducts((prev) => [
+                                ...prev,
+                                {
+                                  ...product,
+                                  quantity: 1,
+                                  originalQuantity: product.quantity, // Salva o estoque original
+                                },
+                              ]);
                               setProducts((prev) => prev.filter((p) => p._id !== product._id));
                             }
                           }}
                         >
                           <span className="text-gray-200">{product.name}</span>
-                          <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
+                          <span className="text-gray-300">
+                            {formatCurrency(product.priceBRL)}
+                            <span className="ml-2 text-xs text-blue-400">
+                              {typeof product.quantity === "number" ? `Estoque: ${product.quantity}` : ""}
+                            </span>
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1138,10 +1187,13 @@ export function PedidosTab() {
                             <input
                               type="number"
                               min="1"
-                              max={product.quantity || 0} // Garante que o valor máximo seja um número
+                              max={product.originalQuantity || 1} // Corrigido: usa o estoque original
                               value={product.quantity || 1}
                               onChange={(e) => {
-                                const newQuantity = Math.min(parseInt(e.target.value, 10), product.quantity || 0); // Garante que o valor máximo seja válido
+                                const newQuantity = Math.min(
+                                  parseInt(e.target.value, 10),
+                                  product.originalQuantity || 1
+                                );
                                 updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
                               }}
                               className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-blue-400/10 focus:outline-none text-center text-white text-xs"
@@ -1248,6 +1300,7 @@ export function PedidosTab() {
                   O pedido foi removido do sistema.
                 </p>
                 <button
+
                   className="w-full cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
                   onClick={() => setIsDeleteSuccessOpen(false)}
                 >
