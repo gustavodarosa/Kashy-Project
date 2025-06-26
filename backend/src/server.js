@@ -156,6 +156,9 @@ app.use('/api/orders', orderRoutes);
 // Mount Transaction Routes
 app.use('/api/transactions', transactionRoutes);
 
+// Mount Report Routes
+app.use('/api/reports', reportRoutes);
+
 // --- Direct API Route Definitions (Keep existing - ideally move to route files later) ---
 // Keep all your existing app.get/app.post/app.put routes here exactly as they were:
 

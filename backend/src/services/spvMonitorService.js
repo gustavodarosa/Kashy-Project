@@ -100,8 +100,7 @@ class SpvMonitorService {
         if (existingEntry && (existingEntry.client?.status === 1 || existingEntry.connecting)) {
              if (isPeriodicRetry && this.failedPrimaryServers.has(serverId)) { this.failedPrimaryServers.delete(serverId); }
              return;
-        }
-        logger.debug(`SPV: Attempting connection to ${serverId}...${isPeriodicRetry ? ' (Periodic Retry)' : ''}`);
+        }        
         this.clients.set(serverId, { client: null, config: serverConfig, connecting: true, subscriptions: new Set() });
         const immediateTimer = this.reconnectTimers.get(serverId);
         if (immediateTimer) { clearTimeout(immediateTimer); this.reconnectTimers.delete(serverId); }
@@ -119,7 +118,7 @@ class SpvMonitorService {
             this.attachListenersToClient(client, serverId);
             await this.resubscribeClient(client, serverId);
         } catch (error) {
-            logger.error(`SPV: 😓 Failed connection to ${serverId}: ${error.message}`);
+            logger.error(`SPV: Failed connection to ${serverId}: ${error.message}`);
             const clientEntry = this.clients.get(serverId);
             if(clientEntry) { clientEntry.connecting = false; clientEntry.client = null; }
             if (client) { try { await client.close(); } catch (e) { /* Ignore close error */ } }
@@ -129,7 +128,7 @@ class SpvMonitorService {
         }
     }
     _handleClientClose(serverId, serverConfig) { /* ... */
-        logger.error(`SPV: ❌ Disconnected from ${serverId}.`);
+        logger.error(`SPV: Disconnected from ${serverId}.`);
         const clientEntry = this.clients.get(serverId);
         if (clientEntry) { clientEntry.client = null; clientEntry.connecting = false; clientEntry.subscriptions.clear(); }
         const isPrimary = this.primaryServerConfigs.some(cfg => `${cfg.host}:${cfg.port}` === serverId);
@@ -140,7 +139,6 @@ class SpvMonitorService {
     scheduleReconnect(serverId, serverConfig) { /* ... */
         const existingEntry = this.clients.get(serverId);
         if (existingEntry && !existingEntry.client && !existingEntry.connecting && !this.reconnectTimers.has(serverId)) {
-            logger.debug(`SPV: Scheduling reconnect attempt for ${serverId} in ${RECONNECT_DELAY_MS / 1000}s...`);
             const timer = setTimeout(async () => {
                 this.reconnectTimers.delete(serverId);
                 if (this.isRunning) {
@@ -154,23 +152,19 @@ class SpvMonitorService {
     tryConnectFallback() { /* ... */
         if (!this.isRunning) return;
         const connectedCount = Array.from(this.clients.values()).filter(e => e.client?.status === 1).length;
-        if (connectedCount >= this.desiredConnectionCount) { return; }
-        logger.debug(`SPV: Below target connections (${connectedCount}/${this.desiredConnectionCount}). Checking fallback...`);
+        if (connectedCount >= this.desiredConnectionCount) { return; }        
         for (const fallbackConfig of this.rankedServers) {
             const fallbackServerId = `${fallbackConfig.host}:${fallbackConfig.port}`;
             if (this.primaryServerConfigs.some(cfg => `${cfg.host}:${cfg.port}` === fallbackServerId)) { continue; }
             const existingEntry = this.clients.get(fallbackServerId);
             if (!existingEntry || (!existingEntry.client && !existingEntry.connecting && !this.reconnectTimers.has(fallbackServerId))) {
-                 logger.debug(`SPV: Attempting fallback connection to ${fallbackServerId}...`);
                  this.connectToServer(fallbackConfig, false);
                  return;
             }
         }
-        logger.warn(`SPV: Could not find available fallback servers to connect.`);
+        logger.warn(`SPV: Below target connections (${connectedCount}/${this.desiredConnectionCount}) and no available fallback servers.`);
     }
-    retryFailedPrimaries() { /* ... */
-        if (!this.isRunning || this.failedPrimaryServers.size === 0) return;
-        logger.debug(`SPV: [Periodic Retry] Checking ${this.failedPrimaryServers.size} failed primary servers...`);
+    retryFailedPrimaries() { /* ... */        if (!this.isRunning || this.failedPrimaryServers.size === 0) return;
         this.failedPrimaryServers.forEach(serverId => {
             const serverConfig = this.primaryServerConfigs.find(cfg => `${cfg.host}:${cfg.port}` === serverId);
             if (serverConfig) {
@@ -189,21 +183,16 @@ class SpvMonitorService {
         try {
             const scriptPubKeyBuffer = addressToScriptPubKeyBuffer(bchAddress);
             const scriptHash = scriptPubKeyBufferToScriptHash(scriptPubKeyBuffer);
-            this.subscriptions.set(scriptHash, { userId, bchAddress, orderId }); // Store orderId
-            logger.debug(`SPV: [Sub Added/Updated] Monitoring User: ${userId}, Addr: ${bchAddress}, SH: ${scriptHash}${orderId ? `, OrderID: ${orderId}` : ''}`);
-            const subPromises = []; const serversAttempted = [];
+            this.subscriptions.set(scriptHash, { userId, bchAddress, orderId }); // Store orderId            
+            const subPromises = [];
             for (const [serverId, clientEntry] of this.clients.entries()) {
                 if (clientEntry.client?.status === 1) {
                     if (!clientEntry.subscriptions.has(scriptHash)) {
-                        serversAttempted.push(serverId);
                         subPromises.push(this.performSubscription(clientEntry.client, serverId, scriptHash));
                     } else { /* ... skip already subscribed ... */ }
                 }
             }
-            const results = await Promise.allSettled(subPromises);
-            const successfulCount = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
-            if (serversAttempted.length > 0) { logger.debug(`SPV: Subscription attempts for SH ${scriptHash} (Addr: ${bchAddress}${orderId ? `, Order: ${orderId}` : ''}). Attempted: ${serversAttempted.length}, Successful: ${successfulCount}.`); }
-            else { logger.debug(`SPV: No active clients to send subscription for SH ${scriptHash} (Addr: ${bchAddress}${orderId ? `, Order: ${orderId}` : ''}).`); }
+            await Promise.allSettled(subPromises);
         } catch (error) { logger.error(`SPV: Failed subscription process for User ${userId}, Addr ${bchAddress}: ${error.message}`); }
     }
     async performSubscription(client, serverId, scriptHash) { /* ... */
@@ -211,28 +200,23 @@ class SpvMonitorService {
         if (!clientEntry || !clientEntry.client || clientEntry.client.status !== 1) { return false; }
         if (clientEntry.subscriptions.has(scriptHash)) { return true; }
         try {
-            logger.debug(`SPV: Sending subscribe for ${scriptHash} to ${serverId}...`);
             const initialStatus = await withTimeout(client.request('blockchain.scripthash.subscribe', [scriptHash]), REQUEST_TIMEOUT_MS, `Subscribe timeout ${scriptHash} on ${serverId}`);
-            logger.debug(`SPV: Subscribe OK for ${scriptHash} on ${serverId}. Initial Status: ${initialStatus}`);
             clientEntry.subscriptions.add(scriptHash);
             if (initialStatus !== null) { logger.debug(`SPV: Initial status for ${scriptHash} on ${serverId} was ${initialStatus}. Will wait for next update.`); }
             return true;
         } catch (error) { logger.error(`SPV: [Sub FAIL] ${serverId} to ${scriptHash}: ${error.message}`); return false; }
     }
     async resubscribeClient(client, serverId) { /* ... */
-        logger.debug(`SPV: Resubscribing all (${this.subscriptions.size}) addresses to ${serverId}...`);
         const clientEntry = this.clients.get(serverId);
         if (!clientEntry) { logger.error(`SPV: Cannot resubscribe, client entry for ${serverId} not found.`); return; }
         clientEntry.subscriptions.clear();
-        const resubPromises = []; const addressesAttempted = [];
+        const resubPromises = [];
         for (const scriptHash of this.subscriptions.keys()) {
-            if (client?.status === 1) { addressesAttempted.push(scriptHash); resubPromises.push(this.performSubscription(client, serverId, scriptHash)); }
+            if (client?.status === 1) { resubPromises.push(this.performSubscription(client, serverId, scriptHash)); }
             else { logger.warn(`SPV: [Resub Skip] Client ${serverId} disconnected during resubscribe loop for ${scriptHash}.`); break; }
         }
-        const results = await Promise.allSettled(resubPromises);
-        const successfulCount = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
-        if (addressesAttempted.length > 0) { logger.debug(`SPV: Resubscription to ${serverId} complete. Attempted: ${addressesAttempted.length}, Successful: ${successfulCount}.`); }
-        else { logger.debug(`SPV: No addresses to resubscribe for client ${serverId}.`); }
+        await Promise.allSettled(resubPromises);
+        logger.info(`SPV: Resubscribed ${this.subscriptions.size} addresses to new client ${serverId}.`);
     }
     async removeSubscription(userId, bchAddress) { /* ... */
         if (!userId || !bchAddress) { logger.warn('SPV: Missing userId or bchAddress for unsubscription.'); return; }
@@ -253,7 +237,7 @@ class SpvMonitorService {
                     if (sh === scriptHash && (info.orderId || info.userId.toString() !== userId.toString())) { stillNeeded = true; break; }
                 }
                 if (subInfo && !stillNeeded) { // Check if subInfo exists
-                    logger.info(`SPV: [Sub Removed] No longer monitoring User: ${userId}, Addr: ${bchAddress}, SH: ${scriptHash}${subInfo.orderId ? `, OrderID: ${subInfo.orderId}` : ''}`);
+                    logger.info(`SPV: Unsubscribed Addr: ${bchAddress} (User: ${userId}${subInfo.orderId ? `, Order: ${subInfo.orderId}` : ''})`);
                 this.subscriptions.delete(scriptHash);
                 for (const clientEntry of this.clients.values()) { clientEntry.subscriptions.delete(scriptHash); }
             } else if (stillNeeded) { /* ... log kept ... */ }
@@ -269,44 +253,34 @@ class SpvMonitorService {
     }
     cleanupStatusCache() { /* ... */
         const now = Date.now(); let cleanedCount = 0;
-        for (const [status, timestamp] of this.processedStatusCache.entries()) {
-            if (now - timestamp > STATUS_CACHE_TTL_MS) { this.processedStatusCache.delete(status); cleanedCount++; }
-        }
-        if (cleanedCount > 0) logger.debug(`SPV: [Cache Cleanup] Removed ${cleanedCount} expired status entries.`);
+        for (const [status, timestamp] of this.processedStatusCache.entries()) { if (now - timestamp > STATUS_CACHE_TTL_MS) { this.processedStatusCache.delete(status); cleanedCount++; } }
     }
     attachListenersToClient(client, serverId) { /* ... */
         client.subscribe.removeAllListeners('blockchain.scripthash.subscribe');
         client.subscribe.on('blockchain.scripthash.subscribe', (params) => {
             const scriptHash = params[0]; const status = params[1];
-            logger.debug(`SPV: <<< Update Received <<< Server: ${serverId}, SH: ${scriptHash}, Status: ${status}`);
             if (scriptHash && status !== null) { this.handleSubscriptionUpdate(scriptHash, status, serverId); }
         });
-        logger.debug(`SPV: Attached listeners to ${serverId}.`);
     }
 
     // --- MODIFIED: handleSubscriptionUpdate (Keep as is, uses processAndNotifyWithHistory) ---
     async handleSubscriptionUpdate(scriptHash, status, serverId) {
-        logger.debug(`SPV: [Update Handling] Received status update for SH: ${scriptHash}, Status: ${status}, From: ${serverId}`);
-
         // 1. Check if status was recently processed
         if (this.isStatusRecentlyProcessed(status)) {
-            logger.debug(`SPV: [Cache Hit] Status ${status} recently processed. Skipping.`);
             return;
         }
 
         // 2. Check for processing lock
         if (this.processingLocks.has(scriptHash)) {
-            logger.debug(`SPV: [Lock Hit] Processing already in progress for SH: ${scriptHash}. Skipping.`);
             return;
         }
 
         // 3. Identify the user
         const subInfo = this.subscriptions.get(scriptHash);
         if (!subInfo) {
-            logger.warn(`SPV: [Update Warning] Received update for untracked SH: ${scriptHash}. Ignoring.`);
+            logger.warn(`SPV: Received update for untracked SH: ${scriptHash}. Ignoring.`);
             return;
         }
-        logger.debug(`SPV: [Update Identified] Update is for User: ${subInfo.userId}, Addr: ${subInfo.bchAddress}`);
 
         try {
              this.processingLocks.add(scriptHash);
@@ -315,7 +289,7 @@ class SpvMonitorService {
             // --- >>> INVALIDATE CACHE for the user <<< ---
             // This is important if the update is for the user's main wallet.
             // For order-specific addresses, general user cache invalidation might still be good.
-            logger.info(`SPV: [Cache Invalidate Trigger] Invalidating cache for User ${subInfo.userId} due to SPV update on addr ${subInfo.bchAddress}.`);
+            logger.info(`SPV: Update on ${subInfo.bchAddress} (User: ${subInfo.userId}), invalidating cache.`);
              cache.invalidateUserWalletCache(subInfo.userId);
             cache.invalidateBlockHeightCache(); // Block height affects confirmations
              // --- >>> END INVALIDATION <<< ---
@@ -328,26 +302,24 @@ class SpvMonitorService {
                 await this.processAndNotifyWithHistory(subInfo.userId, subInfo.bchAddress, scriptHash, status);
             }
 
-             this.processedStatusCache.set(status, Date.now());
-             logger.debug(`SPV: [Cache Set] Added status ${status} to processed cache.`);
+             this.processedStatusCache.set(status, Date.now());             
 
         } catch (error) {
-             logger.error(`SPV: [Update Error] Error during notification processing for SH ${scriptHash} (Status: ${status}): ${error.message}`);
+             logger.error(`SPV: Error processing update for SH ${scriptHash} (Status: ${status}): ${error.message}`);
              // Do NOT cache status if processing failed, allow retry on next update
         } finally {
              this.processingLocks.delete(scriptHash);
-             logger.debug(`SPV: [Lock Released] Released processing lock for SH: ${scriptHash}`);
         }
     }
     // --- END MODIFIED handleSubscriptionUpdate ---
 
     // --- NEW: processOrderPayment ---
     async processOrderPayment(userId, bchAddress, orderId, scriptHash, electrumStatus) {
-        logger.info(`SPV: [Order Payment] Processing for Order: ${orderId}, Addr: ${bchAddress}, User: ${userId}`);
+        logger.info(`SPV: Processing payment for Order ${orderId} (User: ${userId})`);
         try {
             const order = await Order.findById(orderId);
             if (!order) {
-                logger.error(`SPV: [Order Payment] Order ${orderId} not found.`);
+                logger.error(`SPV: Order ${orderId} not found during payment check.`);
                 this.removeSubscription(userId, bchAddress); // Clean up subscription for non-existent order
                 return;
             }
@@ -365,7 +337,7 @@ class SpvMonitorService {
 
             while (attempts < maxAttempts && (history === null || history.length === 0)) {
                 if (attempts > 0) {
-                    logger.info(`SPV: [Order Payment] Retrying history fetch for ${bchAddress} (Order ${orderId}), attempt ${attempts + 1}/${maxAttempts}...`);
+                    logger.info(`SPV: Retrying history fetch for ${bchAddress} (Order ${orderId}), attempt ${attempts + 1}/${maxAttempts}...`);
                     await new Promise(resolve => setTimeout(resolve, retryDelay));
                 }
                 try {
@@ -377,20 +349,19 @@ class SpvMonitorService {
                         history = []; // Ensure history is an array even if null/undefined is returned
                     }
                 } catch (fetchError) {
-                    logger.error(`SPV: [Order Payment] Error fetching history for ${bchAddress} (Order ${orderId}) on attempt ${attempts + 1}: ${fetchError.message}`);
+                    logger.error(`SPV: Error fetching history for ${bchAddress} (Order ${orderId}) on attempt ${attempts + 1}: ${fetchError.message}`);
                 }
                 attempts++;
             }
 
             if (history.length === 0) {
-                logger.warn(`SPV: [Order Payment] No history found for address ${bchAddress} (Order ${orderId}) after ${maxAttempts} attempts. Electrum Status: ${electrumStatus}. Order status: ${order.status}`);
+                logger.warn(`SPV: No history found for address ${bchAddress} (Order ${orderId}) after ${maxAttempts} attempts. Electrum Status: ${electrumStatus}.`);
                 return;
             }
 
             // Find new, relevant transactions
             for (const item of history.sort((a, b) => b.height - a.height)) { // Process recent first
-                if (order.transactionId && order.transactionId === item.tx_hash) {
-                    logger.debug(`SPV: [Order Payment] Transaction ${item.tx_hash} already processed for order ${orderId}. Checking confirmations.`);
+                if (order.transactionId && order.transactionId === item.tx_hash) {                    
                     // TODO: Potentially update confirmations if height changed and notify.
                     continue;
                 }
@@ -405,13 +376,12 @@ class SpvMonitorService {
 
                         // Basic amount check (can add tolerance for overpayment)
                         if (receivedSatoshis >= expectedSatoshis) {
-                            logger.info(`SPV: [Order Payment] Payment DETECTED for Order ${orderId}. TX: ${item.tx_hash}, Amount: ${receivedSatoshis} sats.`);
+                            logger.info(`SPV: Payment detected for Order ${orderId} (TX: ${item.tx_hash}), status updated to 'paid'.`);
                             order.status = 'paid'; // <-- Altere aqui para ir direto para 'paid'
                             order.transactionId = item.tx_hash;
                             order.paidAmountBCH = receivedSatoshis / SATOSHIS_PER_BCH;
                             order.paymentReceivedAt = new Date();
                             await order.save();
-                            logger.info(`SPV: [Order Payment] Order ${orderId} status updated to ${order.status}.`);
                             // Notify merchant via WebSocket about the order update
                             if (this.io) this.io.to(userId.toString()).emit('orderUpdate', order.toObject());
                             return; // Payment found and processed for this order
@@ -419,36 +389,30 @@ class SpvMonitorService {
                     }
                 }
             }
-            logger.info(`SPV: [Order Payment] No new matching payment found for order ${orderId} in history of ${bchAddress}.`);
+            logger.info(`SPV: No new matching payment found for order ${orderId} in history of ${bchAddress}.`);
         } catch (error) {
-            logger.error(`SPV: [Order Payment] Error processing payment for Order ${orderId} (Addr: ${bchAddress}): ${error.message}`, error.stack);
+            logger.error(`SPV: Error processing payment for Order ${orderId} (Addr: ${bchAddress}): ${error.message}`, error.stack);
         }
     }
     // --- END processOrderPayment ---
 
     // --- MODIFIED: processAndNotifyWithHistory (Uses walletService) ---
     async processAndNotifyWithHistory(userId, bchAddress, scriptHash, status) {
-        logger.debug(`SPV: [Process/Notify Full] User: ${userId}, Addr: ${bchAddress}`);
-
         let fetchedBalanceData;
         let fetchedTransactions;
 
         try {
             // 1. Fetch Current Live Balance using walletService
             try {
-                // Ensure cache is bypassed by invalidation done in handleSubscriptionUpdate
                 fetchedBalanceData = await walletService.getWalletBalance(userId);
-                logger.debug(`SPV: Fetched balance via walletService: User=${userId}, TotalBCH=${fetchedBalanceData.totalBCH}`);
             } catch (balanceError) {
                 logger.error(`SPV: Failed getting balance via walletService (User: ${userId}): ${balanceError.message}`);
                 throw balanceError; // Throw to prevent caching status if balance fails
             }
 
             // 2. Fetch Processed Transaction History using walletService
-            try {
-                // Ensure cache is bypassed by invalidation done in handleSubscriptionUpdate
+            try {                
                 fetchedTransactions = await walletService.getWalletTransactions(userId);
-                logger.debug(`SPV: Fetched ${fetchedTransactions.length} processed transactions via walletService.`);
             } catch (historyError) {
                 logger.error(`SPV: Failed getting history via walletService (User: ${userId}): ${historyError.message}`);
                 throw historyError; // Throw error, prevent caching status if history fails
@@ -456,15 +420,12 @@ class SpvMonitorService {
 
             // 3. Emit WebSocket Notification
             if (this.io) {
-                // --- MODIFICATION: Construct payload from walletService data ---
                 const payload = {
                     balance: fetchedBalanceData, // Use the structure returned by getWalletBalance
                     transactions: fetchedTransactions, // Use the structure returned by getWalletTransactions
-                };
-                // --- END MODIFICATION ---
+                }; // <-- Chave de fechamento do objeto estava faltando aqui
 
                 const eventName = 'walletDataUpdate';
-                logger.debug(`SPV: Emitting '${eventName}' to user room: ${userId}`);
                 this.io.to(userId.toString()).emit(eventName, payload);
                 logger.info(`SPV: ✅ Wallet data update sent for User: ${userId}, Addr: ${bchAddress}`);
             } else {
@@ -486,20 +447,15 @@ class SpvMonitorService {
         this.isRunning = true;
         this.cacheCleanupTimer = setInterval(() => this.cleanupStatusCache(), CACHE_CLEANUP_INTERVAL_MS);
         this.periodicRetryTimer = setInterval(() => this.retryFailedPrimaries(), PERIODIC_RETRY_INTERVAL_MS);
-        logger.debug(`SPV: Initial connections to ${this.primaryServerConfigs.length} primary servers...`);
         const initialConnectionPromises = this.primaryServerConfigs.map(config => this.connectToServer(config, false));
         await Promise.allSettled(initialConnectionPromises);
-        logger.debug("SPV: Initial primary connection attempts settled.");
         this.tryConnectFallback();
         try {
-            logger.debug('SPV: Fetching initial users for monitoring...');
             const usersToMonitor = await User.find({ bchAddress: { $exists: true, $ne: null, $ne: '' } }).select('_id bchAddress').lean();
-            logger.debug(`SPV: [Initial Load] Found ${usersToMonitor.length} users with main addresses.`);
             for (const user of usersToMonitor) { await this.addSubscription(user._id.toString(), user.bchAddress); }
 
             // Also load pending order addresses
             const pendingOrders = await Order.find({ status: { $in: ['pending', 'payment_detected'] }, paymentMethod: 'bch', merchantAddress: { $exists: true } }).select('user merchantAddress _id').lean();
-            logger.debug(`SPV: [Initial Load] Found ${pendingOrders.length} pending BCH orders to monitor.`);
             for (const order of pendingOrders) { await this.addSubscription(order.user.toString(), order.merchantAddress, order._id.toString()); }
 
             logger.info(`SPV: [Initial Load] Finished adding initial subscriptions. Monitoring ${this.subscriptions.size} unique scriptHashes.`);
@@ -515,7 +471,7 @@ class SpvMonitorService {
          this.failedPrimaryServers.clear();
          this.processingLocks.clear();
          this.reconnectTimers.clear();
-         logger.info(`SPV: Closing ${this.clients.size} active connections...`);
+         logger.info(`SPV: Closing ${this.clients.size} connections...`);
          const closePromises = [];
          this.clients.forEach(entry => {
              if (entry.client) { entry.client.onClose = () => {}; closePromises.push(entry.client.close().catch(e => logger.error(`SPV: Error closing client ${entry.config?.host}:${entry.config?.port}: ${e.message}`))); }

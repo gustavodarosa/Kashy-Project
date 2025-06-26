@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const bchService = require('../services/bchService');
+const walletService = require('../services/walletService'); // Import walletService
 const cryptoUtils = require('../utils/cryptoUtils');
 const logger = require('../utils/logger'); // Import logger
 const spvService = require('../services/spvMonitorService'); // Import SPV Service
@@ -24,7 +25,7 @@ class AuthController {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Gera os detalhes da carteira BCH
-      const walletDetails = await bchService.generateAddress();
+      const walletDetails = await bchService.generateAddress(); // Revertido para bchService
       logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
       // Avoid logging mnemonic in production/staging:
       // logger.debug(`[${endpoint}] Generated Mnemonic: ${walletDetails.mnemonic}`);
