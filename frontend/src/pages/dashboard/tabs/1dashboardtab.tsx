@@ -11,7 +11,7 @@ import BCHContainer from "../../../components/dashboard/BCHContainer";
 
 export function DashboardTab() {
   return (
-    <div className="min-h-screen bg-[#141414] text-white p-10 space-y-12">
+    <div className="min-h-screen bg-[#24292D] text-white p-10 space-y-12">
 
       {/* First Row - 3 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
