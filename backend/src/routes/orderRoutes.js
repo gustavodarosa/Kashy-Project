@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/order');
+const Product = require('../models/product'); // Import Product model
 const logger = require('../utils/logger'); // Import the logger
-const { createOrder } = require('../controllers/orderController');
+const { createOrder, updateOrder } = require('../controllers/orderController');
 const { protect } = require('../middlewares/authMiddleware');
 
 // Endpoint para buscar todos os pedidos
@@ -58,32 +59,56 @@ router.post(
 );
 
 // Endpoint para atualizar um pedido
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
-    if (!req.user || !req.user.id) {
-       logger.warn(`[PUT /api/orders/:id] Attempt to update order ${id} without authenticated user.`);
-       return res.status(401).json({ message: 'Usuário não autenticado.' });
-    }
-    // Find the order first to check ownership
-    const existingOrder = await Order.findById(id);
-    const { store, customerEmail, totalAmount, paymentMethod, status } = req.body;
+    const { items, ...updateFields } = req.body;
 
+    // 1. Busque o pedido antigo
+    const oldOrder = await Order.findById(id);
+    if (!oldOrder) return res.status(404).json({ message: 'Pedido não encontrado.' });
+
+    // 2. Atualize o pedido
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
-      { store, customerEmail, totalAmount, paymentMethod, status },
+      { ...updateFields, items },
       { new: true, runValidators: true }
     );
 
-    if (!updatedOrder) {
-      // If existingOrder was found but update failed for other reasons, this might still be reached
-      if (existingOrder && existingOrder.user.toString() !== req.user.id.toString()) { return res.status(403).json({ message: 'Acesso negado. Este pedido não pertence ao usuário autenticado.' }); }
-      return res.status(404).json({ message: 'Pedido não encontrado.' });
+    // 3. Atualize o estoque dos produtos
+    // Crie um mapa de quantidades antigas
+    const oldQuantities = {};
+    oldOrder.items.forEach(item => {
+      oldQuantities[item.product.toString()] = item.quantity;
+    });
+
+    // Para cada item novo, calcule a diferença e atualize o estoque
+    for (const item of items) {
+      const productId = item.product;
+      const oldQty = oldQuantities[productId] || 0;
+      const diff = (item.quantity || 0) - oldQty;
+      if (diff !== 0) {
+        // Se diff > 0, diminui do estoque; se diff < 0, devolve ao estoque
+        await Product.findByIdAndUpdate(
+          productId,
+          { $inc: { quantity: -diff } }
+        );
+      }
+      // Remove do mapa para saber quais produtos foram removidos
+      delete oldQuantities[productId];
+    }
+
+    // Para produtos que estavam no pedido antigo mas não estão mais, devolva ao estoque
+    for (const productId in oldQuantities) {
+      const qty = oldQuantities[productId];
+      await Product.findByIdAndUpdate(
+        productId,
+        { $inc: { quantity: qty } }
+      );
     }
 
     res.status(200).json(updatedOrder);
   } catch (error) {
-    console.error('Erro ao atualizar pedido:', error);
     res.status(500).json({ message: 'Erro ao atualizar pedido.' });
   }
 });
