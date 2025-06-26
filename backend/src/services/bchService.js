@@ -6,6 +6,8 @@
 const ElectrumClient = require('electrum-client');
 const { FULCRUM_SERVERS } = require('../config/fullcrumConfig'); // Importa FULCRUM_SERVERS do fullcrumConfig
 const logger = require('../utils/logger'); // Importe seu logger
+const BCHJS = require('@psf/bch-js');
+const bchjs = new BCHJS();
 
 /**
  * @desc Obtém a altura do bloco atual de um servidor Electrum.
@@ -27,9 +29,25 @@ async function getCurrentBlockHeight() {
     }
 }
 
-// ... (outras funções existentes do bchService, como generateAddress, getTransactionHistoryFromElectrum) ...
+/**
+ * @desc Gera um endereço BCH.
+ * @returns {Promise<Object>} O endereço BCH gerado, incluindo o mnemonic e o caminho de derivação.
+ */
+async function generateAddress() {
+    const mnemonic = bchjs.Mnemonic.generate(128); // Generate a mnemonic
+    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+    const hdNode = bchjs.HDNode.fromSeed(seedBuffer);
+    const childNode = bchjs.HDNode.derivePath(hdNode, "m/44'/145'/0'/0/0");
+    const address = bchjs.HDNode.toCashAddress(childNode);
+
+    return {
+        mnemonic,
+        address,
+        derivationPath: "m/44'/145'/0'/0/0",
+    };
+}
 
 module.exports = {
-    // ... (exporte suas outras funções) ...
     getCurrentBlockHeight,
+    generateAddress,
 };

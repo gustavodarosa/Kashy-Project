@@ -24,62 +24,67 @@ class AuthController {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Gera os detalhes da carteira BCH
-      const walletDetails = await bchService.generateAddress();
-      logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
-      // Avoid logging mnemonic in production/staging:
-      // logger.debug(`[${endpoint}] Generated Mnemonic: ${walletDetails.mnemonic}`);
-
-      const encryptionKey = process.env.ENCRYPTION_KEY;
-      if (!encryptionKey) {
-           logger.error(`[${endpoint}] FATAL - ENCRYPTION_KEY is not set during registration.`);
-           throw new Error("Server configuration error: Missing encryption key.");
-      }
-
-      const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, encryptionKey);
-      const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, encryptionKey);
-
-      // Avoid logging sensitive data:
-      // logger.debug(`[${endpoint}] Encrypted Mnemonic: ${encryptedMnemonic}`);
-      // logger.debug(`[${endpoint}] Encrypted Derivation Path: ${encryptedDerivationPath}`);
-
-      // Cria o novo usuário
-      const newUser = new User({
-        email,
-        password: hashedPassword,
-        username,
-        encryptedMnemonic,
-        encryptedDerivationPath,
-        bchAddress: walletDetails.address,
-        role: req.body.role || 'user', // Novo campo
-        transactionCount: 0, // Inicializa com 0
-      });
-
-      // Salva o usuário no banco de dados (only once)
-      await newUser.save();
-      logger.info(`[${endpoint}] User ${email} (${newUser._id}) saved successfully.`);
-
-      // --- Add user to SPV Monitor ---
       try {
-        logger.info(`[${endpoint}] Adding new user ${newUser._id} (${newUser.bchAddress}) to SPV monitoring.`);
-        // Call the exported function from the SPV service module
-        // No need to await - let it run in the background, SPV service handles connection/retry
-        spvService.addSubscription(newUser._id.toString(), newUser.bchAddress);
-        logger.info(`[${endpoint}] SPV subscription initiated for user ${newUser._id}.`);
-      } catch (spvError) {
-        // Log the error but don't fail the registration response
-        logger.error(`[${endpoint}] Failed to initiate SPV subscription for user ${newUser._id} during registration: ${spvError.message}`);
-        // Consider adding more details like spvError.stack if needed for debugging
-      }
-      // --- End SPV Monitor addition ---
+        const walletDetails = await bchService.generateAddress();
+        logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
+        // Avoid logging mnemonic in production/staging:
+        // logger.debug(`[${endpoint}] Generated Mnemonic: ${walletDetails.mnemonic}`);
 
-      // Retorna o usuário criado (without sensitive data)
-      res.status(201).json({
-        _id: newUser._id,
-        email: newUser.email,
-        username: newUser.username,
-        bchAddress: newUser.bchAddress,
-        message: 'Usuário registrado com sucesso.',
-      });
+        const encryptionKey = process.env.ENCRYPTION_KEY;
+        if (!encryptionKey) {
+          logger.error(`[${endpoint}] FATAL - ENCRYPTION_KEY is not set during registration.`);
+          throw new Error("Server configuration error: Missing encryption key.");
+        }
+
+        const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, encryptionKey);
+        const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, encryptionKey);
+
+        // Avoid logging sensitive data:
+        // logger.debug(`[${endpoint}] Encrypted Mnemonic: ${encryptedMnemonic}`);
+        // logger.debug(`[${endpoint}] Encrypted Derivation Path: ${encryptedDerivationPath}`);
+
+        // Cria o novo usuário
+        const newUser = new User({
+          email,
+          password: hashedPassword,
+          username,
+          encryptedMnemonic,
+          encryptedDerivationPath,
+          bchAddress: walletDetails.address,
+          role: req.body.role || 'user', // Novo campo
+          transactionCount: 0, // Inicializa com 0
+        });
+
+        // Salva o usuário no banco de dados (only once)
+        await newUser.save();
+        logger.info(`[${endpoint}] User ${email} (${newUser._id}) saved successfully.`);
+
+        // --- Add user to SPV Monitor ---
+        try {
+          logger.info(`[${endpoint}] Adding new user ${newUser._id} (${newUser.bchAddress}) to SPV monitoring.`);
+          // Call the exported function from the SPV service module
+          // No need to await - let it run in the background, SPV service handles connection/retry
+          spvService.addSubscription(newUser._id.toString(), newUser.bchAddress);
+          logger.info(`[${endpoint}] SPV subscription initiated for user ${newUser._id}.`);
+        } catch (spvError) {
+          // Log the error but don't fail the registration response
+          logger.error(`[${endpoint}] Failed to initiate SPV subscription for user ${newUser._id} during registration: ${spvError.message}`);
+          // Consider adding more details like spvError.stack if needed for debugging
+        }
+        // --- End SPV Monitor addition ---
+
+        // Retorna o usuário criado (without sensitive data)
+        res.status(201).json({
+          _id: newUser._id,
+          email: newUser.email,
+          username: newUser.username,
+          bchAddress: newUser.bchAddress,
+          message: 'Usuário registrado com sucesso.',
+        });
+      } catch (error) {
+        logger.error(`[${endpoint}] Error generating BCH address: ${error.message}`);
+        return res.status(500).json({ message: 'Erro ao gerar endereço BCH.' });
+      }
     } catch (error) {
       logger.error(`[${endpoint}] Error during user registration for ${email}: ${error.message}`);
       logger.error(error.stack); // Log stack trace for detailed debugging
