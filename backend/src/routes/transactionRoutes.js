@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const Transaction = require('../models/transaction');
+const { getTransactions } = require('../controllers/transactionController');
+const { protect } = require('../middlewares/authMiddleware'); // Importe seu middleware de proteção
 
-// Retorna todas as transações de todos os usuários
-router.get('/', async (req, res) => {
-  try {
-    const transactions = await Transaction.find(); // Remova o populate para testar
-    res.status(200).json(transactions);
-  } catch (error) {
-    res.status(500).json({ message: 'Erro ao buscar transações', error: error.message });
-  }
-});
+// @route   GET /api/transactions
+// @desc    Busca as transações do usuário logado com filtros e paginação
+// @access  Private
+router.get('/', protect, getTransactions);
 
 module.exports = router;

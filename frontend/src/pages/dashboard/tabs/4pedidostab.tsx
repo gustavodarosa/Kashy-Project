@@ -7,6 +7,7 @@ type OrderItem = {
   product: {
     _id: string;
     name: string;
+    quantity?: number
   };
   quantity: number;
   priceBRL: number;
@@ -37,6 +38,7 @@ type Product = {
   priceBCH: number;
   quantity?: number;
   barcode?: string;
+  originalQuantity?: number;
 };
 
 export function PedidosTab() {
@@ -55,6 +57,9 @@ export function PedidosTab() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // Estado para o modal de novo pedido
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -116,7 +121,7 @@ export function PedidosTab() {
         throw new Error('Erro ao buscar produtos');
       }
       const data = await response.json();
-      console.log('[PedidosTab] Produtos buscados para a loja', store, ':', data);
+      console.log('[PedidosTab] Produtos buscados para a loja', store, ':', data); // Verifique se o campo quantity está presente
       setProducts(data); // Define os produtos da loja selecionada
     } catch (error) {
       console.error('[PedidosTab] Erro em fetchProductsByStore:', error);
@@ -209,6 +214,16 @@ export function PedidosTab() {
       console.log("[PedidosTab] Detalhes do pedido recebidos:", order);
       setSelectedOrder(order);
       setEditedOrder(order);
+      setSelectedProducts(order.items.map((item: OrderItem) => ({
+        _id: item.product._id,
+        name: item.product.name,
+        priceBRL: item.priceBRL,
+        priceBCH: item.priceBCH,
+        quantity: item.quantity,
+        originalQuantity: item.product.quantity ?? item.quantity,
+      })));
+      setCustomerEmail(order.customerEmail || "");
+      setPaymentMethod(order.paymentMethod);
     } catch (error) {
       console.error('[PedidosTab] Erro ao buscar detalhes do pedido:', error);
       alert('Erro ao buscar detalhes do pedido.');
@@ -273,7 +288,19 @@ export function PedidosTab() {
 
   // Remove um produto do carrinho
   const removeProductFromCart = (index: number) => {
-    setSelectedProducts((prev) => prev.filter((_, i) => i !== index));
+    setSelectedProducts((prev) => {
+      const removed = prev[index];
+      setProducts((productsPrev) => {
+        // Só adiciona de volta se não existir já na lista de produtos disponíveis
+        if (!productsPrev.some((p) => p._id === removed._id)) {
+          // Restaura a quantidade original do estoque
+          const { originalQuantity, ...rest } = removed;
+          return [...productsPrev, { ...rest, quantity: originalQuantity }];
+        }
+        return productsPrev;
+      });
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Calcula o total do pedido
@@ -317,24 +344,62 @@ export function PedidosTab() {
       const token = localStorage.getItem('token');
       if (!token) {
         alert("Erro de autenticação. Por favor, faça login novamente.");
-        console.warn("[PedidosTab] Token não encontrado para criar pedido.");
         return;
       }
 
-      const response = await fetch("http://localhost:3000/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(orderData),
-      });
+      let response;
+      if (isEditingOrder && editingOrderId) {
+        // Atualizar pedido existente
+        response = await fetch(`http://localhost:3000/api/orders/${editingOrderId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(orderData),
+        });
+      } else {
+        // Criar novo pedido
+        response = await fetch("http://localhost:3000/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(orderData),
+        });
+      }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Erro ao criar pedido" }));
-        throw new Error(errorData.message || "Erro ao criar pedido");
+        const errorData = await response.json().catch(() => ({ message: "Erro ao salvar pedido" }));
+        throw new Error(errorData.message || "Erro ao salvar pedido");
       }
       const savedOrder = await response.json();
+
+      // Atualize o estoque local dos produtos
+      setProducts((prevProducts) => {
+        // Atualiza o estoque dos produtos vendidos
+        let updatedProducts = [...prevProducts];
+        selectedProducts.forEach((cartProduct) => {
+          const idx = updatedProducts.findIndex(p => p._id === cartProduct._id);
+          if (idx !== -1) {
+            // Atualiza o estoque se o produto já está na lista
+            updatedProducts[idx] = {
+              ...updatedProducts[idx],
+              quantity: (updatedProducts[idx].quantity || 0) - (cartProduct.quantity || 1)
+            };
+          } else {
+            // Se não está na lista (foi removido ao adicionar ao carrinho), adiciona de volta se ainda houver estoque
+            const newQuantity = (cartProduct.originalQuantity || 0) - (cartProduct.quantity || 1);
+            if (newQuantity > 0) {
+              const { originalQuantity, ...rest } = cartProduct;
+              updatedProducts.push({ ...rest, quantity: newQuantity });
+            }
+          }
+        });
+        // Remove produtos que ficaram com estoque <= 0
+        return updatedProducts.filter(p => (p.quantity || 0) > 0);
+      });
 
       setCustomerEmail("");
       setSelectedProducts([]);
@@ -819,7 +884,12 @@ export function PedidosTab() {
                       <td className="px-4 py-3">
                         <div className="flex gap-2 justify-center">
                           <button
-                            onClick={() => fetchOrderDetails(order._id)}
+                            onClick={() => {
+                              fetchOrderDetails(order._id);
+                              setIsOrderModalOpen(true);
+                              setIsEditingOrder(true);
+                              setEditingOrderId(order._id);
+                            }}
                             className="p-1.5 cursor-pointer bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 rounded-md border border-teal-500/30 hover:border-teal-500/50 transition-all duration-200 hover:scale-110"
                             title="Editar Pedido"
                           >
@@ -1042,6 +1112,8 @@ export function PedidosTab() {
                     setSelectedProducts([]);
                     setPaymentMethod("");
                     setModalSearchTerm("");
+                    setIsEditingOrder(false);
+                    setEditingOrderId(null);
                   }}
                   aria-label="Fechar"
                 >
@@ -1076,7 +1148,13 @@ export function PedidosTab() {
                         // Verifica se o código de barras corresponde a algum produto
                         const product = products.find((p) => p.barcode === input);
                         if (product) {
-                          setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                          // Verifica se o produto já está no carrinho
+                          const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
+                          if (!alreadyInCart) {
+                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }]);
+                            // Remove o produto da lista de produtos disponíveis
+                            setProducts((prev) => prev.filter((p) => p._id !== product._id));
+                          }
                           setModalSearchTerm(""); // Limpa o campo de entrada
                         }
                       }}
@@ -1099,18 +1177,36 @@ export function PedidosTab() {
                           Selecione uma loja para ver os produtos.
                         </p>
                       )}
-                      {products.map((product) => (
-                        <div
-                          key={product._id}
-                          className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
-                          onClick={() =>
-                            setSelectedProducts((prev) => [...prev, { ...product, quantity: 1 }])
-                          }
-                        >
-                          <span className="text-gray-200">{product.name}</span>
-                          <span className="text-gray-300">{formatCurrency(product.priceBRL)}</span>
-                        </div>
-                      ))}
+                      {products
+                        .filter((product) => (typeof product.quantity === "number" ? product.quantity > 0 : true))
+                        .map((product) => (
+                          <div
+                            key={product._id}
+                            className="flex justify-between items-center px-3 py-2 hover:bg-blue-500/10 cursor-pointer border-b border-white/5 last:border-b-0 text-sm"
+                            onClick={() => {
+                              const alreadyInCart = selectedProducts.some((p) => p._id === product._id);
+                              if (!alreadyInCart) {
+                                setSelectedProducts((prev) => [
+                                  ...prev,
+                                  {
+                                    ...product,
+                                    quantity: 1,
+                                    originalQuantity: product.quantity, // Salva o estoque original
+                                  },
+                                ]);
+                                setProducts((prev) => prev.filter((p) => p._id !== product._id));
+                              }
+                            }}
+                          >
+                            <span className="text-gray-200">{product.name}</span>
+                            <span className="text-gray-300">
+                              {formatCurrency(product.priceBRL)}
+                              <span className="ml-2 text-xs text-blue-400">
+                                {typeof product.quantity === "number" ? `Estoque: ${product.quantity}` : ""}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </div>
@@ -1121,18 +1217,19 @@ export function PedidosTab() {
                   {selectedProducts.length > 0 ? (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {selectedProducts.map((product, index) => (
-                        <div
-                          key={`${product._id}-${index}`}
-                          className="flex justify-between items-center px-3 py-2 bg-[#24292D]/70 rounded-lg text-sm"
-                        >
+                        <div key={`${product._id}-${index}`} className="flex justify-between items-center px-3 py-2 bg-[#24292D]/70 rounded-lg text-sm">
                           <span className="truncate max-w-[50%] text-gray-200">{product.name}</span>
                           <div className="flex items-center gap-2">
                             <input
                               type="number"
                               min="1"
+                              max={product.originalQuantity || 1} // Corrigido: usa o estoque original
                               value={product.quantity || 1}
                               onChange={(e) => {
-                                const newQuantity = parseInt(e.target.value, 10);
+                                const newQuantity = Math.min(
+                                  parseInt(e.target.value, 10),
+                                  product.originalQuantity || 1
+                                );
                                 updateProductQuantity(index, newQuantity > 0 ? newQuantity : 1);
                               }}
                               className="w-16 px-2 py-1 rounded-md bg-[#2F363E]/80 border border-blue-400/10 focus:outline-none text-center text-white text-xs"
@@ -1164,11 +1261,16 @@ export function PedidosTab() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!isEditingOrder) {
+                      setProducts((prev) => [...prev, ...selectedProducts]);
+                    }
                     setIsOrderModalOpen(false);
                     setCustomerEmail("");
                     setSelectedProducts([]);
                     setPaymentMethod("");
                     setModalSearchTerm("");
+                    setIsEditingOrder(false);
+                    setEditingOrderId(null);
                   }}
                   className="px-5 py-2 cursor-pointer bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200 hover:scale-105 text-sm"
                 >
@@ -1213,6 +1315,7 @@ export function PedidosTab() {
                     className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-red-600 hover:bg-red-700 text-white text-sm"
                     onClick={() => {
                       if (orderIdToDelete) handleDeleteOrder(orderIdToDelete);
+
                       setIsDeleteConfirmOpen(false);
                       setOrderIdToDelete(null);
                     }}
@@ -1238,6 +1341,7 @@ export function PedidosTab() {
                   O pedido foi removido do sistema.
                 </p>
                 <button
+
                   className="w-full cursor-pointer rounded-lg py-2 font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
                   onClick={() => setIsDeleteSuccessOpen(false)}
                 >
@@ -1385,6 +1489,6 @@ export function PedidosTab() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

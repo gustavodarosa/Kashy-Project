@@ -51,6 +51,7 @@
     "escape-html": "^1.0.3",
     "etag": "^1.8.1",
     "express": "^5.1.0",
+    "express-async-handler": "^1.2.0",
     "express-validator": "^7.2.1",
     "fill-range": "^7.1.1",
     "finalhandler": "^2.1.0",

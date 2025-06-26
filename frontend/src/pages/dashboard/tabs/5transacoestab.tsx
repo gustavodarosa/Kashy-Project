@@ -16,6 +16,13 @@ type Transaction = {
   feeBCH?: number;
 };
 
+type TransactionStats = {
+  confirmed: number;
+  pending: number;
+  failed: number;
+  expired: number;
+};
+
 export function TransacoesTab() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -23,6 +30,8 @@ export function TransacoesTab() {
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [stats, setStats] = useState<TransactionStats>({ confirmed: 0, pending: 0, failed: 0, expired: 0 });
+  const [totalFiltered, setTotalFiltered] = useState(0);
   const itemsPerPage = 10;
 
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -33,37 +42,31 @@ export function TransacoesTab() {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/transactions');
-        if (!response.ok) throw new Error('Erro ao buscar transações');
-        const data: Transaction[] = await response.json();
+        const token = localStorage.getItem('token');
 
-        const filteredTransactions = data.filter(tx => {
-          const matchesSearch =
-            (tx.txid && tx.txid.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (tx._id && tx._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (tx.address && tx.address.toLowerCase().includes(searchTerm.toLowerCase()));
+        // Constrói a URL com os parâmetros de query
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          search: searchTerm,
+          status: statusFilter,
+          date: dateFilter,
+        });
+        const url = `http://localhost:3000/api/transactions?${params.toString()}`;
 
-          const matchesStatus =
-            statusFilter === 'all' || tx.status === statusFilter;
-
-          const matchesDate =
-            dateFilter === 'all' ||
-            (dateFilter === 'today' && new Date(tx.createdAt).toDateString() === new Date().toDateString()) ||
-            (dateFilter === 'week' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 7 * 86400000) ||
-            (dateFilter === 'month' && (new Date().getTime() - new Date(tx.createdAt).getTime()) < 30 * 86400000);
-
-          return matchesSearch && matchesStatus && matchesDate;
+        const response = await fetch(url, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
 
-        filteredTransactions.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        if (!response.ok) throw new Error('Erro ao buscar transações');
+        
+        // O backend agora retorna um objeto com as transações e os dados de paginação
+        const data = await response.json();
 
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedTransactions = filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
-
-        setTransactions(paginatedTransactions);
-        setTotalPages(Math.ceil(filteredTransactions.length / itemsPerPage));
+        setTransactions(data.transactions);
+        setTotalPages(data.totalPages);
+        setStats(data.stats || { confirmed: 0, pending: 0, failed: 0, expired: 0 });
+        setTotalFiltered(data.totalTransactions || 0);
         setError(null);
       } catch (err) {
         setError('Erro ao carregar transações');
@@ -228,7 +231,7 @@ export function TransacoesTab() {
               <CircleCheckBig size={64} className="text-emerald-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl font-bold text-emerald-300 drop-shadow">{transactions.filter(t => t.status === 'confirmed').length}</span>
+              <span className="text-3xl font-bold text-emerald-300 drop-shadow">{stats.confirmed}</span>
               <span className="text-lg text-emerald-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-emerald-200 font-medium">
@@ -246,7 +249,7 @@ export function TransacoesTab() {
             </div>
             <div className="flex items-center gap-2 mb-2">
 
-              <span className="text-3xl font-bold text-amber-300 drop-shadow">{transactions.filter(t => t.status === 'pending').length}</span>
+              <span className="text-3xl font-bold text-amber-300 drop-shadow">{stats.pending}</span>
               <span className="text-lg text-amber-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-amber-200 font-medium">
@@ -262,7 +265,7 @@ export function TransacoesTab() {
               <CircleX size={64} className="text-red-400" />
             </div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl font-bold text-red-300 drop-shadow">{transactions.filter(t => t.status === 'failed').length}</span>
+              <span className="text-3xl font-bold text-red-300 drop-shadow">{stats.failed}</span>
               <span className="text-lg text-red-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-red-200 font-medium">
@@ -281,7 +284,7 @@ export function TransacoesTab() {
             </div>
             <div className="flex items-center gap-2 mb-2">
 
-              <span className="text-3xl font-bold text-blue-300 drop-shadow">{transactions.length}</span>
+              <span className="text-3xl font-bold text-blue-300 drop-shadow">{totalFiltered}</span>
               <span className="text-lg text-blue-200 font-semibold">Transações</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-200 font-medium">
@@ -369,7 +372,7 @@ export function TransacoesTab() {
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-flex items-center gap-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
                 <span className="text-white font-medium">Carregando transações...</span>
               </div>
             </div>
@@ -459,7 +462,7 @@ export function TransacoesTab() {
                   {Math.min(currentPage * itemsPerPage, (currentPage - 1) * itemsPerPage + transactions.length)}
                 </span>
                 {' de '}
-                <span className="font-medium text-gray-200">{totalPages * itemsPerPage}</span> transações
+                <span className="font-medium text-gray-200">{totalFiltered}</span> transações
               </p>
             </div>
             <div className="flex gap-2">

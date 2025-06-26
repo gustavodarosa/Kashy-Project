@@ -7,6 +7,61 @@ const cryptoUtils = require('../utils/cryptoUtils');
 const spvMonitorServiceInstance = require('../services/spvMonitorService');
 const UserOrderIndex = require('../models/UserOrderIndex');
 const logger = require('../utils/logger'); // Certifique-se de que o caminho está correto
+const Product = require('../models/product'); // Certifique-se de importar o model Product
+
+const updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, ...updateFields } = req.body;
+
+    // 1. Busque o pedido antigo
+    const oldOrder = await Order.findById(id);
+    if (!oldOrder) return res.status(404).json({ message: 'Pedido não encontrado.' });
+
+    // 2. Atualize o pedido
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { ...updateFields, items },
+      { new: true, runValidators: true }
+    );
+
+    // 3. Atualize o estoque dos produtos
+    // Crie um mapa de quantidades antigas
+    const oldQuantities = {};
+    oldOrder.items.forEach(item => {
+      oldQuantities[item.product.toString()] = item.quantity;
+    });
+
+    // Para cada item novo, calcule a diferença e atualize o estoque
+    for (const item of items) {
+      const productId = item.product;
+      const oldQty = oldQuantities[productId] || 0;
+      const diff = (item.quantity || 0) - oldQty;
+      if (diff !== 0) {
+        // Se diff > 0, diminui do estoque; se diff < 0, devolve ao estoque
+        await Product.findByIdAndUpdate(
+          productId,
+          { $inc: { quantity: -diff } }
+        );
+      }
+      // Remove do mapa para saber quais produtos foram removidos
+      delete oldQuantities[productId];
+    }
+
+    // Para produtos que estavam no pedido antigo mas não estão mais, devolva ao estoque
+    for (const productId in oldQuantities) {
+      const qty = oldQuantities[productId];
+      await Product.findByIdAndUpdate(
+        productId,
+        { $inc: { quantity: qty } }
+      );
+    }
+
+    res.status(200).json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao atualizar pedido.' });
+  }
+};
 
 const createOrder = async (req, res) => {
   try {
@@ -84,6 +139,16 @@ const createOrder = async (req, res) => {
 
     const newOrder = new Order(orderData);
     const savedOrder = await newOrder.save();
+
+    // Atualiza o estoque dos produtos
+    for (const item of savedOrder.items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } }, // subtrai a quantidade comprada
+        { new: true }
+      );
+    }
+
     logger.info(`[createOrder] Order ${savedOrder._id} created successfully for merchant ${userId}.`);
 
     if (paymentMethod === 'bch' && savedOrder.merchantAddress) {
@@ -96,7 +161,7 @@ const createOrder = async (req, res) => {
     logger.error(`[createOrder] Erro ao criar pedido: ${error.message}`, { stack: error.stack }); // Log full stack
     // Send a more generic message to the client for unexpected errors
     if (error.message.includes('Erro ao gerar endereço BCH') || error.message.includes('Dados da carteira') || error.message.includes('Configuração da carteira')) {
-        return res.status(500).json({ message: error.message }); // Keep specific messages for known wallet issues
+      return res.status(500).json({ message: error.message }); // Keep specific messages for known wallet issues
     }
     res.status(500).json({ message: 'Ocorreu um erro interno ao processar seu pedido.' });
   }
@@ -118,9 +183,8 @@ const verifyOrderPayment = async (req, res) => {
     }
 
     // verifyPayment expects the amount in BCH
-    const isPaid = await verifyPayment(order.merchantAddress, order.amountBCH); 
+    const isPaid = await verifyPayment(order.merchantAddress, order.amountBCH);
 
-    // ...existing code...
     if (isPaid) {
       order.status = 'paid'; // <-- Aqui também, mantenha apenas 'paid'
       // ...outros campos...
