@@ -54,12 +54,10 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'payment_detected', 'paid', 'confirmed_paid', 'cancelled', 'refunded', 'expired'],
     default: 'pending',
   },
-  transaction: { 
-    txHash: { type: String },
-    status: { type: String, enum: ['pending', 'confirmed', 'failed'] },
-    paidAmountBCH: { type: Number },
-    paymentReceivedAt: { type: Date },
-    confirmations: { type: Number, default: 0 }
+  // Referência à transação real no modelo Transaction
+  transactionRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Transaction',
   },
   user: { 
     type: mongoose.Schema.Types.ObjectId,
@@ -69,4 +67,3 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true }); 
 
 module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
-

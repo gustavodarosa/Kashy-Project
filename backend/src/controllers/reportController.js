@@ -1,151 +1,161 @@
-// backend/src/controllers/reportController.js
-const { generateInsights } = require("../services/generativeAIService"); // Importa a função do serviço
-const Report = require('../models/report'); // Importa o modelo de relatório
-const Order = require('../models/Order');
+const asyncHandler = require('express-async-handler');
+const Order = require('../models/Order'); // Importe o modelo de Pedido
+const logger = require('../utils/logger');
 
 /**
- * Lida com a requisição para gerar um relatório de IA.
+ * @desc    Generate dynamic reports based on aggregation parameters
+ * @route   GET /api/reports
+ * @access  Private
  */
-async function generateAIReport(req, res) {
-  const { prompt, history } = req.body;
-  if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
-    return res.status(400).json({ message: "O campo 'prompt' é obrigatório e não pode ser vazio." });
+const generateReport = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  let { line, value, func } = req.query; // 'line' = campo(s) para agrupar, 'value' = campo para agregar, 'func' = função de agregação
+
+  const lines = Array.isArray(line) ? line : line.split(',').map(s => s.trim()).filter(s => s); // Permite múltiplos campos separados por vírgula
+
+  logger.info(`[ReportController] Gerando relatório para o usuário ${userId}: Linha=${line}, Valor=${value}, Função=${func}`);
+  console.log(`[Backend] Received parameters: lines=${JSON.stringify(lines)}, value=${value}, func=${func}`);
+
+  if (lines.length === 0 || !value || !func) {
+    res.status(400);
+    throw new Error('Parâmetros de relatório incompletos: line, value e func são obrigatórios.');
+  }
+
+  // Mapeamento de campos válidos para agregação
+  const validLines = ['store', 'paymentMethod', 'status', 'items.name', 'createdAt.month']; // Adicionado 'createdAt.month'
+  const validValues = ['totalAmount', 'items.quantity', 'items.revenue', 'netAmount']; // Adicionado 'netAmount'
+  const validFunctions = ['sum', 'avg', 'count']; // Funções de agregação (count é para documentos, não valores)
+
+  for (const l of lines) {
+    if (!validLines.includes(l)) {
+      res.status(400);
+      throw new Error(`Linha de agrupamento inválida: ${l}. Opções válidas: ${validLines.join(', ')}`);
+    }
+  }
+  if (!validValues.includes(value)) {
+    res.status(400);
+    throw new Error(`Valor para agregação inválido: ${value}. Opções válidas: ${validValues.join(', ')}`);
+  }
+  if (!validFunctions.includes(func)) {
+    res.status(400);
+    throw new Error(`Função de agregação inválida: ${func}. Opções válidas: ${validFunctions.join(', ')}`);
+  }
+  // Validação contextual para combinações
+  console.log(`[Backend] Checking validation: lines.includes('items.name')=${lines.includes('items.name')}, value === 'totalAmount'=${value === 'totalAmount'}`);
+  if (lines.includes('items.name') && value === 'totalAmount') {
+    res.status(400);
+    throw new Error('Não é possível agregar "Valor Total do Pedido" quando agrupado por produto ou usando a quantidade de itens.');
+  }
+  console.log(`[Backend] Checking validation: value === 'items.quantity'=${value === 'items.quantity'}, func === 'avg'=${func === 'avg'}`);
+  if (value === 'items.quantity' && func === 'avg') {
+    res.status(400);
+    throw new Error('A função "Média" não é suportada para "Quantidade de Itens" no momento.');
   }
 
   try {
-    // Busca todos os pedidos e monta o contexto textual
-    const orders = await Order.find().populate('items.product');
-    const contexto = 'Lista de pedidos:\n' + orders.map(o =>
-      `- ID: ${o._id}, Loja: ${o.store}, Cliente: ${o.customerEmail || 'Anônimo'}, Total: ${o.totalAmount}, Status: ${o.status}, Pagamento: ${o.paymentMethod}, Data: ${o.createdAt}, Itens: [${o.items.map(i => i.product ? `${i.product.name} (Qtd: ${i.quantity}, Preço: ${i.priceBRL})` : '').join('; ')}]`
-    ).join('\n');
+    let aggregationPipeline = [];
 
-    let historyText = '';
-    if (Array.isArray(history)) {
-      historyText = history.map(msg => `${msg.role === "user" ? "Usuário" : "IA"}: ${msg.message}`).join('\n');
+    // 1. Filtrar pedidos condicionalmente com base no papel (role) do usuário
+    const userRole = req.user.role; // Assumindo que o role está em req.user
+
+    if (userRole === 'user') {
+      logger.debug(`[ReportController] Filtrando relatório para o usuário padrão: ${userId}`);
+      aggregationPipeline.push({ $match: { user: userId } });
+    } else if (userRole === 'merchant' || userRole === 'admin') { // Permitir que merchants/admins vejam todos os dados
+      logger.info(`[ReportController] Gerando relatório global para o usuário merchant/admin: ${userId}.`);
+      // Não adiciona o filtro de usuário, buscando todos os pedidos.
     }
 
-    const fullPrompt = `${historyText}\n${contexto}\nUsuário: ${prompt}`;
-    const insights = await generateInsights(fullPrompt); // Sua função de IA
+    // Se a análise for por produto ou quantidade, precisamos "desdobrar" os itens do pedido
+    if (lines.some(l => l.startsWith('items.')) || value.startsWith('items.')) {
+      aggregationPipeline.push({ $unwind: '$items' });
+    }
+    
+    // Adicionar estágio para calcular 'netAmount' se for o valor selecionado
+    if (value === 'netAmount') {
+      aggregationPipeline.push({
+        $addFields: { netAmount: { $subtract: ['$totalAmount', { $add: ['$discount', '$tax', '$shippingCost'] }] } } // Exemplo de cálculo
+      });
+    }
 
-    res.status(200).json({ insights });
-  } catch (error) {
-    console.error("[Controller] Erro ao processar a geração do relatório:", error);
-    res.status(500).json({ message: "Erro interno no servidor ao gerar o relatório com IA." });
-  }
-}
+    // 2. Definir a função de agregação
+    let aggregationOperator;
+    let valueField;
+    let preGroupStage = null; // Novo estágio para cálculos antes do agrupamento
 
-/**
- * Lida com a requisição para salvar um relatório.
- */
-async function saveReport(req, res) {
-  try {
-    const { title, type, dateRange, generatedAt, previewData, isAIGenerated, promptUsed } = req.body;
+    if (value === 'items.quantity') {
+      valueField = '$items.quantity';
+    } else if (value === 'items.revenue') {
+      // Para faturamento por produto, calculamos (quantidade * preço)
+      // Assumimos que items.priceBRL existe no subdocumento items
+      // Se não existir, você precisaria de um $lookup aqui para buscar o preço do produto
+      // ou garantir que o preço seja salvo no item do pedido.
+      valueField = '$items.calculatedRevenue'; // O campo que será criado
+      preGroupStage = {
+        $addFields: { 'items.calculatedRevenue': { $multiply: ['$items.quantity', '$items.priceBRL'] } }
+      };
+    }
+    else { // Para 'totalAmount' ou outros campos diretos
+      valueField = `$${value}`;
+    }
 
-    // Log the incoming data for debugging
-    console.log('Dados recebidos para salvar relatório:', {
-      title,
-      type,
-      dateRange,
-      generatedAt,
-      previewData,
-      isAIGenerated,
-      promptUsed,
+    switch (func) {
+      case 'sum':
+        aggregationOperator = { $sum: valueField };
+        break;
+      case 'avg':
+        aggregationOperator = { $avg: valueField };
+        break;
+      case 'count':
+        aggregationOperator = { $sum: 1 }; // Count documents
+        break;
+      default:
+        res.status(400);
+        throw new Error('Função de agregação não suportada.');
+    }
+
+    // Adicionar o estágio de pré-agrupamento se existir
+    if (preGroupStage) {
+      aggregationPipeline.push(preGroupStage);
+    }
+
+    // Construir o _id para o estágio $group, permitindo múltiplos campos
+    let groupById = {};
+    lines.forEach(l => {
+      // Para campos de data, use $dateToString para extrair a parte desejada
+      if (l === 'createdAt.month') {
+        groupById[l.replace('.', '_')] = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
+      } else {
+        groupById[l.replace('.', '_')] = `$${l}`;
+      }
+      // Substitui '.' por '_' no nome da chave para evitar problemas com MongoDB
+      groupById[l.replace('.', '_')] = `$${l}`;
     });
 
-    const newReport = new Report({
-      title,
-      type,
-      dateRange,
-      generatedAt,
-      data: previewData,
-      isAIGenerated,
-      promptUsed,
+    // 3. Agrupar pelos campos selecionados
+    aggregationPipeline.push({
+      $group: {
+        _id: groupById, // Agrupa pelos campos 'lines'
+        result: aggregationOperator, // O resultado da agregação
+      },
     });
 
-    const savedReport = await newReport.save();
-    res.status(201).json(savedReport);
+    // 4. Ordenar os resultados (do maior para o menor)
+    aggregationPipeline.push({ $sort: { result: -1 } });
+
+    console.log(`[ReportController] DEBUG: Aggregation Pipeline (before execution): ${JSON.stringify(aggregationPipeline, null, 2)}`); // Adicionado console.log para garantir visibilidade
+    logger.debug(`[ReportController] Aggregation Pipeline (before execution): ${JSON.stringify(aggregationPipeline, null, 2)}`); // Mantido logger.debug
+    const reportData = await Order.aggregate(aggregationPipeline);
+
+    console.log(`[ReportController] DEBUG: Raw Report Data from DB (before response): ${JSON.stringify(reportData, null, 2)}`); // Adicionado console.log para garantir visibilidade
+    logger.debug(`[ReportController] Raw Report Data from DB (before response): ${JSON.stringify(reportData, null, 2)}`); // Mantido logger.debug
+    res.status(200).json(reportData);
   } catch (error) {
-    console.error('Erro ao salvar relatório:', error);
-    res.status(500).json({ message: 'Erro ao salvar relatório.' });
+    logger.error(`[ReportController] Erro ao gerar relatório: ${error.message}`, error.stack);
+    res.status(500).json({ message: 'Erro interno ao gerar relatório.' });
   }
-}
+});
 
-/**
- * Lida com a requisição para buscar todos os relatórios.
- */
-async function getReports(req, res) {
-  try {
-    const reports = await Report.find(); // Busca todos os relatórios no MongoDB
-    res.status(200).json(reports);
-  } catch (error) {
-    console.error('Erro ao buscar relatórios:', error);
-    res.status(500).json({ message: 'Erro ao buscar relatórios.' });
-  }
-}
-
-/**
- * Atualiza um relatório existente.
- */
-async function updateReport(req, res) {
-  try {
-    const id = req.params.id || req.body.id || req.body._id; // Aceita `id` ou `_id`
-    if (!id) {
-      return res.status(400).json({ message: 'ID do relatório não fornecido.' });
-    }
-
-    const updatedData = req.body;
-    const updatedReport = await Report.findByIdAndUpdate(id, updatedData, { new: true });
-
-    if (!updatedReport) {
-      return res.status(404).json({ message: 'Relatório não encontrado.' });
-    }
-
-    res.status(200).json(updatedReport);
-  } catch (error) {
-    console.error('Erro ao atualizar relatório:', error);
-    res.status(500).json({ message: 'Erro ao atualizar relatório.' });
-  }
-}
-
-/**
- * Deleta um relatório existente.
- */
-async function deleteReport(req, res) {
-  try {
-    const { id } = req.params;
-
-    const deletedReport = await Report.findByIdAndDelete(id);
-
-    if (!deletedReport) {
-      return res.status(404).json({ message: 'Relatório não encontrado.' });
-    }
-
-    res.status(200).json({ message: 'Relatório deletado com sucesso.' });
-  } catch (error) {
-    console.error('Erro ao deletar relatório:', error);
-    res.status(500).json({ message: 'Erro ao deletar relatório.' });
-  }
-}
-
-const deleteReportFrontend = async (id) => {
-  console.log('Tentando deletar relatório com ID:', id); // Log para depuração
-  if (!window.confirm(`Tem certeza que deseja excluir o relatório ID: ${id}?`)) return;
-
-  try {
-    const response = await fetch(`http://localhost:3000/api/reports/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Erro ao deletar relatório.');
-    }
-
-    // Atualize o estado local removendo o relatório excluído
-    setReports((prev) => prev.filter((r) => r._id !== id)); // Use `_id` aqui
-  } catch (error) {
-    console.error('Erro ao deletar relatório:', error);
-    setError('Erro ao deletar relatório.');
-  }
+module.exports = {
+  generateReport,
 };
-
-module.exports = { generateAIReport, saveReport, getReports, updateReport, deleteReport, deleteReportFrontend };
