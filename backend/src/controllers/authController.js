@@ -24,42 +24,6 @@ class AuthController {
       // Gera o hash da senha
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Gera os detalhes da carteira BCH
-      const walletDetails = await bchService.generateAddress(); // Revertido para bchService
-      logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
-      // Avoid logging mnemonic in production/staging:
-      // logger.debug(`[${endpoint}] Generated Mnemonic: ${walletDetails.mnemonic}`);
-
-      const encryptionKey = process.env.ENCRYPTION_KEY;
-      if (!encryptionKey) {
-           logger.error(`[${endpoint}] FATAL - ENCRYPTION_KEY is not set during registration.`);
-           throw new Error("Server configuration error: Missing encryption key.");
-      }
-
-      const encryptedMnemonic = cryptoUtils.encrypt(walletDetails.mnemonic, encryptionKey);
-      const encryptedDerivationPath = cryptoUtils.encrypt(walletDetails.derivationPath, encryptionKey);
-
-      // Avoid logging sensitive data:
-      // logger.debug(`[${endpoint}] Encrypted Mnemonic: ${encryptedMnemonic}`);
-      // logger.debug(`[${endpoint}] Encrypted Derivation Path: ${encryptedDerivationPath}`);
-
-      // Cria o novo usuário
-      const newUser = new User({
-        email,
-        password: hashedPassword,
-        username,
-        encryptedMnemonic,
-        encryptedDerivationPath,
-        bchAddress: walletDetails.address,
-        role: req.body.role || 'user', // Novo campo
-        transactionCount: 0, // Inicializa com 0
-      });
-
-      // Salva o usuário no banco de dados (only once)
-      await newUser.save();
-      logger.info(`[${endpoint}] User ${email} (${newUser._id}) saved successfully.`);
-
-      // --- Add user to SPV Monitor ---
       try {
         const walletDetails = await bchService.generateAddress();
         logger.info(`[${endpoint}] Generated new wallet for ${email}. Address: ${walletDetails.address}`);
