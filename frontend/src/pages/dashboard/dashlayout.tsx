@@ -544,11 +544,11 @@ export function Dashboard() {
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-5 bg-[#232428] border-b border-[#232428]">
+                        <div className="relative flex items-center justify-center px-6 py-5 bg-[#232428] border-b border-[#232428]">
                             <h2 className="text-xl font-bold text-white tracking-tight">Perfil</h2>
                             <button
                                 onClick={() => setShowProfileModal(false)}
-                                className="text-gray-400 hover:text-red-500 transition-colors rounded-full p-2"
+                                className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors rounded-full p-2"
                                 aria-label="Fechar"
                             >
                                 <X className="h-6 w-6" />
@@ -567,9 +567,9 @@ export function Dashboard() {
                                         <img
                                             src={selectedImage || savedImage || "/default-avatar.png"}
                                             alt="Preview"
-                                            className="w-40 h-40 object-cover rounded-[10px] border-4 border-[rgb(112,254,192)] group-hover:opacity-50 transition"
+                                            className="group w-40 h-40 object-cover rounded-[10px] border-4 group-hover:border-[rgb(112,254,192)] group-hover:drop-shadow-[0_0_8px_#70fec0] transition "
                                         />
-                                        <div className="absolute bottom-2 right-2 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-full p-2 shadow-lg transition pointer-events-none">
+                                        <div className="absolute bottom-2 right-2 bg-[#000000] group-hover:bg-[#70fec0] text-white group-hover:text-black rounded-full p-2 shadow-lg transition group-hover:drop-shadow-[0_0_2px_#70fec0] ">
                                             <Pencil className="h-5 w-5" />
                                         </div>
                                         <input
@@ -598,57 +598,18 @@ export function Dashboard() {
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Nome de Usuário</label>
                                         <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{username || "Usuário"}</div>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setShowProfileModal(false);
-                                            setActiveTab('settings');
-                                            setTimeout(() => {
-                                                const el = document.getElementById('settings-security-tab');
-                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                            }, 100);
-                                        }}
-                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
-                                    >
-                                        Editar
-                                    </button>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Email</label>
                                         <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{email || "Conta padrão"}</div>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setShowProfileModal(false);
-                                            setActiveTab('settings');
-                                            setTimeout(() => {
-                                                const el = document.getElementById('settings-security-tab');
-                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                            }, 100);
-                                        }}
-                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
-                                    >
-                                        Editar
-                                    </button>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Telefone</label>
                                         <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{phone || "Não cadastrado"}</div>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setShowProfileModal(false);
-                                            setActiveTab('settings');
-                                            setTimeout(() => {
-                                                const el = document.getElementById('settings-security-tab');
-                                                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                                            }, 100);
-                                        }}
-                                        className="ml-2 px-4 py-2 rounded bg-[#393c41] hover:bg-[#5865F2] text-gray-300 hover:text-white transition-colors text-sm font-medium"
-                                    >
-                                        Editar
-                                    </button>
                                 </div>
                             </div>
                         </div>
