@@ -6,9 +6,7 @@ const config = require('../config'); // Importa a configuração da rede
 const { FULCRUM_SERVERS } = require('../config/fullcrumConfig'); // Importa FULCRUM_SERVERS do fullcrumConfig
 const logger = require('../utils/logger'); // Importe seu logger
 
-// Inicializa bch-js com a rede correta
-const network = config.network === 'testnet' ? 'testnet' : 'mainnet';
-const bchjs = new BCHJS({ restURL: network === 'testnet' ? 'https://api.testnet.cash' : 'https://api.mainnet.cash' });
+const bchjs = new BCHJS();
 
 /**
  * @desc Obtém a altura do bloco atual de um servidor Electrum.
@@ -31,36 +29,23 @@ async function getCurrentBlockHeight() {
 }
 
 /**
- * @desc Gera um novo endereço BCH, mnemonic e caminho de derivação.
- * @returns {Promise<{mnemonic: string, derivationPath: string, address: string}>} Detalhes da nova carteira.
+ * @desc Gera um endereço BCH.
  */
 async function generateAddress() {
-    try {
-        // Gera um novo mnemonic de 12 palavras (128 bits de entropia)
-        const mnemonic = bchjs.Mnemonic.generate(128);
+    const mnemonic = bchjs.Mnemonic.generate(128); // Generate a mnemonic
+    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
+    const hdNode = bchjs.HDNode.fromSeed(seedBuffer);
+    const childNode = bchjs.HDNode.derivePath(hdNode, "m/44'/145'/0'/0/0");
+    const address = bchjs.HDNode.toCashAddress(childNode);
 
-        // Deriva o seed raiz do mnemonic
-        const rootSeedBuffer = await bchjs.Mnemonic.toSeed(mnemonic);
-
-        // Cria o HDNode mestre
-        const masterHDNode = bchjs.HDNode.fromSeed(rootSeedBuffer, network);
-
-        // Caminho de derivação BIP44 para BCH: m/44'/145'/0'/0/0 (external chain, first address)
-        const derivationPath = `m/44'/145'/0'/0/0`;
-        const childNode = masterHDNode.derivePath(derivationPath);
-
-        // Obtém o endereço Cash Address
-        const address = bchjs.HDNode.toCashAddress(childNode);
-
-        logger.info(`[bchService] Generated new wallet: ${address}`);
-        return { mnemonic, derivationPath, address };
-    } catch (error) {
-        logger.error(`[bchService] Erro ao gerar novo endereço BCH: ${error.message}`);
-        throw new Error(`Erro ao gerar endereço BCH: ${error.message}`);
-    }
+    return {
+        mnemonic,
+        address,
+        derivationPath: "m/44'/145'/0'/0/0",
+    };
 }
 
 module.exports = {
     getCurrentBlockHeight,
-    generateAddress, // Exporta a nova função
+    generateAddress,
 };
