@@ -100,32 +100,29 @@ class AuthController {
       // Fetch user WITH password for comparison
       const user = await User.findOne({ email }).select('+password'); // <-- Select password
       if (!user) {
-        logger.warn(`[${endpoint}] Login attempt failed - User not found: ${email}`);
         return res.status(401).json({ message: 'Credenciais inválidas.' });
       }
 
       // Compare password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        logger.warn(`[${endpoint}] Login attempt failed - Invalid password for user: ${email}`);
         return res.status(401).json({ message: 'Credenciais inválidas.' });
       }
 
       // Generate JWT
       const token = jwt.sign(
-        { id: user._id, email: user.email }, // Payload
+        { id: user._id, email: user.email },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } // Use env var or default
+        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
       );
 
-      logger.info(`[${endpoint}] User ${email} (${user._id}) logged in successfully.`);
-
-      // Send response
       res.status(200).json({
         token,
-        userId: user._id, // Include userId for frontend convenience
+        userId: user._id,
+        username: user.username,
+        email: user.email,
         message: 'Login realizado com sucesso!',
-        redirectTo: '/DashboardHome', // Or wherever your frontend redirects
+        redirectTo: '/DashboardHome',
       });
     } catch (error) {
       logger.error(`[${endpoint}] Error during login for ${email}: ${error.message}`);

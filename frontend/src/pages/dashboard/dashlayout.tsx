@@ -1,11 +1,11 @@
 import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
     NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
-    Sun, Moon, Globe
+    Sun, Moon, Globe, Store // <-- Adicione Store aqui
 } from 'lucide-react';
 import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
 import { useState, useEffect, useMemo } from 'react';
-import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
+import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab, LojasTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
 
@@ -46,7 +46,7 @@ export function Dashboard() {
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
+    const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot", message: string }[]>([]);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [language, setLanguage] = useState<'pt-BR' | 'en-US'>('pt-BR');
 
@@ -288,6 +288,7 @@ export function Dashboard() {
         { id: 'pedidos', label: 'Pedidos', icon: <ShoppingBasket /> },
         { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
         { id: 'clientes', label: 'Clientes', icon: <Users /> },
+        { id: 'lojas', label: 'Lojas', icon: <Store /> }, // <-- Adicione esta linha
         { id: 'relatorios', label: 'Relatórios', icon: <NotepadText /> },
         { id: 'settings', label: 'Configurações', icon: <Settings /> }
     ];
@@ -300,6 +301,7 @@ export function Dashboard() {
             case 'pedidos': return <PedidosTab />;
             case 'transacoes': return <TransacoesTab />;
             case 'clientes': return <ClientesTab />;
+            case 'lojas': return <LojasTab />; // <-- Adicione esta linha
             case 'relatorios': return <RelatoriosTab />;
             case 'settings': return <SettingsTab />;
             default: return <DashboardTab />;
@@ -345,8 +347,8 @@ export function Dashboard() {
                             title={tab.label}
                             className={`py-3 px-3 flex items-center justify-start gap-4 w-full relative
                                        ${activeTab === tab.id
-                                         ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
-                                         : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
+                                    ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
+                                    : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
                                        transition-colors duration-200`}
                         >
                             <div className="w-4 h-4 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
@@ -384,7 +386,7 @@ export function Dashboard() {
 
 
                     <div className="flex items-center gap-4">
-                         {/* Chatbot Button */}
+                        {/* Chatbot Button */}
                         <button
                             onClick={() => setIsChatbotOpen(true)}
                             className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(21,151,129,0.1)] hover:bg-[rgba(21,151,129,0.2)] text-[rgb(21,151,129)] transition-colors shadow"
@@ -404,7 +406,7 @@ export function Dashboard() {
                             )}
                         </button>
 
-                           <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             {/* User Icon/Button */}
                             <div className="relative text-[rgb(21,151,129)] flex-shrink-0">
                                 <button
@@ -499,7 +501,7 @@ export function Dashboard() {
                                             >
                                                 <LogOut className="mr-2 h-4 w-4" />
                                                 Sair
-                                            </button>                  
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -517,7 +519,7 @@ export function Dashboard() {
             {/* Mobile Bottom Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] shadow-lg">
                 <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent"
-                     style={{ WebkitOverflowScrolling: 'touch' }}>
+                    style={{ WebkitOverflowScrolling: 'touch' }}>
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
@@ -666,9 +668,8 @@ export function Dashboard() {
                             <button
                                 onClick={handleSaveImage}
                                 disabled={!selectedImage}
-                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${
-                                    !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
+                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${!selectedImage ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
                             >
                                 Salvar
                             </button>
@@ -709,11 +710,10 @@ export function Dashboard() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveNotificationTab(tab.id)}
-                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                                        activeNotificationTab === tab.id
+                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${activeNotificationTab === tab.id
                                             ? 'border-b-2 border-blue-500 text-blue-400'
                                             : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
-                                    }`}
+                                        }`}
                                 >
                                     {tab.label}
                                 </button>
@@ -785,22 +785,19 @@ export function Dashboard() {
                                     {chatMessages.map((msg, index) => (
                                         <div
                                             key={index}
-                                            className={`flex animate-fadeIn ${
-                                                msg.sender === "user" ? "justify-end" : "justify-start"
-                                            }`}
+                                            className={`flex animate-fadeIn ${msg.sender === "user" ? "justify-end" : "justify-start"
+                                                }`}
                                         >
                                             <div
-                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${
-                                                    msg.sender === "user"
+                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${msg.sender === "user"
                                                         ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
                                                         : "bg-gray-700/50 text-gray-200 rounded-tl-none"
-                                                }`}
+                                                    }`}
                                             >
                                                 {renderChatMessage(msg.message)}
                                                 <div
-                                                    className={`text-xs mt-2 ${
-                                                        msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
-                                                    }`}
+                                                    className={`text-xs mt-2 ${msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
+                                                        }`}
                                                 >
                                                     {new Date().toLocaleTimeString([], {
                                                         hour: "2-digit",
@@ -845,11 +842,10 @@ export function Dashboard() {
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className={`p-3 rounded-xl ${
-                                        isChatLoading || !chatInput.trim()
+                                    className={`p-3 rounded-xl ${isChatLoading || !chatInput.trim()
                                             ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
                                             : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
-                                    } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                                        } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                                     disabled={isChatLoading || !chatInput.trim()}
                                     aria-label="Send message"
                                 >

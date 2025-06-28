@@ -2,7 +2,7 @@ import { Search, Landmark, CircleCheckBig, Bitcoin, User, Store, Settings, Dolla
 import { useState, useEffect } from 'react';
 import { Listbox } from '@headlessui/react';
 import QRCode from 'react-qr-code';
-
+import { toast } from 'react-toastify';
 type OrderItem = {
   product: {
     _id: string;
@@ -549,7 +549,13 @@ export function PedidosTab() {
               <div className="mt-6 flex justify-center">
                 <button
                   id="btn-novo-pedido"
-                  onClick={() => setIsOrderModalOpen(true)}
+                  onClick={() => {
+                    if (!selectedStore) {
+                      toast.error('Você precisa estar logado em uma loja para criar pedidos.');
+                      return;
+                    }
+                    setIsOrderModalOpen(true);
+                  }}
                   className="cursor-pointer group relative px-8 py-3 bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-blue-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">

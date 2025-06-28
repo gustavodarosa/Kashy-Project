@@ -151,7 +151,12 @@ export function ProdutosTab() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/products');
+        const store = localStorage.getItem('store') || '';
+        let url = 'http://localhost:3000/api/products';
+        if (store) {
+          url += `?store=${encodeURIComponent(store)}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Erro ao buscar produtos');
         }
@@ -271,7 +276,7 @@ export function ProdutosTab() {
       sku: '',
       category: '',
       subcategory: '',
-      store: localStorage.getItem('store') || '', // <-- aqui também
+      store: localStorage.getItem('store') || '',
       minimum: 1,
       description: '',
       brand: '',
@@ -401,7 +406,13 @@ export function ProdutosTab() {
               <div className="mt-6 flex justify-center">
                 <button
                   id="btn-novo-produto"
-                  onClick={() => setIsFormOpen(true)}
+                  onClick={() => {
+                    if (!localStorage.getItem('store')) {
+                      toast.error('Você precisa estar logado em uma loja para cadastrar produtos.');
+                      return;
+                    }
+                    setIsFormOpen(true);
+                  }}
                   className="cursor-pointer group relative px-8 py-3 bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-bold rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 border border-teal-400/40 text-base overflow-hidden"
                 >
                   <span className="flex items-center gap-2 relative z-10">
@@ -1162,12 +1173,19 @@ export function ProdutosTab() {
                     type="submit"
                     onClick={currentProduct ? handleOpenUpdateConfirmModal : handleSubmit}
                     className="cursor-pointer px-5 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm bg-gradient-to-r from-teal-700 to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white"
+                    disabled={!formData.store}
                   >
                     {currentProduct ? 'Atualizar' : 'Salvar'}
                   </button>
+                  {!formData.store && (
+                    <div className="text-red-400 text-xs mt-2">
+                      Selecione uma loja para cadastrar produtos.
+                    </div>
+                  )}
                 </div>
               </form>
             </div>
+
           </div>
         )}
 
@@ -1284,12 +1302,7 @@ export function ProdutosTab() {
                 <div className="flex gap-3">
                   <button
                     className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-red-700 to-red-500 hover:from-red-600 hover:to-red-400 text-white text-sm"
-                    onClick={() => setIsUpdateConfirmModalOpen(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    className="cursor-pointer flex-1 rounded-lg py-2 font-semibold transition-colors bg-gradient-to-r from-orange-700 to-orange-500 hover:from-orange-600 hover:to-orange-400 text-white text-sm"
+
                     onClick={handleConfirmUpdate}
                   >
                     Confirmar

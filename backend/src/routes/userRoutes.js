@@ -2,8 +2,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator'); 
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { authMiddleware } = require('../middlewares/authMiddleware');
-const User = require('../models/user'); // Adicione esta linha para importar o modelo User
+const { authMiddleware, protect } = require('../middlewares/authMiddleware');
+const User = require('../models/user'); // Já está importado
 
 // --- Define Validation Middleware ---
 // Example: Assuming you want to validate email for registration
@@ -38,6 +38,19 @@ router.get('/', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);
     res.status(500).json({ message: 'Erro ao buscar usuários' });
+  }
+});
+
+// Buscar usuário por email
+router.get('/by-email', protect, async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ message: 'Email é obrigatório.' });
+  try {
+    const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select('_id email username');
+    if (!user) return res.status(404).json({ message: 'Usuário não encontrado.' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar usuário por email.' });
   }
 });
 

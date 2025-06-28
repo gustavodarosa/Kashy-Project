@@ -29,8 +29,9 @@ const [password, setPassword] = useState("");
 const [message, setMessage] = useState("");
 const [loading, setLoading] = useState(false);
 const [showStoreModal, setShowStoreModal] = useState(false);
-const [selectedStore, setSelectedStore] = useState<string>("Loja A");
+const [selectedStore, setSelectedStore] = useState<string>("");
 const [pendingLogin, setPendingLogin] = useState<{email: string, password: string} | null>(null);
+const [stores, setStores] = useState<{ _id: string, name: string }[]>([]);
   useEffect(() => {
 const interval = setInterval(() => {
       renewToken();
@@ -79,6 +80,34 @@ const data = await response.json();
       setPendingLogin(null);
     }
   };
+useEffect(() => {
+  if (showStoreModal) {
+    const fetchStores = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!pendingLogin) return;
+        // Faz login temporário só para buscar as lojas
+        const tempLogin = await fetch("http://localhost:3000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: pendingLogin.email, password: pendingLogin.password }),
+        });
+        if (!tempLogin.ok) return;
+        const tempData = await tempLogin.json();
+        const tempToken = tempData.token;
+        const res = await fetch("http://localhost:3000/api/stores/my", {
+          headers: { Authorization: `Bearer ${tempToken}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setStores(data);
+      } catch (err) {
+        setStores([]);
+      }
+    };
+    fetchStores();
+  }
+}, [showStoreModal, pendingLogin]);
 const messageColor = message.includes("sucesso") ? "text-green-400" : "text-red-400";
   return (
 <div className="bg-[rgb(17,40,54)] flex justify-center items-center min-h-screen p-4">
@@ -197,10 +226,10 @@ className="text-[rgb(112,255,189)] hover:text-[rgb(90,230,160)] hover:underline 
         value={selectedStore}
         onChange={e => setSelectedStore(e.target.value)}
       >
-        <option value="">Escolha uma loja...</option>
-        <option value="Loja A">Loja A</option>
-        <option value="Loja B">Loja B</option>
-        <option value="Loja C">Loja C</option>
+        <option value="">Entrar sem selecionar loja</option>
+        {stores.map(store => (
+          <option key={store._id} value={store.name}>{store.name}</option>
+        ))}
       </select>
       <div className="flex gap-3">
         <button
@@ -212,7 +241,6 @@ className="text-[rgb(112,255,189)] hover:text-[rgb(90,230,160)] hover:underline 
         <button
           className="flex-1 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-600 hover:to-teal-500 text-white font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
           onClick={handleStoreConfirm}
-          disabled={!selectedStore}
         >
           Confirmar
         </button>

@@ -9,7 +9,7 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const rateRoutes = require('./routes/rateRoutes'); // Import new rate routes
 const transactionRoutes = require('./routes/transactionRoutes'); // Import transaction routes
-
+const storeRoutes = require('./routes/storeRoutes');
 
 const errorHandler = require('./middlewares/errorHandler');
 require('dotenv').config(); 
@@ -36,6 +36,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/rates', rateRoutes); // Mount new rate routes
 app.use('/api/transactions', transactionRoutes); // Mount transaction routes
+app.use('/api/stores', storeRoutes); // Mount store routes
 
 
 app.use(errorHandler);
