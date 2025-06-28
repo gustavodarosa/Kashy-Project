@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Listbox } from '@headlessui/react';
 import { BarChart, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import {
@@ -42,8 +42,18 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 interface ReportRow {
-  _id: string | Record<string, string>; // Can be a string or a complex object
+  [key: string]: any; // Allow any key since the backend flattens the _id
   result: number; // The aggregated value (sum, average, count)
+}
+
+// Custom hook for debouncing
+function useDebounce(value: any, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
 }
 
 // Helper function for deep array comparison
@@ -136,6 +146,14 @@ export function RelatoriosTab() {
   const [selectedLines, setSelectedLines] = useState<string[]>(['store']); // Alterado para array
   const [selectedValue, setSelectedValue] = useState<string>('totalAmount');
   const [selectedFunction, setSelectedFunction] = useState<string>('sum');
+  const [retry, setRetry] = useState(0); // State to trigger a retry
+
+  // Debounce the filter states to avoid excessive API calls
+  const debouncedLines = useDebounce(selectedLines, 500);
+  const debouncedValue = useDebounce(selectedValue, 500);
+  const debouncedFunction = useDebounce(selectedFunction, 500);
+
+
 
   // Opções para os dropdowns
   const lineOptions = [
@@ -158,6 +176,14 @@ export function RelatoriosTab() {
     { value: 'count', label: 'Contagem', icon: <Hash size={16} /> },
   ];
 
+  // Memoized icon map to prevent re-creation on each render
+  const lineIconMap = useMemo(() => {
+    const map: { [key: string]: JSX.Element } = {};
+    lineOptions.forEach(opt => {
+      map[opt.value] = opt.icon;
+    });
+    return map;
+  }, [lineOptions]);
   // Dnd-kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -176,27 +202,25 @@ export function RelatoriosTab() {
 
     // --- Start of Filter Adjustment Logic ---
 
-    // Rule A: If 'items.name' is selected as a line, the value MUST be 'items.quantity'.
-    // Updated Rule A: If 'items.name' is selected as a line, the value MUST be 'items.quantity' or 'items.revenue'.
+    // Rule A: If 'items.name' is selected, value must be 'items.quantity' or 'items.revenue'.
     if (currentLines.includes('items.name') && currentValue !== 'items.quantity' && currentValue !== 'items.revenue') {
+      currentValue = 'items.revenue'; // Define a valid default
       stateChanged = true;
     }
 
-    // Rule B: If the value is 'items.quantity', 'items.name' MUST be included in the lines.
-    // If not, add it.
-    if (currentValue === 'items.quantity' && !currentLines.includes('items.name')) {
+    // Rule B: If value is 'items.quantity' or 'items.revenue', 'items.name' MUST be included.
+    if ((currentValue === 'items.quantity' || currentValue === 'items.revenue') && !currentLines.includes('items.name')) {
       currentLines = [...currentLines, 'items.name'];
       stateChanged = true;
     }
 
-    // Rule C: If the value is 'totalAmount', 'items.name' MUST NOT be included in the lines.
-    // If it is, remove it. This rule now applies only to 'totalAmount'
-    if (currentValue === 'totalAmount' && currentLines.includes('items.name')) {
+    // Rule C: If value is 'totalAmount' or 'netAmount', 'items.name' MUST NOT be included.
+    if ((currentValue === 'totalAmount' || currentValue === 'netAmount') && currentLines.includes('items.name')) {
       currentLines = currentLines.filter(line => line !== 'items.name');
       stateChanged = true;
     }
 
-    // Rule D: If the value is 'items.quantity', the 'avg' function is NOT allowed.
+    // Rule D: If value is 'items.quantity', 'avg' function is not allowed.
     if (currentValue === 'items.quantity' && currentFunction === 'avg') {
       currentFunction = 'sum';
       stateChanged = true;
@@ -206,8 +230,6 @@ export function RelatoriosTab() {
 
     // Apply changes if any occurred and they are actually different from current state
     if (stateChanged) {
-      // Ensure consistent order for array comparison and backend parameter
-      currentLines.sort(); // Sort to ensure `arraysEqual` works correctly after changes
       if (!arraysEqual(selectedLines, currentLines)) {
         setSelectedLines(currentLines);
       }
@@ -221,53 +243,31 @@ export function RelatoriosTab() {
   }, [selectedLines, selectedValue, selectedFunction]);
 
   // Dnd-kit onDragEnd handler
-  // Os console.log's abaixo são úteis para depuração, mas podem ser removidos em produção.
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
+    if (!over) return;
 
-    console.log('--- Drag End Event ---');
-    console.log('Active (item arrastado):', active);
-    console.log('Over (onde foi solto):', over);
-
-    // Se não houver 'over', significa que o item foi solto fora de qualquer área droppable
-    if (!over) {
-      console.log('Arrasto finalizado fora de qualquer área soltável (droppable).');
-      return;
-    }
-
-    // Verifica se o item ativo é uma opção disponível (do lado esquerdo)
     const isDraggingAvailableOption = active.data.current?.type === 'availableOption';
-    // Verifica se o alvo do drop é a área principal de agrupamento OU um item já selecionado dentro dela
     const isOverMainDroppableArea = over.id === 'selected-lines-droppable' || selectedLines.includes(over.id as string);
 
-    // Cenário 1: Adicionando um novo item das opções disponíveis para a área de selecionados
     if (isDraggingAvailableOption && isOverMainDroppableArea) {
       const draggedOptionId = active.id as string;
       if (!selectedLines.includes(draggedOptionId)) {
-        console.log(`Tentando adicionar a linha: ${draggedOptionId}`);
         setSelectedLines((prev) => [...prev, draggedOptionId]);
-        console.log(`setSelectedLines chamado para adicionar: ${draggedOptionId}`);
-      } else {
-        console.log(`Linha ${draggedOptionId} já existe, não adicionando.`);
       }
-      return; // Já tratamos este caso, saímos da função
+      return;
     }
 
-    // Cenário 2: Reordenando itens dentro da área de linhas selecionadas
-    // Isso se aplica quando um item já selecionado é arrastado e solto sobre outro item selecionado
     const isDraggingSortableItem = selectedLines.includes(active.id as string);
     const isOverSortableItem = selectedLines.includes(over.id as string);
 
     if (isDraggingSortableItem && isOverSortableItem && active.id !== over.id) {
       const oldIndex = selectedLines.indexOf(active.id as string);
       const newIndex = selectedLines.indexOf(over.id as string);
-      if (oldIndex !== -1 && newIndex !== -1) { // Garante que ambos os IDs foram encontrados
-        console.log(`Tentando reordenar ${active.id} da posição ${oldIndex} para ${newIndex}.`);
+      if (oldIndex !== -1 && newIndex !== -1) {
         setSelectedLines((prev) => arrayMove(prev, oldIndex, newIndex));
-        console.log(`setSelectedLines chamado para reordenar.`);
       }
     }
-    console.log('Nenhuma operação de adição ou reordenação válida detectada.');
   };
 
   // Droppable for the selected lines area
@@ -295,41 +295,35 @@ export function RelatoriosTab() {
   // Filtered value options based on selected lines
   const filteredValueOptions = useMemo(() => {
     if (selectedLines.includes('items.name')) {
-      // If 'Produto' is selected, only allow 'Quantidade de Itens' and 'Faturamento por Produto'
       return valueOptions.filter(option =>
         option.value === 'items.quantity' || option.value === 'items.revenue'
       );
     }
-    return valueOptions; // Otherwise, allow all value options
+    return valueOptions;
   }, [selectedLines, valueOptions]);
 
   // Filtered function options based on selected value
   const filteredFunctionOptions = useMemo(() => {
     if (selectedValue === 'items.quantity') {
-      // If 'Quantidade de Itens' is selected, 'Média' is not allowed
       return functionOptions.filter(option => option.value !== 'avg');
     }
-    return functionOptions; // Otherwise, allow all function options
+    return functionOptions;
   }, [selectedValue, functionOptions]);
 
 
   // Função para buscar os dados do relatório do backend
-  useEffect(() => {
-    const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
       setLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem('token');
-        // Ensure selectedLines are sorted for consistent backend query parameter
-        const sortedLines = [...selectedLines].sort(); 
         const params = new URLSearchParams({
-          line: sortedLines.join(','), // Passa os campos como uma string separada por vírgula
-          value: selectedValue,
-          func: selectedFunction,
+          line: debouncedLines.join(','),
+          value: debouncedValue,
+          func: debouncedFunction,
         });
         const url = `http://localhost:3000/api/reports?${params.toString()}`;
-        console.log(`[Frontend] Fetching report with: line=${sortedLines.join(',')}, value=${selectedValue}, func=${selectedFunction}`);
-
+  
         const response = await fetch(url, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
@@ -343,89 +337,65 @@ export function RelatoriosTab() {
         setReportData(data);
       } catch (err: any) {
         setError(err.message || 'Erro inesperado ao carregar relatório.');
-        console.error('Erro ao carregar relatório:', err);
       } finally {
         setLoading(false);
       }
-    };
+    }, [debouncedLines, debouncedValue, debouncedFunction]);
 
+  useEffect(() => {
     fetchReportData();
-  }, [selectedLines, selectedValue, selectedFunction]); // Recarrega quando os filtros mudam
+  }, [fetchReportData, retry]);
+
 
   // Funções auxiliares para formatação
   const formatValue = (value: number) => {
     if (selectedFunction === 'count') {
       return value.toFixed(0);
     }
-    // Aplica formatação de moeda para totalAmount, netAmount e items.revenue
     if (selectedValue === 'totalAmount' || selectedValue === 'netAmount' || selectedValue === 'items.revenue') {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     }
     if (selectedValue === 'items.quantity') {
       return `${Math.round(value)} un`;
     }
-    return value.toFixed(2); // Fallback
+    return value.toFixed(2);
   };
 
   const getLineLabel = (value: string | string[]) => {
     if (Array.isArray(value)) {
-      return value.map(v => {
-        const option = lineOptions.find(opt => opt.value === v);
-        return option ? option.label : v;
-      }).join(' + ');
-    } else {
-      const option = lineOptions.find(opt => opt.value === value);
-      return option ? option.label : value;
+      return value.map(v => lineOptions.find(opt => opt.value === v)?.label || v).join(' + ');
     }
+    return lineOptions.find(opt => opt.value === value)?.label || value;
   };
 
-  const getValueLabel = (value: string) => {
-    const option = valueOptions.find(opt => opt.value === value);
-    return option ? option.label : value;
-  };
+  const getValueLabel = (value: string) => valueOptions.find(opt => opt.value === value)?.label || value;
+  const getFunctionLabel = (value: string) => functionOptions.find(opt => opt.value === value)?.label || value;
 
-  const getFunctionLabel = (value: string) => {
-    const option = functionOptions.find(opt => opt.value === value);
-    return option ? option.label : value;
-  };
-
-  // Cores para o gráfico de pizza
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
-  const formatXAxisLabel = (value: any) => {
-    console.log("Original _id for label:", value); // Adicione esta linha
-    if (typeof value === 'object' && value !== null) {
-        const parts = Object.entries(value)
-            .map(([key, val]) => {
-                const originalKey = key.replace('_', '.');
-                const labelOption = lineOptions.find(opt => opt.value === originalKey);
-                const label = labelOption ? labelOption.label : originalKey;
-                return `${label}: ${val}`;
-            });
-        const fullLabel = parts.join(', ');
-        if (fullLabel.length > 30) {
-            return fullLabel.substring(0, 27) + '...';
-        }
-        console.log("Formatted label:", fullLabel); // Adicione esta linha
-        return fullLabel;
-    }
-    const result = value !== null ? String(value) : 'N/A';
-    console.log("Formatted label (non-object):", result); // Adicione esta linha
-    return result;
-};
+  const formatRowLabel = (row: ReportRow) => {
+    const parts = selectedLines.map(lineKey => {
+        const label = lineOptions.find(opt => opt.value === lineKey)?.label || lineKey;
+        return `${label}: ${row[lineKey] || 'N/A'}`;
+    });
+    const fullLabel = parts.join(', ');
+    return fullLabel.length > 40 ? fullLabel.substring(0, 37) + '...' : fullLabel;
+  };
 
   // Custom Tooltip component for Recharts
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const dataPoint = payload[0].payload;
-      const formattedLabel = formatXAxisLabel(dataPoint._id);
       const formattedValue = formatValue(dataPoint.result);
       const funcLabel = getFunctionLabel(selectedFunction);
       const valLabel = getValueLabel(selectedValue);
+      const total = reportData.reduce((sum, item) => sum + item.result, 0);
+      const percentage = total > 0 ? ((dataPoint.result / total) * 100).toFixed(2) : 0;
 
       return (
         <div className="bg-[#24292D] border border-[#3A414A] rounded-lg p-3 text-sm text-white shadow-lg">
-          <p className="font-semibold">{formattedLabel}</p>
+          <p className="font-bold text-teal-400">{percentage}% do total</p>
+          <p className="font-semibold">{dataPoint.displayName}</p>
           <p className="text-gray-300">{`${funcLabel} de ${valLabel}: ${formattedValue}`}</p>
         </div>
       );
@@ -433,59 +403,40 @@ export function RelatoriosTab() {
     return null;
   };
 
+  // Memoized chart and table data
+  const displayData = useMemo(() => {
+    return reportData.map(row => ({
+      ...row,
+      displayName: formatRowLabel(row),
+    }));
+  }, [reportData, selectedLines]);
+
   // Renderiza o gráfico apropriado
   const renderChart = () => {
-    if (reportData.length === 0) {
-      return (
-        <div className="flex-grow flex items-center justify-center">
-          <p className="text-gray-400 text-center">Nenhum dado para exibir no gráfico.</p>
-        </div>
-      );
+    if (displayData.length === 0) {
+      return <div className="flex-grow flex items-center justify-center"><p className="text-gray-400">Nenhum dado para exibir.</p></div>;
     }
 
     if (selectedFunction === 'count') {
-      // Gráfico de pizza para contagem
       return (
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
-            <Pie data={reportData} dataKey="result" nameKey="_id" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label={(entry) => formatXAxisLabel(entry._id)}>
-              {reportData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
+            <Pie data={displayData} dataKey="result" nameKey="displayName" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+              {displayData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
             </Pie>
-            <Tooltip formatter={(value: number, name) => [formatValue(value), formatXAxisLabel(name)]} />
-            <Legend formatter={(value) => formatXAxisLabel(value)} />
+            <Tooltip formatter={(value: number, name) => [formatValue(value), name]} />
+            <Legend />
           </PieChart>
         </ResponsiveContainer>
       );
     } else {
-      // Gráfico de barras para soma/média
       return (
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            layout="vertical"
-            data={reportData.map((item) => ({
-              ...item,
-              idKey: JSON.stringify(item._id), // Nova propriedade serializável para o dataKey
-            }))}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-          >
+          <BarChart layout="vertical" data={displayData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3A414A" horizontal={true} vertical={false} />
-            <XAxis
-              type="number"
-              stroke="#9CA3AF"
-              tickFormatter={formatValue}
-            />
-            <YAxis
-              type="category"
-              dataKey="idKey" // Usando a nova chave serializável
-              stroke="#9CA3AF"
-              tickFormatter={(value) => formatXAxisLabel(JSON.parse(value))} // Desserializa o objeto para formatar
-              width={180}
-              interval={0}
-              fontSize={10}
-            />
-            <Tooltip content={<CustomTooltip />} /> {/* Usando o Tooltip personalizado */}
+            <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatValue} />
+            <YAxis type="category" dataKey="displayName" stroke="#9CA3AF" width={180} interval={0} fontSize={10} />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar dataKey="result" fill="#8884d8" name={`${getFunctionLabel(selectedFunction)} de ${getValueLabel(selectedValue)}`} />
           </BarChart>
@@ -500,20 +451,21 @@ export function RelatoriosTab() {
         {/* Resultados */}
         <div className="lg:col-span-2 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl p-6 flex flex-col min-h-[600px]">
           <h2 className="text-2xl font-bold mb-4 text-white">Relatório: {getFunctionLabel(selectedFunction)} de {getValueLabel(selectedValue)} por {getLineLabel(selectedLines)}</h2>
-          {loading && reportData.length === 0 ? ( // Only show loading if no data is present yet
+          {loading && reportData.length === 0 ? (
             <div className="flex-grow flex items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent" />
               <span className="ml-4 text-white">Carregando relatório...</span>
             </div>
           ) : error ? (
-            <div className="flex-grow flex items-center justify-center text-red-400">
+            <div className="flex-grow flex flex-col items-center justify-center text-red-400">
               <p>{error}</p>
+              <button onClick={() => setRetry(r => r + 1)} className="mt-4 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-lg transition-colors">
+                Tentar Novamente
+              </button>
             </div>
           ) : (
             <>
-              <div className="flex-grow">
-                {renderChart()}
-              </div>
+              <div className="flex-grow">{renderChart()}</div>
               <div className="mt-6 overflow-x-auto">
                 <table className="min-w-full bg-[#24292D] rounded-lg overflow-hidden">
                   <thead className="bg-[#2F363E] border-b border-white/10">
@@ -523,15 +475,13 @@ export function RelatoriosTab() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.length > 0 ? reportData.map((row, index) => (
+                    {displayData.length > 0 ? displayData.map((row, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-[#24292D]' : 'bg-[#2F363E]'}>
-                        <td className="px-4 py-2 text-sm text-white">{formatXAxisLabel(row._id)}</td>
+                        <td className="px-4 py-2 text-sm text-white">{row.displayName}</td>
                         <td className="px-4 py-2 text-sm text-white text-right">{formatValue(row.result)}</td>
                       </tr>
                     )) : (
-                      <tr>
-                        <td colSpan={2} className="px-4 py-4 text-center text-gray-400">Nenhum dado encontrado para os filtros selecionados.</td>
-                      </tr>
+                      <tr><td colSpan={2} className="px-4 py-4 text-center text-gray-400">Nenhum dado encontrado.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -543,39 +493,18 @@ export function RelatoriosTab() {
         {/* Filtros */}
         <div className="bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl p-6">
           <h2 className="text-2xl font-bold mb-6">Filtros</h2>
-
-          {/* Drag and Drop para Linhas */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragEnd={handleDragEnd}
-            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-          >
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
             <div className="mb-6">
               <label className="block text-sm font-medium mb-2 text-gray-300">Agrupar por (Arraste e Solte)</label>
-              {/* Área de agrupamentos selecionados (droppable e sortable) */}
-              <div
-                ref={setDroppableNodeRef}
-                className="min-h-[80px] p-3 bg-[#24292D] rounded-md border border-white/10 flex flex-col gap-2"
-              >
-                {selectedLineOptions.length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-4">Arraste campos para cá</p>
-                )}
+              <div ref={setDroppableNodeRef} className="min-h-[80px] p-3 bg-[#24292D] rounded-md border border-white/10 flex flex-col gap-2">
+                {selectedLineOptions.length === 0 && <p className="text-gray-500 text-sm text-center py-4">Arraste campos para cá</p>}
                 <SortableContext items={selectedLines} strategy={verticalListSortingStrategy}>
                   {selectedLineOptions.map((option) => (
-                    <SortableSelectedLine
-                      key={option.value}
-                      id={option.value}
-                      label={option.label}
-                      icon={option.icon}
-                      onRemove={handleRemoveSelectedLine}
-                    />
+                    <SortableSelectedLine key={option.value} id={option.value} label={option.label} icon={lineIconMap[option.value]} onRemove={handleRemoveSelectedLine} />
                   ))}
                 </SortableContext>
               </div>
-
-              {/* Drag Overlay para o item sendo arrastado */}
-              <DragOverlay adjustScale={true}> {/* Added adjustScale for better visual */}
+              <DragOverlay adjustScale={true}>
                 {active && active.id ? (
                   <div className="flex items-center gap-2 p-2 bg-teal-600 rounded-md border border-teal-400 text-white text-sm shadow-lg">
                     {lineOptions.find(opt => opt.value === active.id)?.icon}
@@ -583,37 +512,23 @@ export function RelatoriosTab() {
                   </div>
                 ) : null}
               </DragOverlay>
-
               <p className="text-gray-400 text-xs mt-4 mb-2">Campos disponíveis:</p>
-              {/* Lista de campos disponíveis para arrastar */}
               <div className="grid grid-cols-2 gap-2">
-                {availableLineOptions.map((option) => (
-                  <DraggableLineOption key={option.value} option={option} />
-                ))}
+                {availableLineOptions.map((option) => <DraggableLineOption key={option.value} option={option} />)}
               </div>
             </div>
           </DndContext>
 
-          {/* Dropdown para Valores */}
           <Listbox value={selectedValue} onChange={setSelectedValue}>
             <div className="mb-6 relative">
               <Listbox.Label className="block text-sm font-medium mb-2 text-gray-300">Valor para Agregação</Listbox.Label>
-              <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between cursor-pointer">
-                <span className="flex items-center gap-2">
-                  {valueOptions.find(opt => opt.value === selectedValue)?.icon}
-                  {valueOptions.find(opt => opt.value === selectedValue)?.label}
-                </span>
+              <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between">
+                <span className="flex items-center gap-2">{valueOptions.find(opt => opt.value === selectedValue)?.icon}{valueOptions.find(opt => opt.value === selectedValue)?.label}</span>
                 <span className="text-gray-400">▼</span>
               </Listbox.Button>
               <Listbox.Options className="absolute z-10 mt-1 w-full bg-[#24292D] border border-white/10 rounded-md shadow-lg max-h-60 overflow-auto">
-                {valueOptions.map((option) => (
-                  <Listbox.Option
-                    key={option.value}
-                    value={option.value}
-                    className={({ active }) =>
-                      `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`
-                    }
-                  >
+                {filteredValueOptions.map((option) => (
+                  <Listbox.Option key={option.value} value={option.value} className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}>
                     {option.icon} {option.label}
                   </Listbox.Option>
                 ))}
@@ -621,26 +536,16 @@ export function RelatoriosTab() {
             </div>
           </Listbox>
 
-          {/* Dropdown para Funções */}
           <Listbox value={selectedFunction} onChange={setSelectedFunction}>
             <div className="mb-6 relative">
               <Listbox.Label className="block text-sm font-medium mb-2 text-gray-300">Função de Agregação</Listbox.Label>
-              <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between cursor-pointer">
-                <span className="flex items-center gap-2">
-                  {functionOptions.find(opt => opt.value === selectedFunction)?.icon}
-                  {functionOptions.find(opt => opt.value === selectedFunction)?.label}
-                </span>
+              <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between">
+                <span className="flex items-center gap-2">{functionOptions.find(opt => opt.value === selectedFunction)?.icon}{functionOptions.find(opt => opt.value === selectedFunction)?.label}</span>
                 <span className="text-gray-400">▼</span>
               </Listbox.Button>
               <Listbox.Options className="absolute z-10 mt-1 w-full bg-[#24292D] border border-white/10 rounded-md shadow-lg max-h-60 overflow-auto">
-                {functionOptions.map((option) => (
-                  <Listbox.Option
-                    key={option.value}
-                    value={option.value}
-                    className={({ active }) =>
-                      `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`
-                    }
-                  >
+                {filteredFunctionOptions.map((option) => (
+                  <Listbox.Option key={option.value} value={option.value} className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}>
                     {option.icon} {option.label}
                   </Listbox.Option>
                 ))}
@@ -648,13 +553,7 @@ export function RelatoriosTab() {
             </div>
           </Listbox>
 
-          <button
-            onClick={() => {
-              // Ação de exemplo, o relatório já é gerado automaticamente
-              alert('Relatório atualizado!');
-            }}
-            className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg transition-colors mt-6"
-          >
+          <button onClick={() => fetchReportData()} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg transition-colors mt-6">
             Atualizar Relatório (Manual)
           </button>
         </div>

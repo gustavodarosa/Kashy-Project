@@ -27,6 +27,18 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  discount: {
+    type: Number,
+    default: 0
+  },
+  tax: {
+    type: Number,
+    default: 0
+  },
+  shippingCost: {
+    type: Number,
+    default: 0
+  },
   paymentMethod: {
     type: String,
     enum: ['bch', 'pix', 'card'], 
@@ -65,5 +77,11 @@ const orderSchema = new mongoose.Schema({
     required: true, 
   }
 }, { timestamps: true }); 
+
+// Indexes for performance
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ store: 1, createdAt: -1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ "items.name": 1 });
 
 module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
