@@ -110,6 +110,66 @@ export function Dashboard() {
         fetchUserImage();
     }, []);
 
+    // salvar perfil!!
+    async function handleSaveProfile() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Usuário não autenticado.');
+            return;
+        }
+
+        // Atualiza nome de usuário
+        if (username) {
+            await fetch('http://localhost:3000/api/user/update-username', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username }),
+            });
+        }
+
+        // Atualiza email
+        if (email) {
+            await fetch('http://localhost:3000/api/user/update-email', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+        }
+
+        // Atualiza telefone
+        if (phone) {
+            await fetch('http://localhost:3000/api/user/update-phone', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone }),
+            });
+        }
+
+        // Atualiza imagem de perfil
+        if (selectedImage) {
+            await fetch('http://localhost:3000/api/update-profile-image', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ profileImage: selectedImage }),
+            });
+        }
+
+        setShowProfileModal(false);
+        alert('Perfil salvo com sucesso!');
+    }
+
     const handleSaveImage = async () => {
         if (!selectedImage) return;
 
@@ -540,11 +600,11 @@ export function Dashboard() {
                     onClick={() => setShowProfileModal(false)}
                 >
                     <div
-                        className="relative w-full max-w-md rounded-2xl shadow-2xl bg-[#313338] border border-[#232428] overflow-hidden animate-fadeIn"
+                        className="relative w-full max-w-md rounded-xl shadow-2xl bg-[#232428] overflow-hidden animate-fadeIn"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="relative flex items-center justify-center px-6 py-5 bg-[#232428] border-b border-[#232428]">
+                        <div className="relative flex items-center justify-center px-6 py-5 bg-[#232428] drop-shadow-[0_0_100px_#70fec0]">
                             <h2 className="text-xl font-bold text-white tracking-tight">Perfil</h2>
                             <button
                                 onClick={() => setShowProfileModal(false)}
@@ -567,9 +627,9 @@ export function Dashboard() {
                                         <img
                                             src={selectedImage || savedImage || "/default-avatar.png"}
                                             alt="Preview"
-                                            className="group w-40 h-40 object-cover rounded-[10px] border-4 group-hover:border-[rgb(112,254,192)] group-hover:drop-shadow-[0_0_8px_#70fec0] transition "
+                                            className="group w-40 h-40 object-cover rounded-[10px] border-4 group-hover:border-[rgb(112,254,192)] group-hover:drop-shadow-[0_0_8px_#70fec0] transition-all ease-in-out duration-450"
                                         />
-                                        <div className="absolute bottom-2 right-2 bg-[#000000] group-hover:bg-[#70fec0] text-white group-hover:text-black rounded-full p-2 shadow-lg transition group-hover:drop-shadow-[0_0_2px_#70fec0] ">
+                                        <div className="absolute bottom-2 right-2 bg-[#000000] group-hover:bg-[#70fec0] text-white group-hover:text-black rounded-full p-2 shadow-lg transition-all ease-in-out duration-450 group-hover:drop-shadow-[0_0_2px_#70fec0] ">
                                             <Pencil className="h-5 w-5" />
                                         </div>
                                         <input
@@ -593,44 +653,44 @@ export function Dashboard() {
                             </div>
                             {/* Preview de dados */}
                             <div className="flex flex-col gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1">
+                                    <div className="flex flex-col gap-1 w-full">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Nome de Usuário</label>
-                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{username || "Usuário"}</div>
+                                        <input 
+                                        type="text" 
+                                        value={username || ""} 
+                                        onChange={(e) => setUsername(e.target.value)} 
+                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 focus text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"/>
                                     </div>
-                                </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1">
+                                    <div className="flex flex-col gap-1 w-full">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Email</label>
-                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{email || "Conta padrão"}</div>
+                                        <input 
+                                        type="text" 
+                                        value={email || ""} 
+                                        onChange={(e) => setEmail(e.target.value)} 
+                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
+                                        />
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1">
+                                    <div className="flex flex-col gap-1 w-full">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Telefone</label>
-                                        <div className="bg-[#232428] border border-[#232428] rounded px-4 py-2 text-white font-semibold">{phone || "Não cadastrado"}</div>
+                                        <input 
+                                        type="text"
+                                        value={phone || ""}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
+                                        />  
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* Footer */}
-                        <div className="flex justify-end gap-4 px-8 py-5 bg-[#232428] border-t border-[#232428]">
+                        <div className="flex justify-center gap-4 px-8 py-5 bg-[#232428] border-t border-[#232428]">
                             <button
-                                onClick={() => {
-                                    setShowProfileModal(false);
-                                    setSelectedImage(null);
-                                }}
-                                className="bg-[#232428] hover:bg-[#232428]/80 text-white px-6 py-2 rounded-lg text-sm font-medium border border-[#393c41] transition-colors"
-                            >
-                                Fechar
-                            </button>
-                            <button
-                                onClick={handleSaveImage}
-                                disabled={!selectedImage}
-                                className={`bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold px-6 py-2 rounded-lg text-sm transition-colors ${
-                                    !selectedImage ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                            >
+                                onClick={handleSaveProfile}
+                                className="bg-[#35564c] hover:bg-[#387763] text-white font-bold px-10 py-3 rounded-lg text-sm transition-all ease-in-out duration-300 focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_3px_#70fec0]"
+                                >
                                 Salvar
                             </button>
                         </div>
