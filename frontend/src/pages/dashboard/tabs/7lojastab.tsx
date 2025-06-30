@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Store, UserPlus, Edit, Trash2, Users, Loader2 } from "lucide-react";
 
 type Store = {
   _id: string;
@@ -143,7 +144,6 @@ export function LojasTab() {
     setShowAddColabModal(true);
   };
 
-  // Função para adicionar colaborador
   const handleAddColab = async (e: React.FormEvent) => {
     e.preventDefault();
     setColabError(null);
@@ -152,7 +152,7 @@ export function LojasTab() {
       setColabError("Preencha o email do funcionário.");
       return;
     }
-    // Validação extra para espaços
+
     const emailTrimmed = colabEmail.trim();
     if (!emailTrimmed) {
       setColabError("Preencha o email do funcionário.");
@@ -164,8 +164,8 @@ export function LojasTab() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!userRes.ok) throw new Error("Usuário não encontrado.");
-      const user = await userRes.json(); // <-- Adicione esta linha
-      // Adicionar colaborador
+      const user = await userRes.json(); 
+
       const res = await fetch("http://localhost:3000/api/stores/add-collaborator", {
         method: "POST",
         headers: {
@@ -183,61 +183,78 @@ export function LojasTab() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Minhas Lojas</h1>
+    <div className="bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] min-h-screen text-white py-10 px-2">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            <Store size={32} className="text-teal-400" />
+            <h1 className="text-3xl font-bold tracking-tight">Minhas Lojas</h1>
+          </div>
           <button
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-700 to-teal-500 text-white font-semibold"
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-teal-400 hover:from-teal-500 hover:to-teal-300 text-white font-semibold shadow-lg transition-all duration-200 hover:scale-105 border border-teal-400/40"
             onClick={() => setShowCreateModal(true)}
           >
-            + Nova Loja
+            <UserPlus size={18} /> Nova Loja
           </button>
         </div>
+
+        {/* Error/Loading */}
         {error && (
-          <div className="mb-4 text-red-400 bg-red-900/30 rounded-lg px-4 py-2">{error}</div>
+          <div className="mb-4 text-red-400 bg-red-900/30 rounded-lg px-4 py-2 text-center">{error}</div>
         )}
         {loading ? (
-          <div className="text-center text-gray-300 py-8">Carregando...</div>
+          <div className="flex flex-col items-center py-16 text-gray-300">
+            <Loader2 className="animate-spin mb-2" size={32} />
+            Carregando lojas...
+          </div>
         ) : (
-          <ul className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {stores.map((store) => (
-              <li
+              <div
                 key={store._id}
-                className="bg-[#23272F] border border-teal-400/20 rounded-xl p-4 flex justify-between items-center"
+                className="relative group bg-[#23272F]/90 border border-teal-400/20 rounded-2xl p-6 flex flex-col shadow-xl hover:shadow-2xl hover:border-teal-400/50 transition-all duration-200"
               >
-                <div>
-                  <div className="text-lg font-semibold text-teal-300">{store.name}</div>
-                  <div className="text-xs text-gray-400">
-                    Criada em: {store.createdAt ? new Date(store.createdAt).toLocaleDateString("pt-BR") : "N/A"}
-                  </div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Store size={28} className="text-teal-400" />
+                  <span className="text-xl font-semibold text-teal-200 truncate">{store.name}</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                  <span>Criada em: {store.createdAt ? new Date(store.createdAt).toLocaleDateString("pt-BR") : "N/A"}</span>
+                  {store.collaborators && store.collaborators.length > 0 && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <Users size={14} className="inline text-emerald-400" />{" "}
+                      <span>{store.collaborators.length} colaborador{store.collaborators.length > 1 ? "es" : ""}</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex gap-2 mt-auto">
                   <button
-                    className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 px-3 bg-gradient-to-r from-blue-600/30 to-blue-400/20 hover:from-blue-500 hover:to-blue-400 text-blue-200 rounded-lg border border-blue-400/30 hover:border-blue-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
                     onClick={() => handleEditStore(store)}
                   >
-                    Editar
+                    <Edit size={14} /> Editar
                   </button>
                   <button
-                    className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 px-3 bg-gradient-to-r from-emerald-600/30 to-emerald-400/20 hover:from-emerald-500 hover:to-emerald-400 text-emerald-200 rounded-lg border border-emerald-400/30 hover:border-emerald-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
                     onClick={() => handleOpenAddColab(store._id)}
                   >
-                    Adicionar Funcionário
+                    <UserPlus size={14} /> Colaborador
                   </button>
                   <button
-                    className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 px-3 bg-gradient-to-r from-red-600/30 to-red-400/20 hover:from-red-500 hover:to-red-400 text-red-300 rounded-lg border border-red-400/30 hover:border-red-400/60 font-medium transition-all duration-200 hover:scale-105 text-xs shadow"
                     onClick={() => handleDeleteStore(store._id)}
                   >
-                    Excluir
+                    <Trash2 size={14} /> Excluir
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
             {stores.length === 0 && (
-              <li className="text-gray-400 text-center py-8">Nenhuma loja cadastrada.</li>
+              <div className="col-span-full text-gray-400 text-center py-12 text-lg">Nenhuma loja cadastrada.</div>
             )}
-          </ul>
+          </div>
         )}
       </div>
 

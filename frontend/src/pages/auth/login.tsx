@@ -214,23 +214,38 @@ className="text-[rgb(112,255,189)] hover:text-[rgb(90,230,160)] hover:underline 
 {/* Modal de seleção de loja */}
 {showStoreModal && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" tabIndex={-1}>
-    <div className="bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-2xl border border-teal-400/30 shadow-2xl w-full max-w-xs p-8 text-white animate-modalIn relative">
+    <div className="bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-2xl border border-teal-400/30 shadow-2xl w-full max-w-md p-8 text-white animate-modalIn relative">
       <button
         className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl transition-colors"
         onClick={() => { setShowStoreModal(false); setLoading(false); setPendingLogin(null); }}
         aria-label="Fechar"
       >×</button>
-      <h3 className="text-2xl font-bold mb-4 text-center">Selecione sua Loja</h3>
-      <select
-        className="w-full p-3 rounded-lg bg-[#23272F] border border-teal-400/20 text-white mb-6 focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition-all text-base"
-        value={selectedStore}
-        onChange={e => setSelectedStore(e.target.value)}
-      >
-        <option value="">Entrar sem selecionar loja</option>
+      <h3 className="text-2xl font-bold mb-2 text-center">Selecione sua Loja</h3>
+      <p className="text-gray-400 text-center mb-6 text-sm">Escolha a loja para acessar o painel de gestão.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {stores.map(store => (
-          <option key={store._id} value={store.name}>{store.name}</option>
+          <button
+            key={store._id}
+            type="button"
+            onClick={() =>
+              setSelectedStore(selectedStore === store.name ? "" : store.name)
+            }
+            className={`flex items-center gap-3 w-full p-4 rounded-xl border transition-all duration-200
+              ${selectedStore === store.name
+                ? "border-teal-400 bg-teal-500/10 shadow-lg scale-105"
+                : "border-gray-700 bg-[#23272F] hover:border-teal-400 hover:bg-teal-500/5"}
+            `}
+          >
+            <span className=" w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-lg">
+              {store.name.charAt(0).toUpperCase()}
+            </span>
+            <span className="flex-1 text-left font-medium">{store.name}</span>
+            {selectedStore === store.name && (
+              <span className="ml-2 text-teal-400 font-bold">✓</span>
+            )}
+          </button>
         ))}
-      </select>
+      </div>
       <div className="flex gap-3">
         <button
           className="flex-1 py-2 rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold transition-all duration-200 hover:scale-105"
@@ -245,6 +260,7 @@ className="text-[rgb(112,255,189)] hover:text-[rgb(90,230,160)] hover:underline 
           Confirmar
         </button>
       </div>
+      <p className="text-xs text-gray-400 mt-4 text-center">Ou continue sem selecionar uma loja.</p>
     </div>
   </div>
 )}

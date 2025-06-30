@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Tags, Bitcoin, Tag, Edit, Baby, Zap, Glasses, Drill, Printer, MonitorSmartphone, GlassWater, Ham, Beer, BeerOff, Barcode, Trash2, Plus, Search, DollarSign, ChevronLeft, ChevronRight, Mars, CircleX, Package, ChartNoAxesCombined, AlignJustify, CheckCircle, AlertTriangle, Info, Utensils, Coffee, Smartphone, Shirt, Wrench, CupSoda, Settings, Apple, Snowflake, Truck, Monitor, Tv, Venus, Candy, Store } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
@@ -49,6 +49,7 @@ type ProductFormData = {
 };
 
 export function ProdutosTab() {
+  const notifiedOutOfStock = useRef<Set<string>>(new Set());
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -216,7 +217,33 @@ export function ProdutosTab() {
       }));
     }
   };
-
+  useEffect(() => {
+    if (!loading && products.length > 0) {
+      const esgotados = products.filter((product) => product.quantity === 0);
+      const novosEsgotados = esgotados.filter(p => !notifiedOutOfStock.current.has(p._id));
+      if (novosEsgotados.length > 0) {
+        const nomes = novosEsgotados.map((p) => `"${p.name}"`).join(', ');
+        toast.warn(
+          `Produto${novosEsgotados.length > 1 ? 's' : ''} ${nomes} ${novosEsgotados.length > 1 ? 'estão' : 'está'} esgotado${novosEsgotados.length > 1 ? 's' : ''}!`,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "colored",
+          }
+        );
+        novosEsgotados.forEach(p => notifiedOutOfStock.current.add(p._id));
+      }
+      // Remove do set os produtos que voltaram ao estoque
+      const idsEsgotados = new Set(esgotados.map(p => p._id));
+      notifiedOutOfStock.current.forEach(id => {
+        if (!idsEsgotados.has(id)) notifiedOutOfStock.current.delete(id);
+      });
+    }
+  }, [products, loading]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Payload being sent:', formData);

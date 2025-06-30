@@ -1,13 +1,14 @@
 import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
     NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
-    Sun, Moon, Globe, Store // <-- Adicione Store aqui
+    Sun, Moon, Globe, Store 
 } from 'lucide-react';
 import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
-import { useState, useEffect, useMemo } from 'react';
-import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab, LojasTab } from './tabs';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { DashboardTab, WalletTab, PedidosTab, ProdutosTab, ClientesTab, RelatoriosTab, SettingsTab, TransacoesTab, LojasTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
+import { toast } from "react-toastify";
 
 
 export function Dashboard() {
@@ -25,7 +26,6 @@ export function Dashboard() {
     ];
 
     const [activeNotificationTab, setActiveNotificationTab] = useState<NotificationCategory>("todas");
-
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
@@ -252,7 +252,7 @@ export function Dashboard() {
     };
 
     function renderChatMessage(message: string) {
-        // Suporte a negrito, itálico, sublinhado, riscado, código, links, alinhamento, parágrafos e quebras de linha
+       
         let html = message
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')           // **negrito**
             .replace(/__(.*?)__/g, '<u>$1</u>')                         // __sublinhado__
@@ -264,18 +264,12 @@ export function Dashboard() {
             .replace(/\*(.*?)\*\*/g, '<strong>$1</strong>')             // **negrito**
             .replace(/\*(.*?)\*\*/g, '<strong>$1</strong>')             // **negrito**
             .replace(/\*(.*?)\*/g, '<em>$1</em>');                      // *itálico*
-
-        // Alinhamento: :::center ... :::, :::right ... :::, :::left ... :::
         html = html.replace(/:::center([\s\S]*?):::/g, '<div style="text-align:center;">$1</div>');
         html = html.replace(/:::right([\s\S]*?):::/g, '<div style="text-align:right;">$1</div>');
         html = html.replace(/:::left([\s\S]*?):::/g, '<div style="text-align:left;">$1</div>');
-
-        // Parágrafos e quebras de linha
         html = html
-            .replace(/\r\n|\r|\n/g, '<br>') // Quebra de linha simples
-            .replace(/(<br>\s*){2,}/g, '</p><p>'); // 2 ou mais quebras de linha viram novo parágrafo
-
-        // Garante que tudo fique dentro de um <p>...</p>
+            .replace(/\r\n|\r|\n/g, '<br>') 
+            .replace(/(<br>\s*){2,}/g, '</p><p>');
         html = `<p>${html}</p>`;
 
         return <span dangerouslySetInnerHTML={{ __html: html }} />;
@@ -288,7 +282,7 @@ export function Dashboard() {
         { id: 'pedidos', label: 'Pedidos', icon: <ShoppingBasket /> },
         { id: 'transacoes', label: 'Transações', icon: <ChartNoAxesCombined /> },
         { id: 'clientes', label: 'Clientes', icon: <Users /> },
-        { id: 'lojas', label: 'Lojas', icon: <Store /> }, // <-- Adicione esta linha
+        { id: 'lojas', label: 'Lojas', icon: <Store /> }, 
         { id: 'relatorios', label: 'Relatórios', icon: <NotepadText /> },
         { id: 'settings', label: 'Configurações', icon: <Settings /> }
     ];
@@ -321,6 +315,49 @@ export function Dashboard() {
     const toggleLanguage = () => {
         setLanguage((prev) => (prev === 'pt-BR' ? 'en-US' : 'pt-BR'));
     };
+
+    useEffect(() => {
+        // Verifica se o usuário está logado sem loja selecionada
+        const store = localStorage.getItem('store');
+        if (!store) {
+            toast.info("Nenhuma loja selecionada. Algumas funcionalidades podem ficar indisponíveis.", {
+                position: "top-center",
+                autoClose: 6000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: "colored",
+            });
+        }
+    }, []);
+
+    // Adicione este useEffect no componente Dashboard, logo após os outros useEffect
+    useEffect(() => {
+        // Exemplo: obtenha os produtos do localStorage ou de um contexto/prop
+        // Substitua por sua fonte real de produtos
+        const produtosStr = localStorage.getItem('produtos');
+        if (!produtosStr) return;
+        try {
+            const produtos = JSON.parse(produtosStr);
+            const esgotados = produtos.filter((p: any) => p.quantity === 0);
+            if (esgotados.length > 0) {
+                esgotados.forEach((produto: any) => {
+                    toast.warn(`Produto "${produto.name}" está esgotado!`, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        theme: "colored",
+                    });
+                });
+            }
+        } catch (e) {
+            // ignore
+        }
+    }, []);
 
     return (
         <div className="flex min-h-screen">
@@ -681,38 +718,45 @@ export function Dashboard() {
             {/* Notification Modal */}
             {notificationModalOpen && (
                 <div
-                    className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center p-4 z-50"
-                    onClick={() => setNotificationModalOpen(false)} // Fecha o modal ao clicar fora
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={() => setNotificationModalOpen(false)}
                 >
                     <div
-                        className="bg-[var(--color-bg-primary)] bg-opacity-80 rounded-lg p-6 w-full max-w-lg shadow-xl border border-[var(--color-border)]"
-                        onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
+                        className="bg-gradient-to-br from-[#23272F] via-[#24292D]/95 to-[#1EC2A6]/10 rounded-2xl border border-teal-400/30 shadow-2xl w-full max-w-md p-0 text-white animate-modalIn relative"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-white">Histórico de Notificações</h3>
-                            <button
-                                onClick={clearNotifications}
-                                className="text-sm text-red-400 hover:text-red-300 hover:underline"
-                            >
-                                Limpar Histórico
-                            </button>
-                            <button
-                                onClick={() => setNotificationModalOpen(false)}
-                                className="text-gray-400 hover:text-white"
-                            >
-                                ✕
-                            </button>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-teal-400/20 bg-[#23272F] rounded-t-2xl">
+                            <h3 className="text-xl font-bold text-teal-300 flex items-center gap-2">
+                                <Bell className="w-6 h-6 text-teal-400" />
+                                Notificações
+                            </h3>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={clearNotifications}
+                                    className="text-xs text-red-400 hover:text-red-300 underline px-2 py-1 rounded transition-colors"
+                                >
+                                    Limpar Tudo
+                                </button>
+                                <button
+                                    onClick={() => setNotificationModalOpen(false)}
+                                    className="text-gray-400 hover:text-white rounded-full p-2 transition-colors"
+                                    aria-label="Fechar"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Abas de Categoria de Notificação */}
-                        <div className="flex border-b border-[var(--color-border)] mb-4">
+                        {/* Tabs */}
+                        <div className="flex border-b border-teal-400/10 bg-[#24292D] px-6">
                             {notificationCategoryTabs.map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveNotificationTab(tab.id)}
-                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${activeNotificationTab === tab.id
-                                            ? 'border-b-2 border-blue-500 text-blue-400'
-                                            : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
+                                    className={`py-2 px-3 text-sm font-medium transition-colors border-b-2 ${activeNotificationTab === tab.id
+                                            ? 'border-teal-400 text-teal-300'
+                                            : 'border-transparent text-gray-400 hover:text-teal-200 hover:border-teal-400/40'
                                         }`}
                                 >
                                     {tab.label}
@@ -720,20 +764,25 @@ export function Dashboard() {
                             ))}
                         </div>
 
-                        <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+                        {/* Notifications List */}
+                        <div className="p-6 max-h-80 overflow-y-auto space-y-4 bg-[#23272F] rounded-b-2xl">
                             {filteredNotifications.length === 0 ? (
-                                <p className="text-gray-400 text-center">Nenhuma notificação encontrada.</p>
+                                <div className="text-gray-400 text-center py-8">
+                                    Nenhuma notificação encontrada.
+                                </div>
                             ) : (
                                 filteredNotifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        className="bg-[var(--color-bg-secondary)] p-4 rounded-lg shadow-md border border-[var(--color-border)]"
+                                        className="flex items-start gap-3 bg-[#24292D]/80 border border-teal-400/10 rounded-xl p-4 shadow transition hover:border-teal-400/30"
                                     >
-                                        <p className="text-sm text-gray-300">{notification.message}</p>
-                                        <p className="text-xs text-gray-400 mt-1">{notification.timestamp}</p>
-                                        {/* Opcional: Mostrar categoria para depuração */}
-                                        {/* @ts-ignore */}
-                                        {/* <p className="text-xs text-purple-400 mt-1">Cat: {notification.category || 'N/A'}</p> */}
+                                        <div className="flex-shrink-0 mt-1">
+                                            <Bell className="w-5 h-5 text-teal-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-200">{notification.message}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
+                                        </div>
                                     </div>
                                 ))
                             )}
@@ -790,8 +839,8 @@ export function Dashboard() {
                                         >
                                             <div
                                                 className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${msg.sender === "user"
-                                                        ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
-                                                        : "bg-gray-700/50 text-gray-200 rounded-tl-none"
+                                                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
+                                                    : "bg-gray-700/50 text-gray-200 rounded-tl-none"
                                                     }`}
                                             >
                                                 {renderChatMessage(msg.message)}
@@ -843,8 +892,8 @@ export function Dashboard() {
                                 <button
                                     onClick={handleSendMessage}
                                     className={`p-3 rounded-xl ${isChatLoading || !chatInput.trim()
-                                            ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
-                                            : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
+                                        ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
                                         } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                                     disabled={isChatLoading || !chatInput.trim()}
                                     aria-label="Send message"
