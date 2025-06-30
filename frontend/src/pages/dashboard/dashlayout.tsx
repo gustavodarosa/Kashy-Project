@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { DashboardTab, WalletTab, PedidosTab, ClientesTab, ProdutosTab, RelatoriosTab, SettingsTab, TransacoesTab } from './tabs';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../../context/NotificationContext'; // Import the Notification type
+import { toast } from 'react-toastify';
 
 
 export function Dashboard() {
@@ -46,9 +47,16 @@ export function Dashboard() {
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ sender: string; message: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatHistory, setChatHistory] = useState<{role: "user"|"bot", message: string}[]>([]);
+    const [chatHistory, setChatHistory] = useState<{ role: "user" | "bot", message: string }[]>([]);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [language, setLanguage] = useState<'pt-BR' | 'en-US'>('pt-BR');
+
+    // Estados para armazenar os valores originais da Edição de Perfil
+    const [resetClicked, setResetClicked] = useState(false);
+    const [originalUsername, setOriginalUsername] = useState<string | null>(null);
+    const [originalEmail, setOriginalEmail] = useState<string | null>(null);
+    const [originalPhone, setOriginalPhone] = useState<string | null>(null);
+    const [originalImage, setOriginalImage] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
@@ -167,9 +175,20 @@ export function Dashboard() {
         }
 
         setShowProfileModal(false);
-        alert('Perfil salvo com sucesso!');
+        toast.success("Perfil salvo com sucesso!", {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: false,
+            draggable: true,
+            progress: undefined,
+        })
+
     }
 
+
+    // SALVA a imagem de perfil 
     const handleSaveImage = async () => {
         if (!selectedImage) return;
 
@@ -405,8 +424,8 @@ export function Dashboard() {
                             title={tab.label}
                             className={`py-3 px-3 flex items-center justify-start gap-4 w-full relative
                                        ${activeTab === tab.id
-                                         ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
-                                         : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
+                                    ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
+                                    : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
                                        transition-colors duration-200`}
                         >
                             <div className="w-4 h-4 sm:w-auto sm:h-auto flex-shrink-0">{tab.icon}</div>
@@ -444,7 +463,7 @@ export function Dashboard() {
 
 
                     <div className="flex items-center gap-4">
-                         {/* Chatbot Button */}
+                        {/* Chatbot Button */}
                         <button
                             onClick={() => setIsChatbotOpen(true)}
                             className="flex items-center justify-center w-10 h-10 rounded-[10px] bg-[rgba(21,151,129,0.1)] hover:bg-[rgba(21,151,129,0.2)] text-[rgb(21,151,129)] transition-colors shadow"
@@ -464,7 +483,7 @@ export function Dashboard() {
                             )}
                         </button>
 
-                           <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             {/* User Icon/Button */}
                             <div className="relative text-[rgb(21,151,129)] flex-shrink-0">
                                 <button
@@ -503,7 +522,10 @@ export function Dashboard() {
                                                     className="relative group"
                                                     onClick={() => {
                                                         setShowProfileModal(true);
-                                                        setShowUserDropdown(false);
+                                                        setOriginalUsername(username);
+                                                        setOriginalEmail(email);
+                                                        setOriginalPhone(phone);
+                                                        setOriginalImage(selectedImage || savedImage || null);
                                                     }}
                                                 >
                                                     {savedImage ? (
@@ -525,6 +547,10 @@ export function Dashboard() {
                                             <button
                                                 onClick={() => {
                                                     setShowProfileModal(true);
+                                                    setOriginalUsername(username);
+                                                    setOriginalEmail(email);
+                                                    setOriginalPhone(phone);
+                                                    setOriginalImage(selectedImage || savedImage || null);
                                                     setShowUserDropdown(false);
                                                 }}
                                                 className="flex items-center w-full px-4 py-2 text-sm hover:bg-[var(--color-bg-tertiary)] transition-colors"
@@ -559,7 +585,7 @@ export function Dashboard() {
                                             >
                                                 <LogOut className="mr-2 h-4 w-4" />
                                                 Sair
-                                            </button>                  
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -577,7 +603,7 @@ export function Dashboard() {
             {/* Mobile Bottom Navigation */}
             <nav className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-[var(--color-bg-primary)] border-t border-[var(--color-border)] shadow-lg">
                 <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent"
-                     style={{ WebkitOverflowScrolling: 'touch' }}>
+                    style={{ WebkitOverflowScrolling: 'touch' }}>
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
@@ -653,34 +679,34 @@ export function Dashboard() {
                             </div>
                             {/* Preview de dados */}
                             <div className="flex flex-col gap-4">
-                                    <div className="flex flex-col gap-1 w-full">
-                                        <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Nome de Usuário</label>
-                                        <input 
-                                        type="text" 
-                                        value={username || ""} 
-                                        onChange={(e) => setUsername(e.target.value)} 
-                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 focus text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"/>
-                                    </div>
+                                <div className="flex flex-col gap-1 w-full">
+                                    <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Nome de Usuário</label>
+                                    <input
+                                        type="text"
+                                        value={username || ""}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 focus text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300" />
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-col gap-1 w-full">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Email</label>
-                                        <input 
-                                        type="text" 
-                                        value={email || ""} 
-                                        onChange={(e) => setEmail(e.target.value)} 
-                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
+                                        <input
+                                            type="text"
+                                            value={email || ""}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-col gap-1 w-full">
                                         <label className="text-xs font-semibold text-[#b5bac1] mb-1 uppercase tracking-wide">Telefone</label>
-                                        <input 
-                                        type="text"
-                                        value={phone || ""}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
-                                        />  
+                                        <input
+                                            type="text"
+                                            value={phone || ""}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            className="bg-[#1d1e21] border border-[#232428] rounded-2xl px-4 py-2 text-white font-semibold focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_6px_#46c98e] transition-all ease-in-out duration-300"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -688,9 +714,27 @@ export function Dashboard() {
                         {/* Footer */}
                         <div className="flex justify-center gap-4 px-8 py-5 bg-[#232428] border-t border-[#232428]">
                             <button
+                                onClick={() => {
+                                    setResetClicked(true);
+                                    setTimeout(() => {
+                                    setUsername(originalUsername);
+                                    setEmail(originalEmail);
+                                    setPhone(originalPhone);
+                                    setSelectedImage(originalImage);
+                                    setResetClicked(false);
+                                }, 300)
+                            }}
+                                className= {`bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 py-3 rounded-lg text-sm transition-all ease-in-out duration-300 hover:drop-shadow-[0_0_3px_#4a5565]
+                                    ${resetClicked ? "!drop-shadow-[0_0_12px_#546884]" : ""}
+                                    `}
+                                
+                            >
+                                Redefinir alterações
+                            </button>
+                            <button
                                 onClick={handleSaveProfile}
                                 className="bg-[#35564c] hover:bg-[#387763] text-white font-bold px-10 py-3 rounded-lg text-sm transition-all ease-in-out duration-300 focus:shadow-[0_0_12px_#70fec0] hover:drop-shadow-[0_0_3px_#70fec0]"
-                                >
+                            >
                                 Salvar
                             </button>
                         </div>
@@ -730,11 +774,10 @@ export function Dashboard() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveNotificationTab(tab.id)}
-                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                                        activeNotificationTab === tab.id
-                                            ? 'border-b-2 border-blue-500 text-blue-400'
-                                            : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
-                                    }`}
+                                    className={`px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${activeNotificationTab === tab.id
+                                        ? 'border-b-2 border-blue-500 text-blue-400'
+                                        : 'text-gray-400 hover:text-gray-200 border-b-2 border-transparent hover:border-gray-600'
+                                        }`}
                                 >
                                     {tab.label}
                                 </button>
@@ -806,22 +849,19 @@ export function Dashboard() {
                                     {chatMessages.map((msg, index) => (
                                         <div
                                             key={index}
-                                            className={`flex animate-fadeIn ${
-                                                msg.sender === "user" ? "justify-end" : "justify-start"
-                                            }`}
+                                            className={`flex animate-fadeIn ${msg.sender === "user" ? "justify-end" : "justify-start"
+                                                }`}
                                         >
                                             <div
-                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${
-                                                    msg.sender === "user"
-                                                        ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
-                                                        : "bg-gray-700/50 text-gray-200 rounded-tl-none"
-                                                }`}
+                                                className={`px-6 py-3 rounded-2xl max-w-[80%] backdrop-blur-sm ${msg.sender === "user"
+                                                    ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-none"
+                                                    : "bg-gray-700/50 text-gray-200 rounded-tl-none"
+                                                    }`}
                                             >
                                                 {renderChatMessage(msg.message)}
                                                 <div
-                                                    className={`text-xs mt-2 ${
-                                                        msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
-                                                    }`}
+                                                    className={`text-xs mt-2 ${msg.sender === "user" ? "text-blue-200/70" : "text-gray-400"
+                                                        }`}
                                                 >
                                                     {new Date().toLocaleTimeString([], {
                                                         hour: "2-digit",
@@ -866,11 +906,10 @@ export function Dashboard() {
                                 />
                                 <button
                                     onClick={handleSendMessage}
-                                    className={`p-3 rounded-xl ${
-                                        isChatLoading || !chatInput.trim()
-                                            ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
-                                            : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
-                                    } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
+                                    className={`p-3 rounded-xl ${isChatLoading || !chatInput.trim()
+                                        ? "bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
+                                        } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50`}
                                     disabled={isChatLoading || !chatInput.trim()}
                                     aria-label="Send message"
                                 >
