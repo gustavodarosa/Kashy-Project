@@ -103,9 +103,9 @@ export function SettingsTab() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#1E2328] via-[#24292D] to-[#2B3036] text-white">
       {/* Sidebar */}
-      <aside className="w-72 bg-[#24292D]/70 backdrop-blur-lg border-r border-white/10 py-8 px-5 flex flex-col gap-2 shadow-2xl">
+      <aside className="w-70 bg-[#24292D]/70 backdrop-blur-lg border-r border-white/10 py-8 px- flex flex-col gap-2 shadow-2xl">
         <div className="flex items-center gap-3 mb-8 px-2">
-          <div className="p-2 bg-gradient-to-br from-slate-500/20 to-slate-700/20 rounded-xl backdrop-blur-sm border border-slate-400/30">
+          <div className="p-2 bg-gradient-to-br from-slate-500/20 to-slate-700/20 backdrop-blur-sm rounded-full">
             <Settings size={24} className="text-slate-300" />
           </div>
           <h2 className="text-2xl font-bold text-slate-100">Configurações</h2>
@@ -114,13 +114,17 @@ export function SettingsTab() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 font-medium text-sm
+            className={`py-3 px-3 flex items-center justify-start gap-4 w-full relative
               ${activeTab === tab.key
-                ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg scale-105'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                ? 'bg-gradient-to-r from-[rgb(20,143,122)] to-transparent text-white font-semibold'
+                : 'text-white hover:bg-[rgba(20,143,122,0.1)]'}
+              transition-colors duration-200`}
           >
-            <tab.icon size={18} className={activeTab === tab.key ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'} />
+            <tab.icon size={18} className={activeTab === tab.key ? 'text-white' : 'text-slate-400'} />
             {tab.label}
+            {activeTab === tab.key && (
+              <div className="absolute top-0 right-0 h-full w-1 bg-[rgb(20,143,122)] rounded-l-md"></div>
+            )}
           </button>
         ))}
       </aside>
@@ -149,7 +153,7 @@ export function SettingsTab() {
         </div>
 
         {activeTab === 'appearance' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
@@ -159,7 +163,7 @@ export function SettingsTab() {
                   <div
                     key={key}
                     onClick={() => handleThemeChange(key)}
-                    className={`p-5 rounded-xl cursor-pointer border-2 transition-all duration-300 transform hover:scale-105
+                    className={`p-5 cursor-pointer border-2 transition-all duration-300 transform hover:scale-105
                       ${isActive ? `border-slate-400 scale-105 shadow-2xl bg-opacity-80` : 'border-transparent hover:border-slate-500/70 bg-opacity-60'}`}
                     style={{ backgroundColor: theme.colors['--color-bg-secondary'] }}
                   >
@@ -170,7 +174,7 @@ export function SettingsTab() {
                       {themeColorKeys.map((colorKey) => (
                         <div
                           key={colorKey}
-                          className="w-5 h-5 rounded-full border border-white/20"
+                          className="w-5 h-5 border border-white/20"
                           style={{ backgroundColor: theme.colors[colorKey] }}
                         />
                       ))}
