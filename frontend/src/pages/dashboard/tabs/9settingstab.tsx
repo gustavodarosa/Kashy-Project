@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import React from 'react'; 
+import React from 'react';
 import { Bell, Lock, Globe, HardDrive, Download, Trash2, Settings, Palette } from 'lucide-react';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { t, LanguageKey, translations } from '../../../utils/languages';
 import { ThemeKey, themes } from '../../../utils/themes';
+
 
 type ThemeColorKey = keyof typeof themes.default.colors;
 
@@ -51,6 +52,28 @@ export function SettingsTab() {
       root.style.setProperty(key, value);
     });
     localStorage.setItem('dashboardTheme', themeKey);
+  }
+
+  function AccordionItem({ title, children }: { title: string, children: React.ReactNode }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <div className={`border rounded-lg bg-[#232428]/60 transition-all duration-300
+        border-white/10
+        ${open ? " ring-1 ring-[#1b6a5d] transition-all ease-in-out duration-300 " : ""}
+      `}>
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className={`w-full flex rounded-lg justify-between items-center px-4 py-3 text-left font-medium text-slate-200 focus:outline-none hover:bg-[#2F363E]/70 transition-all duration-300 ease-in-out`}
+        >
+          <span>{title}</span>
+          <span className={`transition-transform duration-700 ease-in-out ${open ? "rotate-90" : ""}`}>▶</span>
+        </button>
+        <div className={`overflow-hidden transition-all duration-150 ease-in-out ${open ? "max-h-[1000px] py-2 px-4" : "max-h-0 py-0 px-4"}`}>
+          <div className="text-slate-400 text-sm">{children}</div>
+        </div>
+      </div>
+    );
   }
 
   const handleThemeChange = (themeKey: ThemeKey) => { applyTheme(themeKey); setActiveTheme(themeKey); };
@@ -129,7 +152,7 @@ export function SettingsTab() {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         {/* Hero Section for the active tab */}
         <div className="mb-8">
-          <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <div className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <div className="flex items-center gap-3">
               {TABS.find(t => t.key === activeTab)?.icon && (
                 React.createElement(TABS.find(t => t.key === activeTab)!.icon, { size: 28, className: "text-slate-300" })
@@ -149,7 +172,7 @@ export function SettingsTab() {
         </div>
 
         {activeTab === 'appearance' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
@@ -183,7 +206,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'notifications' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Preferências de Notificação</h3>
             <div className="space-y-5">
               {[
@@ -216,7 +239,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'language' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Configurações Regionais</h3>
             <div className="space-y-5">
               <div>
@@ -234,7 +257,7 @@ export function SettingsTab() {
                   <option value="en-US">English</option>
                 </select>
               </div>
-              
+
               <div>
                 <label htmlFor="timezone" className="block text-xs font-medium text-slate-300 mb-1.5">
                   {t('language.timezone', language)}
@@ -253,7 +276,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'security' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
+          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
             <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança</h3>
 
             {/* 2FA Switch */}
@@ -341,197 +364,199 @@ export function SettingsTab() {
             </form>
 
             {/* Email */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setEmailMessage(null);
-                setEmailError(null);
-                if (!currentPasswordForEmail) {
-                  setEmailError('Digite sua senha atual para atualizar o email.');
-                  return;
-                }
-                try {
-                  const response = await fetch('http://localhost:3000/api/user/update-email', {
-                    method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                    body: JSON.stringify({ email: newEmail, currentPassword: currentPasswordForEmail }),
-                  });
-                  const data = await response.json();
-                  if (response.ok) {
-                    setEmailMessage(data.message || 'Email atualizado com sucesso.');
-                  } else if (response.status === 409) {
-                    setEmailError('Este email já está em uso por outro usuário.');
-                  } else if (response.status === 400 && data.message?.toLowerCase().includes('senha')) {
-                    setEmailError('Senha atual incorreta.');
-                  } else {
-                    setEmailError(data.message || 'Erro ao atualizar email.');
+            <AccordionItem title="Atualizar Email" >
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setEmailMessage(null);
+                  setEmailError(null);
+                  if (!currentPasswordForEmail) {
+                    setEmailError('Digite sua senha atual para atualizar o email.');
+                    return;
                   }
-                } catch (error) {
-                  setEmailError('Erro ao conectar ao servidor.');
-                }
-              }}
-              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Novo Email</label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
-                  placeholder="Digite seu novo email..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Senha Atual</label>
-                <input
-                  type="password"
-                  value={currentPasswordForEmail}
-                  onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
-                  placeholder="Digite sua senha atual..."
-                />
-              </div>
-              
-              {emailMessage && <div className="text-sm text-emerald-400">{emailMessage}</div>}
-              {emailError && <div className="text-sm text-red-400">{emailError}</div>}
-              
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
-                >
-                  Atualizar Email
-                </button>
-              </div>
-            </form>
+                  try {
+                    const response = await fetch('http://localhost:3000/api/user/update-email', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                      },
+                      body: JSON.stringify({ email: newEmail, currentPassword: currentPasswordForEmail }),
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                      setEmailMessage(data.message || 'Email atualizado com sucesso.');
+                    } else if (response.status === 409) {
+                      setEmailError('Este email já está em uso por outro usuário.');
+                    } else if (response.status === 400 && data.message?.toLowerCase().includes('senha')) {
+                      setEmailError('Senha atual incorreta.');
+                    } else {
+                      setEmailError(data.message || 'Erro ao atualizar email.');
+                    }
+                  } catch (error) {
+                    setEmailError('Erro ao conectar ao servidor.');
+                  }
+                }}
+                className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
+              >
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Novo Email</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    placeholder="Digite seu novo email..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Senha Atual</label>
+                  <input
+                    type="password"
+                    value={currentPasswordForEmail}
+                    onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    placeholder="Digite sua senha atual..."
+                  />
+                </div>
+                {emailMessage && <div className="text-sm text-emerald-400">{emailMessage}</div>}
+                {emailError && <div className="text-sm text-red-400">{emailError}</div>}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  >
+                    Atualizar Email
+                  </button>
+                </div>
+              </form>
+            </AccordionItem>
 
             {/* Password */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setPasswordMessage(null);
-                setPasswordError(null);
-                try {
-                  const response = await fetch('http://localhost:3000/api/user/update-password', {
-                    method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                    body: JSON.stringify({ currentPassword, newPassword }),
-                  });
-                  const data = await response.json();
-                  if (response.ok) {
-                    setPasswordMessage(data.message || 'Senha atualizada com sucesso.');
-                    setCurrentPassword('');
-                    setNewPassword('');
-                  } else {
-                    setPasswordError(data.message || 'Erro ao atualizar senha.');
+
+            <AccordionItem title="Alterar Senha" className="mb-4">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setPasswordMessage(null);
+                  setPasswordError(null);
+                  try {
+                    const response = await fetch('http://localhost:3000/api/user/update-password', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                      },
+                      body: JSON.stringify({ currentPassword, newPassword }),
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                      setPasswordMessage(data.message || 'Senha atualizada com sucesso.');
+                      setCurrentPassword('');
+                      setNewPassword('');
+                    } else {
+                      setPasswordError(data.message || 'Erro ao atualizar senha.');
+                    }
+                  } catch (error) {
+                    setPasswordError('Erro ao conectar ao servidor.');
+                    console.error('Erro ao conectar ao servidor:', error);
                   }
-                } catch (error) {
-                  setPasswordError('Erro ao conectar ao servidor.');
-                  console.error('Erro ao conectar ao servidor:', error);
-                }
-              }}
-              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.currentPassword', language)}</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
-                  placeholder={t('security.enterCurrentPassword', language)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newPassword', language)}</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
-                  placeholder={t('security.enterNewPassword', language)}
-                />
-              </div>
-
-              {passwordMessage && <div className="text-sm text-emerald-400">{passwordMessage}</div>}
-              {passwordError && <div className="text-sm text-red-400">{passwordError}</div>}
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
-                >
-                  {t('security.updatePassword', language)}
-                </button>
-              </div>
-            </form>
+                }}
+                className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
+              >
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.currentPassword', language)}</label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    placeholder={t('security.enterCurrentPassword', language)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newPassword', language)}</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    placeholder={t('security.enterNewPassword', language)}
+                  />
+                </div>
+                {passwordMessage && <div className="text-sm text-emerald-400">{passwordMessage}</div>}
+                {passwordError && <div className="text-sm text-red-400">{passwordError}</div>}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  >
+                    {t('security.updatePassword', language)}
+                  </button>
+                </div>
+              </form>
+            </AccordionItem>
             {/* Phone */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setPhoneMessage(null);
-                setPhoneError(null);
-                try {
-                  const response = await fetch('http://localhost:3000/api/user/update-phone', {
-                    method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                    body: JSON.stringify({ phone }),
-                  });
-                  const data = await response.json();
-                  if (response.ok) {
-                    setPhoneMessage(data.message || 'Telefone atualizado com sucesso.');
-                  } else {
-                    setPhoneError(data.message || 'Erro ao atualizar telefone.');
+
+            <AccordionItem title="Atualizar Telefone">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setPhoneMessage(null);
+                  setPhoneError(null);
+                  try {
+                    const response = await fetch('http://localhost:3000/api/user/update-phone', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                      },
+                      body: JSON.stringify({ phone }),
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                      setPhoneMessage(data.message || 'Telefone atualizado com sucesso.');
+                    } else {
+                      setPhoneError(data.message || 'Erro ao atualizar telefone.');
+                    }
+                  } catch (error) {
+                    setPhoneError('Erro ao conectar ao servidor.');
                   }
-                } catch (error) {
-                  setPhoneError('Erro ao conectar ao servidor.');
-                }
-              }}
-              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Telefone (celular)</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d+]/g, '');
-                    setPhone(raw);
-                  }}
-                  pattern="^\+[1-9]\d{1,14}$"
-                  className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
-                  placeholder="+5511912345678"
-                  maxLength={16}
-                />
-              </div>
-
-              {phoneMessage && <div className="text-sm text-emerald-400">{phoneMessage}</div>}
-              {phoneError && <div className="text-sm text-red-400">{phoneError}</div>}
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
-                >
-                  Atualizar Telefone
-                </button>
-              </div>
-            </form>
+                }}
+                className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
+              >
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Telefone (celular)</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d+]/g, '');
+                      setPhone(raw);
+                    }}
+                    pattern="^\+[1-9]\d{1,14}$"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 transition-all text-sm"
+                    placeholder="+5511912345678"
+                    maxLength={16}
+                  />
+                </div>
+                {phoneMessage && <div className="text-sm text-emerald-400">{phoneMessage}</div>}
+                {phoneError && <div className="text-sm text-red-400">{phoneError}</div>}
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  >
+                    Atualizar Telefone
+                  </button>
+                </div>
+              </form>
+            </AccordionItem>
           </section>
         )}
 
         {activeTab === 'data' && (
-          <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Gerenciamento de Dados</h3>
             <div className="space-y-5">
               {[

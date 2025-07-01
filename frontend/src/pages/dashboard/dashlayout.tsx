@@ -1,7 +1,7 @@
 import {
     Search, ChevronRight, ChevronLeft, LayoutDashboard, ChartNoAxesCombined, ShoppingBasket,
     NotepadText, Wallet, Users, Package, Megaphone, Settings, UserCircle, LogOut, Edit, UserPlus, Bell, X, Pencil,
-    Sun, Moon, Globe
+    Sun, Moon, Globe, Trash,
 } from 'lucide-react';
 import { FiMessageCircle, FiSend, FiX } from "react-icons/fi"; // Import icons for the chatbot
 import { useState, useEffect, useMemo } from 'react';
@@ -506,7 +506,7 @@ export function Dashboard() {
                                         onClick={() => setShowUserDropdown(false)} // Fecha o dropdown ao clicar fora
                                     >
                                         <div
-                                            className="absolute right-0 mt-2 w-64 text-white bg-[var(--color-bg-primary)] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]"
+                                            className="absolute right-0 mt-2 w-64 text-white bg-[#1A1C1E] rounded-md shadow-lg py-1 z-50 border border-[var(--color-border)]"
                                             onClick={(e) => e.stopPropagation()} // Impede o clique dentro do dropdown de fechá-lo
                                         >
                                             <div className="flex justify-end px-2 pt-2">
@@ -630,7 +630,7 @@ export function Dashboard() {
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="relative flex items-center justify-center px-6 py-5 bg-[#232428] drop-shadow-[0_0_100px_#70fec0]">
+                        <div className="overflow-hidden relative flex items-center justify-center px-6 py-5 bg-[#232428] drop-shadow-[0_0_100px_#70fec0] ">
                             <h2 className="text-xl font-bold text-white tracking-tight">Perfil</h2>
                             <button
                                 onClick={() => setShowProfileModal(false)}
@@ -749,16 +749,17 @@ export function Dashboard() {
                     onClick={() => setNotificationModalOpen(false)} // Fecha o modal ao clicar fora
                 >
                     <div
-                        className="bg-[var(--color-bg-primary)] bg-opacity-80 rounded-lg p-6 w-full max-w-lg shadow-xl border border-[var(--color-border)]"
+                        className="bg-[#1A1C1E] bg-opacity-80 rounded-lg p-6 w-full max-w-lg shadow-xl border border-[var(--color-border)]"
                         onClick={(e) => e.stopPropagation()} // Impede o clique dentro do modal de fechá-lo
                     >
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xl font-bold text-white">Histórico de Notificações</h3>
                             <button
                                 onClick={clearNotifications}
-                                className="text-sm text-red-400 hover:text-red-300 hover:underline"
+                                className="text-sm text-red-400 hover:text-red-300 bg-red-900 hover:bg-red-700 px-10 py-1 rounded-lg transition-colors"
+                                title="Limpar Histórico de Notificações"
                             >
-                                Limpar Histórico
+                               <Trash className="inline-block mr-1" />
                             </button>
                             <button
                                 onClick={() => setNotificationModalOpen(false)}
