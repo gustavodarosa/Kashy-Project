@@ -9,6 +9,7 @@ router.get('/my', protect, storeController.getMyStores);
 router.post('/add-collaborator', protect, storeController.addCollaborator);
 router.put('/:id', protect, storeController.updateStore);
 router.delete('/:id', protect, storeController.deleteStore);
+router.get('/all', protect, storeController.getAllStores); // Nova rota para buscar todas as lojas
 router.get('/by-email', protect, async (req, res) => {
   const { email } = req.query;
   if (!email) return res.status(400).json({ message: 'Email é obrigatório.' });

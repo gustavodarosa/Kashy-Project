@@ -74,3 +74,14 @@ exports.deleteStore = async (req, res) => {
     res.status(500).json({ message: 'Erro ao excluir loja.', error: error.message });
   }
 };
+
+exports.getAllStores = async (req, res) => {
+  try {
+    const stores = await Store.find(); // Busca todas as lojas
+    console.log('[getAllStores] Lojas encontradas:', stores); // Loga as lojas no console
+    res.status(200).json(stores); // Retorna as lojas como resposta
+  } catch (error) {
+    console.error('[getAllStores] Erro ao buscar lojas:', error.message); // Loga o erro no console
+    res.status(500).json({ message: 'Erro ao buscar todas as lojas.', error: error.message });
+  }
+};

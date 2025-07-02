@@ -3,6 +3,18 @@ const router = express.Router();
 const productController = require('../controllers/productController');
 const Product = require('../models/product'); // Certifique-se de que o modelo de produto está configurado
 
+const getProducts = async (req, res) => {
+  try {
+    const { store } = req.query; // Recebe o parâmetro 'store' da query string
+    const filter = store ? { store } : {}; // Aplica o filtro apenas se 'store' for fornecido
+    const products = await Product.find(filter); // Busca produtos no MongoDB com o filtro
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Erro ao buscar produtos:', error);
+    res.status(500).json({ message: 'Erro ao buscar produtos', error: error.message });
+  }
+};
+
 router.post('/', productController.createProduct);
 router.get('/', productController.getProducts);
 router.put('/:id', productController.updateProduct);

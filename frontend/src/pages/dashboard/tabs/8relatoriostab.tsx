@@ -12,7 +12,7 @@ import {
   Info,
   Package,
   Wallet, // Adicionado Wallet
-  CheckCircle, 
+  CheckCircle,
   CalendarDays, // Adicionado CalendarDays
   GripVertical,
   X
@@ -44,6 +44,18 @@ import { CSS } from '@dnd-kit/utilities';
 interface ReportRow {
   [key: string]: any; // Allow any key since the backend flattens the _id
   result: number; // The aggregated value (sum, average, count)
+}
+
+// Define o tipo Store
+interface Store {
+  _id: string;
+  name: string;
+}
+
+// Define o tipo Product
+interface Product {
+  _id: string;
+  name: string;
 }
 
 // Custom hook for debouncing
@@ -144,8 +156,8 @@ export function RelatoriosTab() {
 
   // Estado para os filtros selecionados
   const [selectedLines, setSelectedLines] = useState<string[]>(['store']); // Alterado para array
-  const [selectedValue, setSelectedValue] = useState<string>('totalAmount');
-  const [selectedFunction, setSelectedFunction] = useState<string>('sum');
+  const [selectedValue, setSelectedValue] = useState<string>(''); // Atualizado para string vazia
+  const [selectedFunction, setSelectedFunction] = useState<string>(''); // Atualizado para string vazia
   const [retry, setRetry] = useState(0); // State to trigger a retry
 
   // Debounce the filter states to avoid excessive API calls
@@ -153,24 +165,81 @@ export function RelatoriosTab() {
   const debouncedValue = useDebounce(selectedValue, 500);
   const debouncedFunction = useDebounce(selectedFunction, 500);
 
+  const [stores, setStores] = useState<Store[]>([]); // Define o tipo do estado
+  const [products, setProducts] = useState<Product[]>([]); // Estado para armazenar os produtos
 
+  useEffect(() => {
+    const fetchAllStores = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/stores/all', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Erro ao buscar todas as lojas');
+        const data: Store[] = await response.json(); // Define o tipo da resposta
+        console.log('Lojas encontradas:', data); // Loga as lojas no console do navegador
+        setStores(data); // Atualiza o estado com as lojas
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.error('Erro ao buscar todas as lojas:', err.message);
+        } else {
+          console.error('Erro ao buscar todas as lojas:', err);
+        }
+      }
+    };
 
-  // Opções para os dropdowns
+    fetchAllStores();
+  }, []);
+
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/products', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Erro ao buscar todos os produtos');
+        const data: Product[] = await response.json(); // Define o tipo da resposta
+        console.log('Produtos encontrados:', data); // Loga os produtos no console do navegador
+        setProducts(data); // Atualiza o estado com os produtos
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.error('Erro ao buscar todos os produtos:', err.message);
+        } else {
+          console.error('Erro ao buscar todos os produtos:', err);
+        }
+      }
+    };
+
+    fetchAllProducts();
+  }, []);
+
+  const productOptions = useMemo(() => {
+    return products.map(product => ({
+      value: `product.${product._id}`, // Identificador único para cada produto
+      label: product.name, // Nome do produto
+      icon: <Package size={16} />, // Ícone para representar produtos
+    }));
+  }, [products]);
+
   const lineOptions = [
-    { value: 'store', label: 'Loja', icon: <Store size={16} /> },
+    { value: 'store', label: 'Lojas', icon: <Store size={16} /> },
     { value: 'paymentMethod', label: 'Método de Pagamento', icon: <CreditCard size={16} /> },
     { value: 'status', label: 'Status do Pedido', icon: <CheckCircle size={16} /> },
-    { value: 'items.name', label: 'Produto', icon: <Package size={16} /> },
-    { value: 'createdAt.month', label: 'Mês do Pedido', icon: <CalendarDays size={16} /> }, // Nova opção
+    { value: 'items.name', label: 'Produtos', icon: <Package size={16} /> },
+    { value: 'createdAt.month', label: 'Mês do Pedido', icon: <CalendarDays size={16} /> },
+    ...productOptions, // Adiciona os produtos como opções dinâmicas
   ];
 
   const valueOptions = [
+    { value: '', label: 'Selecione o valor', icon: <Info size={16} /> }, // Opção nula
     { value: 'totalAmount', label: 'Valor Total do Pedido', icon: <DollarSign size={16} /> },
     { value: 'items.quantity', label: 'Quantidade de Itens', icon: <ShoppingBag size={16} /> },
     { value: 'items.revenue', label: 'Faturamento por Produto', icon: <DollarSign size={16} /> }, // Nova opção
     { value: 'netAmount', label: 'Valor Líquido', icon: <Wallet size={16} /> }, // Nova opção
   ];
   const functionOptions = [
+    { value: '', label: 'Selecione a função', icon: <Info size={16} /> }, // Opção nula
     { value: 'sum', label: 'Soma', icon: <Calculator size={16} /> },
     { value: 'avg', label: 'Média', icon: <TrendingUp size={16} /> },
     { value: 'count', label: 'Contagem', icon: <Hash size={16} /> },
@@ -313,34 +382,43 @@ export function RelatoriosTab() {
 
   // Função para buscar os dados do relatório do backend
   const fetchReportData = useCallback(async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem('token');
-        const params = new URLSearchParams({
-          line: debouncedLines.join(','),
-          value: debouncedValue,
-          func: debouncedFunction,
-        });
-        const url = `http://localhost:3000/api/reports?${params.toString()}`;
-  
-        const response = await fetch(url, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
+    if (!selectedFunction) {
+      setError('Por favor, selecione uma função de agregação.');
+      return;
+    }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao buscar dados do relatório.');
-        }
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({
+        line: debouncedLines.join(','), // Inclui 'store' se selecionado
+        value: debouncedValue,
+        func: debouncedFunction,
+      });
+      const url = `http://localhost:3000/api/reports?${params.toString()}`;
 
-        const data: ReportRow[] = await response.json();
-        setReportData(data);
-      } catch (err: any) {
-        setError(err.message || 'Erro inesperado ao carregar relatório.');
-      } finally {
-        setLoading(false);
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao buscar dados do relatório.');
       }
-    }, [debouncedLines, debouncedValue, debouncedFunction]);
+
+      const data: ReportRow[] = await response.json();
+      setReportData(data); // Atualiza os dados do relatório
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Erro inesperado ao carregar relatório.');
+      } else {
+        setError('Erro inesperado ao carregar relatório.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedLines, debouncedValue, debouncedFunction, selectedFunction]);
 
   useEffect(() => {
     fetchReportData();
@@ -374,9 +452,12 @@ export function RelatoriosTab() {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
   const formatRowLabel = (row: ReportRow) => {
+    if (selectedLines.includes('store')) {
+      return `Loja: ${row.store || 'N/A'}`; // Exibe o nome da loja
+    }
     const parts = selectedLines.map(lineKey => {
-        const label = lineOptions.find(opt => opt.value === lineKey)?.label || lineKey;
-        return `${label}: ${row[lineKey] || 'N/A'}`;
+      const label = lineOptions.find(opt => opt.value === lineKey)?.label || lineKey;
+      return `${label}: ${row[lineKey] || 'N/A'}`;
     });
     const fullLabel = parts.join(', ');
     return fullLabel.length > 40 ? fullLabel.substring(0, 37) + '...' : fullLabel;
@@ -389,13 +470,13 @@ export function RelatoriosTab() {
       const formattedValue = formatValue(dataPoint.result);
       const funcLabel = getFunctionLabel(selectedFunction);
       const valLabel = getValueLabel(selectedValue);
-      const total = reportData.reduce((sum, item) => sum + item.result, 0);
+      const total = displayData.reduce((sum, item) => sum + item.result, 0);
       const percentage = total > 0 ? ((dataPoint.result / total) * 100).toFixed(2) : 0;
 
       return (
         <div className="bg-[#24292D] border border-[#3A414A] rounded-lg p-3 text-sm text-white shadow-lg">
           <p className="font-bold text-teal-400">{percentage}% do total</p>
-          <p className="font-semibold">{dataPoint.displayName}</p>
+          <p className="font-semibold">{dataPoint.store}</p>
           <p className="text-gray-300">{`${funcLabel} de ${valLabel}: ${formattedValue}`}</p>
         </div>
       );
@@ -405,11 +486,16 @@ export function RelatoriosTab() {
 
   // Memoized chart and table data
   const displayData = useMemo(() => {
-    return reportData.map(row => ({
-      ...row,
-      displayName: formatRowLabel(row),
-    }));
-  }, [reportData, selectedLines]);
+    // Mapeia todas as lojas e combina com os dados do relatório
+    return stores.map(store => {
+      const matchingReport = reportData.find(row => row.store === store._id);
+      return {
+        store: store.name, // Nome da loja
+        result: matchingReport ? matchingReport.result : 0, // Valor do relatório ou 0 se não houver dados
+        displayName: store.name, // Nome da loja para exibição
+      };
+    });
+  }, [stores, reportData]);
 
   // Renderiza o gráfico apropriado
   const renderChart = () => {
@@ -421,10 +507,10 @@ export function RelatoriosTab() {
       return (
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
-            <Pie data={displayData} dataKey="result" nameKey="displayName" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
+            <Pie data={displayData} dataKey="result" nameKey="store" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
               {displayData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
             </Pie>
-            <Tooltip formatter={(value: number, name) => [formatValue(value), name]} />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
@@ -435,7 +521,7 @@ export function RelatoriosTab() {
           <BarChart layout="vertical" data={displayData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3A414A" horizontal={true} vertical={false} />
             <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatValue} />
-            <YAxis type="category" dataKey="displayName" stroke="#9CA3AF" width={180} interval={0} fontSize={10} />
+            <YAxis type="category" dataKey="store" stroke="#9CA3AF" width={180} interval={0} fontSize={10} />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar dataKey="result" fill="#8884d8" name={`${getFunctionLabel(selectedFunction)} de ${getValueLabel(selectedValue)}`} />
@@ -514,7 +600,9 @@ export function RelatoriosTab() {
               </DragOverlay>
               <p className="text-gray-400 text-xs mt-4 mb-2">Campos disponíveis:</p>
               <div className="grid grid-cols-2 gap-2">
-                {availableLineOptions.map((option) => <DraggableLineOption key={option.value} option={option} />)}
+                {availableLineOptions.map((option) => (
+                  <DraggableLineOption key={option.value} option={option} />
+                ))}
               </div>
             </div>
           </DndContext>
@@ -523,12 +611,19 @@ export function RelatoriosTab() {
             <div className="mb-6 relative">
               <Listbox.Label className="block text-sm font-medium mb-2 text-gray-300">Valor para Agregação</Listbox.Label>
               <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between">
-                <span className="flex items-center gap-2">{valueOptions.find(opt => opt.value === selectedValue)?.icon}{valueOptions.find(opt => opt.value === selectedValue)?.label}</span>
+                <span className="flex items-center gap-2">
+                  {valueOptions.find(opt => opt.value === selectedValue)?.icon}
+                  {valueOptions.find(opt => opt.value === selectedValue)?.label || 'Selecione o valor'}
+                </span>
                 <span className="text-gray-400">▼</span>
               </Listbox.Button>
               <Listbox.Options className="absolute z-10 mt-1 w-full bg-[#24292D] border border-white/10 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredValueOptions.map((option) => (
-                  <Listbox.Option key={option.value} value={option.value} className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}>
+                {valueOptions.map((option) => (
+                  <Listbox.Option
+                    key={option.value}
+                    value={option.value}
+                    className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}
+                  >
                     {option.icon} {option.label}
                   </Listbox.Option>
                 ))}
@@ -540,12 +635,19 @@ export function RelatoriosTab() {
             <div className="mb-6 relative">
               <Listbox.Label className="block text-sm font-medium mb-2 text-gray-300">Função de Agregação</Listbox.Label>
               <Listbox.Button className="w-full p-3 rounded bg-[#24292D] text-white border border-white/10 focus:ring-2 focus:ring-teal-500 flex items-center justify-between">
-                <span className="flex items-center gap-2">{functionOptions.find(opt => opt.value === selectedFunction)?.icon}{functionOptions.find(opt => opt.value === selectedFunction)?.label}</span>
+                <span className="flex items-center gap-2">
+                  {functionOptions.find(opt => opt.value === selectedFunction)?.icon}
+                  {functionOptions.find(opt => opt.value === selectedFunction)?.label || 'Selecione a função'}
+                </span>
                 <span className="text-gray-400">▼</span>
               </Listbox.Button>
               <Listbox.Options className="absolute z-10 mt-1 w-full bg-[#24292D] border border-white/10 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredFunctionOptions.map((option) => (
-                  <Listbox.Option key={option.value} value={option.value} className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}>
+                {functionOptions.map((option) => (
+                  <Listbox.Option
+                    key={option.value}
+                    value={option.value}
+                    className={({ active }) => `p-3 cursor-pointer text-white flex items-center gap-2 ${active ? 'bg-teal-700/30' : ''}`}
+                  >
                     {option.icon} {option.label}
                   </Listbox.Option>
                 ))}
