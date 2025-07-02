@@ -228,7 +228,7 @@ export function RelatoriosTab() {
     { value: 'status', label: 'Status do Pedido', icon: <CheckCircle size={16} /> },
     { value: 'items.name', label: 'Produtos', icon: <Package size={16} /> },
     { value: 'createdAt.month', label: 'Mês do Pedido', icon: <CalendarDays size={16} /> },
-    ...productOptions, // Adiciona os produtos como opções dinâmicas
+   
   ];
 
   const valueOptions = [
@@ -486,16 +486,30 @@ export function RelatoriosTab() {
 
   // Memoized chart and table data
   const displayData = useMemo(() => {
-    // Mapeia todas as lojas e combina com os dados do relatório
-    return stores.map(store => {
+    // Inclui lojas sempre
+    const storeData = stores.map(store => {
       const matchingReport = reportData.find(row => row.store === store._id);
       return {
-        store: store.name, // Nome da loja
+        name: store.name, // Nome da loja
         result: matchingReport ? matchingReport.result : 0, // Valor do relatório ou 0 se não houver dados
-        displayName: store.name, // Nome da loja para exibição
+        type: 'Loja', // Tipo para diferenciar no gráfico
       };
     });
-  }, [stores, reportData]);
+
+    // Inclui produtos apenas se o filtro 'items.name' estiver selecionado
+    const productData = selectedLines.includes('items.name')
+      ? products.map(product => {
+          const matchingReport = reportData.find(row => row.product === product._id);
+          return {
+            name: product.name, // Nome do produto
+            result: matchingReport ? matchingReport.result : 0, // Valor do relatório ou 0 se não houver dados
+            type: 'Produto', // Tipo para diferenciar no gráfico
+          };
+        })
+      : [];
+
+    return [...storeData, ...productData];
+  }, [stores, products, reportData, selectedLines]);
 
   // Renderiza o gráfico apropriado
   const renderChart = () => {
@@ -503,32 +517,18 @@ export function RelatoriosTab() {
       return <div className="flex-grow flex items-center justify-center"><p className="text-gray-400">Nenhum dado para exibir.</p></div>;
     }
 
-    if (selectedFunction === 'count') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie data={displayData} dataKey="result" nameKey="store" cx="50%" cy="50%" outerRadius={100} fill="#8884d8" label>
-              {displayData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      );
-    } else {
-      return (
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart layout="vertical" data={displayData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#3A414A" horizontal={true} vertical={false} />
-            <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatValue} />
-            <YAxis type="category" dataKey="store" stroke="#9CA3AF" width={180} interval={0} fontSize={10} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend />
-            <Bar dataKey="result" fill="#8884d8" name={`${getFunctionLabel(selectedFunction)} de ${getValueLabel(selectedValue)}`} />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
+    return (
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart layout="vertical" data={displayData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#3A414A" horizontal={true} vertical={false} />
+          <XAxis type="number" stroke="#9CA3AF" tickFormatter={formatValue} />
+          <YAxis type="category" dataKey="name" stroke="#9CA3AF" width={180} interval={0} fontSize={10} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          <Bar dataKey="result" fill="#8884d8" name={`${getFunctionLabel(selectedFunction)} de ${getValueLabel(selectedValue)}`} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
   };
 
   return (
@@ -563,7 +563,7 @@ export function RelatoriosTab() {
                   <tbody>
                     {displayData.length > 0 ? displayData.map((row, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-[#24292D]' : 'bg-[#2F363E]'}>
-                        <td className="px-4 py-2 text-sm text-white">{row.displayName}</td>
+                        <td className="px-4 py-2 text-sm text-white">{row.name} ({row.type})</td>
                         <td className="px-4 py-2 text-sm text-white text-right">{formatValue(row.result)}</td>
                       </tr>
                     )) : (
