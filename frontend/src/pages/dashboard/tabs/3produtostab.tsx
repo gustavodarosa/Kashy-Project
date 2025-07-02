@@ -1,4 +1,4 @@
-import {useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Tags, Bitcoin, Tag, Edit, Baby, Zap, Glasses, Drill, Printer, MonitorSmartphone, GlassWater, Ham, Beer, BeerOff, Barcode, Trash2, Plus, Search, DollarSign, ChevronLeft, ChevronRight, Mars, CircleX, Package, ChartNoAxesCombined, AlignJustify, CheckCircle, AlertTriangle, Info, Utensils, Coffee, Smartphone, Shirt, Wrench, CupSoda, Settings, Apple, Snowflake, Truck, Monitor, Tv, Venus, Candy, Store } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
@@ -153,10 +153,15 @@ export function ProdutosTab() {
       try {
         setLoading(true);
         const store = localStorage.getItem('store') || '';
-        let url = 'http://localhost:3000/api/products';
-        if (store) {
-          url += `?store=${encodeURIComponent(store)}`;
+        if (!store) {
+          setProducts([]);
+          setTotalFilteredProductsCount(0);
+          setTotalPages(0);
+          setError('Selecione uma loja para visualizar os produtos.');
+          setLoading(false);
+          return;
         }
+        let url = 'http://localhost:3000/api/products?store=' + encodeURIComponent(store);
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Erro ao buscar produtos');

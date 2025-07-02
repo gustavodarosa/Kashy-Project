@@ -140,63 +140,57 @@ export function PedidosTab() {
     }
   }, [selectedStore]);
 
-  // useEffect para buscar pedidos
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        console.log("[PedidosTab] Iniciando fetch de pedidos. currentPage:", currentPage, "searchTerm:", searchTerm, "statusFilter:", statusFilter, "paymentFilter:", paymentFilter);
-        setLoading(true);
-        const token = localStorage.getItem('token');
-
-        const response = await fetch('http://localhost:3000/api/orders', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar pedidos');
-        }
-
-        const data: Order[] = await response.json();
-
-        console.log("[PedidosTab] Aplicando filtros nos pedidos recebidos:", data.length, "pedidos");
-        const filteredOrders = data.filter((order) => {
-          const matchesSearch =
-            order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.store.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-
-          const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-          const matchesPayment = paymentFilter === 'all' || order.paymentMethod === paymentFilter;
-
-          return matchesSearch && matchesStatus && matchesPayment;
-        });
-
-        console.log("[PedidosTab] Pedidos filtrados:", filteredOrders.length, "pedidos");
-
-        // Ordenar por data mais recente
-        filteredOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        console.log("[PedidosTab] Pedidos ordenados por data.");
-
-        // Paginação
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
-        console.log(`[PedidosTab] Pedidos paginados (Página ${currentPage}):`, paginatedOrders.length, "pedidos");
-
-        setOrders(paginatedOrders);
-        setTotalPages(Math.ceil(filteredOrders.length / itemsPerPage));
-        setError(null);
-      } catch (err) {
-        console.error("[PedidosTab] Erro ao carregar pedidos:", err);
-        setError("Erro ao carregar pedidos");
-      } finally {
-        setLoading(false);
-        console.log("[PedidosTab] Fetch de pedidos concluído.");
+  // 1. Mova fetchOrders para fora do useEffect para poder chamá-la manualmente
+  const fetchOrders = async () => {
+    if (!selectedStore) {
+      setOrders([]);
+      setTotalPages(1);
+      setError('Selecione uma loja para visualizar os pedidos.');
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/orders?store=${encodeURIComponent(selectedStore)}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!response.ok) {
+        throw new Error('Erro ao buscar pedidos');
       }
-    };
+      const data: Order[] = await response.json();
 
-    console.log('[PedidosTab] useEffect - disparando fetchOrders. Dependências:', currentPage, searchTerm, statusFilter, paymentFilter);
+      const filteredOrders = data.filter((order) => {
+        const matchesSearch =
+          order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.store.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+
+        const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+        const matchesPayment = paymentFilter === 'all' || order.paymentMethod === paymentFilter;
+
+        return matchesSearch && matchesStatus && matchesPayment;
+      });
+
+      filteredOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
+      setOrders(paginatedOrders);
+      setTotalPages(Math.ceil(filteredOrders.length / itemsPerPage));
+      setError(null);
+    } catch (err) {
+      setError("Erro ao carregar pedidos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. No useEffect, substitua fetchOrders() por fetchOrders
+  useEffect(() => {
     fetchOrders();
-  }, [currentPage, searchTerm, statusFilter, paymentFilter]);
+  }, [currentPage, searchTerm, statusFilter, paymentFilter, selectedStore]);
 
   // Função para buscar os detalhes do pedido do backend
   const fetchOrderDetails = async (orderId: string) => {
@@ -409,13 +403,14 @@ export function PedidosTab() {
 
       setIsOrderSuccessOpen(true);
 
+      // 3. Após criar o pedido, chame fetchOrders()
+      fetchOrders();
+
       // Se o pagamento for BCH, abra o modal de QR Code imediatamente
       if (savedOrder.paymentMethod === 'bch' && savedOrder._id) {
         openQrModal(savedOrder._id);
-      } else {
-        setOrders(prev => [savedOrder, ...prev].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, itemsPerPage));
       }
-
+      // Remova o else que fazia setOrders manualmente
     } catch (error: any) {
       console.error("[PedidosTab] Erro ao criar pedido:", error);
       alert(error.message || "Erro ao criar pedido.");

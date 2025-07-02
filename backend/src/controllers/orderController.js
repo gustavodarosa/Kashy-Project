@@ -1,4 +1,4 @@
-const Order = require('../models/Order'); // Ensure consistent casing with your model file
+const order = require('../models/Order'); // Corrija para minúsculo
 const { deriveInvoiceAddress } = require('../services/walletService'); // Use deriveInvoiceAddress
 const { getBchToBrlRate } = require('../services/exchangeRate');
 const { verifyPayment } = require('../services/bchService'); // Import verifyPayment
@@ -15,11 +15,11 @@ const updateOrder = async (req, res) => {
     const { items, ...updateFields } = req.body;
 
     // 1. Busque o pedido antigo
-    const oldOrder = await Order.findById(id);
+    const oldOrder = await order.findById(id);
     if (!oldOrder) return res.status(404).json({ message: 'Pedido não encontrado.' });
 
     // 2. Atualize o pedido
-    const updatedOrder = await Order.findByIdAndUpdate(
+    const updatedOrder = await order.findByIdAndUpdate(
       id,
       { ...updateFields, items },
       { new: true, runValidators: true }
@@ -137,7 +137,7 @@ const createOrder = async (req, res) => {
       orderData.exchangeRateUsed = currentExchangeRate;
     }
 
-    const newOrder = new Order(orderData);
+    const newOrder = new order(orderData);
     const savedOrder = await newOrder.save();
 
     // Atualiza o estoque dos produtos
@@ -170,7 +170,7 @@ const createOrder = async (req, res) => {
 const verifyOrderPayment = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const order = await Order.findById(orderId);
+    const order = await order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({ message: 'Pedido não encontrado.' });

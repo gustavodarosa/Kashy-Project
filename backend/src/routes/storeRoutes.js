@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const Store = require('../models/store');
 const { protect } = require('../middlewares/authMiddleware');
 const storeController = require('../controllers/storeController');
 const User = require('../models/user'); // Certifique-se de que o caminho para o modelo User está correto
@@ -18,6 +19,22 @@ router.get('/by-email', protect, async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao buscar usuário por email.' });
+  }
+});
+
+// Remover colaborador de uma loja
+router.post('/remove-collaborator', protect, async (req, res) => {
+  const { storeId, collaboratorId } = req.body;
+  try {
+    const store = await Store.findById(storeId);
+    if (!store) return res.status(404).json({ message: 'Loja não encontrada.' });
+
+    store.collaborators = (store.collaborators || []).filter(id => id.toString() !== collaboratorId);
+    await store.save();
+
+    res.status(200).json({ message: 'Colaborador removido com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao remover colaborador.' });
   }
 });
 

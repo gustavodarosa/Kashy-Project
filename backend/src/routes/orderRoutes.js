@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Order = require('../models/order');
+const Order = require('../models/Order');
 const Product = require('../models/product'); // Import Product model
 const logger = require('../utils/logger'); // Import the logger
 const { createOrder, updateOrder } = require('../controllers/orderController');
@@ -8,15 +8,17 @@ const { protect } = require('../middlewares/authMiddleware');
 
 // Endpoint para buscar todos os pedidos
 router.get('/', protect, async (req, res) => {
-
   try {
-    // Ensure user is authenticated to fetch their orders
     if (!req.user || !req.user.id) {
-       logger.warn('[GET /api/orders] Attempt to fetch orders without authenticated user.');
-       return res.status(401).json({ message: 'Usuário não autenticado.' });
+      logger.warn('[GET /api/orders] Attempt to fetch orders without authenticated user.');
+      return res.status(401).json({ message: 'Usuário não autenticado.' });
     }
-    // Busca apenas os pedidos atrelados ao usuário logado
-    const orders = await Order.find({ user: req.user.id }).populate('items.product').sort({ createdAt: -1 }); // Sort by creation date descending
+    const { store } = req.query;
+    const query = { user: req.user.id };
+    if (store) {
+      query.store = store;
+    }
+    const orders = await Order.find(query).populate('items.product').sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (error) {
     console.error('Erro ao buscar pedidos:', error);
