@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { Bell, Lock, Globe, HardDrive, Download, Trash2, Settings, Palette } from 'lucide-react';
+import { Bell, Lock, Globe, HardDrive, Download, Trash2, Settings, Palette, Eye, EyeOff } from 'lucide-react';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { t, LanguageKey, translations } from '../../../utils/languages';
 import { ThemeKey, themes } from '../../../utils/themes';
-
+import { toast } from 'react-toastify'; // Importação para toasts
+import 'react-toastify/dist/ReactToastify.css'; // Estilos para toasts
 
 type ThemeColorKey = keyof typeof themes.default.colors;
 
@@ -15,6 +16,44 @@ const TABS = [
   { key: 'security', label: 'Segurança', icon: Lock },
   { key: 'data', label: 'Dados & Privacidade', icon: HardDrive },
 ];
+
+function AccordionItem({ title, children }: { title: string, children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`border rounded-lg bg-[#232428]/60 transition-all duration-300
+      border-white/10
+      ${open ? " ring-1 ring-[#1b6a5d] transition-all ease-in-out duration-300 " : ""}
+
+    `}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex rounded-lg justify-between items-center px-4 py-3 text-left font-medium text-slate-200 focus:outline-none hover:bg-[#2F363E]/70 transition-all duration-300 ease-in-out
+        ${open ? "bg-[#1C1F23]" : "hover:bg-[#1C1F23]"}
+        `}
+      >
+        <span>{title}</span>
+        <span className={`transition-transform duration-700 ease-in-out ${open ? "rotate-90" : ""}`}>▶</span>
+      </button>
+      <div className={`overflow-hidden transition-all duration-150 ease-in-out ${open ? "max-h-[1000px] py-2 px-4" : "max-h-0 py-0 px-4"}`}>
+        <div className="text-slate-400 text-sm">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function debounce(func: (...args: any[]) => void, delay: number) {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+}
 
 export function SettingsTab() {
   const { language, changeLanguage } = useLanguage();
@@ -36,6 +75,8 @@ export function SettingsTab() {
   const [emailMessage, setEmailMessage] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => { applyTheme(activeTheme); }, [activeTheme]);
 
@@ -54,31 +95,33 @@ export function SettingsTab() {
     localStorage.setItem('dashboardTheme', themeKey);
   }
 
-  function AccordionItem({ title, children }: { title: string, children: React.ReactNode }) {
-    const [open, setOpen] = useState(false);
-    return (
-      <div className={`border rounded-lg bg-[#232428]/60 transition-all duration-300
-        border-white/10
-        ${open ? " ring-1 ring-[#1b6a5d] transition-all ease-in-out duration-300 " : ""}
-      `}>
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          className={`w-full flex rounded-lg justify-between items-center px-4 py-3 text-left font-medium text-slate-200 focus:outline-none hover:bg-[#2F363E]/70 transition-all duration-300 ease-in-out`}
-        >
-          <span>{title}</span>
-          <span className={`transition-transform duration-700 ease-in-out ${open ? "rotate-90" : ""}`}>▶</span>
-        </button>
-        <div className={`overflow-hidden transition-all duration-150 ease-in-out ${open ? "max-h-[1000px] py-2 px-4" : "max-h-0 py-0 px-4"}`}>
-          <div className="text-slate-400 text-sm">{children}</div>
-        </div>
-      </div>
-    );
-  }
-
   const handleThemeChange = (themeKey: ThemeKey) => { applyTheme(themeKey); setActiveTheme(themeKey); };
   const handleNotificationChange = (type: keyof typeof notifications) => setNotifications(prev => ({ ...prev, [type]: !prev[type] }));
   const handleDataPreferenceChange = (type: keyof typeof dataPreferences) => setDataPreferences(prev => ({ ...prev, [type]: !prev[type] }));
+
+  const handleUpdateUsername = async () => {
+    if (!newUsername.trim()) {
+      toast.error('O nome de usuário não pode estar vazio.');
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:3000/api/user/update-username', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ username: newUsername }),
+      });
+      if (response.ok) {
+        toast.success('Nome de usuário atualizado com sucesso.');
+      } else {
+        toast.error('Erro ao atualizar nome de usuário.');
+      }
+    } catch (error) {
+      toast.error('Erro ao conectar ao servidor.');
+    }
+  };
 
   const timezonesForCurrentLanguage = translations[language]?.language?.timezones || translations['pt-BR'].language.timezones;
   const themeColorKeys: ThemeColorKey[] = ['--color-bg-primary', '--color-accent', '--color-text-primary', '--color-border'];
@@ -152,7 +195,7 @@ export function SettingsTab() {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         {/* Hero Section for the active tab */}
         <div className="mb-8">
-          <div className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <div className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <div className="flex items-center gap-3">
               {TABS.find(t => t.key === activeTab)?.icon && (
                 React.createElement(TABS.find(t => t.key === activeTab)!.icon, { size: 28, className: "text-slate-300" })
@@ -172,7 +215,7 @@ export function SettingsTab() {
         </div>
 
         {activeTab === 'appearance' && (
-          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
@@ -206,7 +249,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'notifications' && (
-          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Preferências de Notificação</h3>
             <div className="space-y-5">
               {[
@@ -239,7 +282,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'language' && (
-          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Configurações Regionais</h3>
             <div className="space-y-5">
               <div>
@@ -276,7 +319,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'security' && (
-          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
             <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança</h3>
 
             {/* 2FA Switch */}
@@ -325,26 +368,9 @@ export function SettingsTab() {
 
             {/* Username */}
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
-                try {
-                  const response = await fetch('http://localhost:3000/api/user/update-username', {
-                    method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                    body: JSON.stringify({ username: newUsername }),
-                  });
-                  if (response.ok) {
-                    const data = await response.json();
-                    alert(data.message);
-                  } else {
-                    alert('Erro ao atualizar username.');
-                  }
-                } catch (error) {
-                  console.error('Erro ao conectar ao servidor:', error);
-                }
+                handleUpdateUsername();
               }}
               className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10"
             >
@@ -354,20 +380,28 @@ export function SettingsTab() {
                   type="text"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  className="flex-grow px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
+                  className={`flex-grow px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border ${!newUsername.trim() ? 'border-red-500' : 'border-white/10'
+                    } rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm`}
                   placeholder={t('security.enterNewUsername', language)}
                 />
-                <button type="submit" className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm">
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                >
                   {t('security.updateUsername', language)}
                 </button>
               </div>
             </form>
 
             {/* Email */}
-            <AccordionItem title="Atualizar Email" >
+            <AccordionItem title="Atualizar Email">
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (!validateEmail(newEmail)) {
+                    toast.error('Email inválido.');
+                    return;
+                  }
                   setEmailMessage(null);
                   setEmailError(null);
                   if (!currentPasswordForEmail) {
@@ -433,7 +467,6 @@ export function SettingsTab() {
             </AccordionItem>
 
             {/* Password */}
-
             <AccordionItem title="Alterar Senha" className="mb-4">
               <form
                 onSubmit={async (e) => {
@@ -465,24 +498,44 @@ export function SettingsTab() {
                 className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10 space-y-4"
               >
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.currentPassword', language)}</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
-                    placeholder={t('security.enterCurrentPassword', language)}
-                  />
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    {t('security.currentPassword', language)}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                      placeholder={t('security.enterCurrentPassword', language)}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      className="absolute right-2 inset-y-0 my-auto flex items-center text-slate-400 hover:text-slate-200"
+                      onClick={() => setShowPassword(v => !v)}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newPassword', language)}</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newPassword', language)}</label>
+                <div className="relative">
                   <input
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
                     placeholder={t('security.enterNewPassword', language)}
                   />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="absolute right-2 inset-y-0 my-auto flex items-center text-slate-400 hover:text-slate-200"
+                    onClick={() => setShowNewPassword(v => !v)}
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 {passwordMessage && <div className="text-sm text-emerald-400">{passwordMessage}</div>}
                 {passwordError && <div className="text-sm text-red-400">{passwordError}</div>}
@@ -496,12 +549,16 @@ export function SettingsTab() {
                 </div>
               </form>
             </AccordionItem>
-            {/* Phone */}
 
+            {/* Phone */}
             <AccordionItem title="Atualizar Telefone">
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (!phone.match(/^\+[1-9]\d{1,14}$/)) {
+                    toast.error('Número de telefone inválido.');
+                    return;
+                  }
                   setPhoneMessage(null);
                   setPhoneError(null);
                   try {
@@ -556,7 +613,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'data' && (
-          <section className="p-6 bg-[#232428]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Gerenciamento de Dados</h3>
             <div className="space-y-5">
               {[

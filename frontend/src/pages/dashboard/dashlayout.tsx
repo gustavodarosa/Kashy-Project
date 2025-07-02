@@ -623,11 +623,11 @@ export function Dashboard() {
             {showProfileModal && (
                 <div
                     className="fixed inset-0 backdrop-blur-md backdrop-filter flex items-center justify-center z-50 p-4"
-                    onClick={() => setShowProfileModal(false)}
+                    onMouseDown={() => setShowProfileModal(false)}
                 >
                     <div
                         className="relative w-full max-w-md rounded-xl shadow-2xl bg-[#232428] overflow-hidden animate-fadeIn"
-                        onClick={e => e.stopPropagation()}
+                        onMouseDown={e => e.stopPropagation()}
                     >
                         {/* Header */}
                         <div className="overflow-hidden relative flex items-center justify-center px-6 py-5 bg-[#232428] drop-shadow-[0_0_100px_#70fec0] ">
