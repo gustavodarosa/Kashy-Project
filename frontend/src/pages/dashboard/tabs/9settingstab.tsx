@@ -55,6 +55,40 @@ function debounce(func: (...args: any[]) => void, delay: number) {
   };
 }
 
+function AnimatedStripeProgressBar() {
+  const barRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    let frame = 0;
+    let running = true;
+    const animate = () => {
+      if (barRef.current) {
+        barRef.current.style.backgroundPosition = `${frame}px 0`;
+      }
+      frame = (frame + 2) % 40;
+      if (running) requestAnimationFrame(animate);
+    };
+    animate();
+    return () => { running = false; };
+  }, []);
+
+  return (
+    <div className="relative w-full h-2 rounded-lg overflow-hidden bg-[#232428]/60 border border-white/10  ">
+      <div
+        ref={barRef}
+        className="absolute inset-0 opacity-80"
+        style={{
+          backgroundImage:
+            "linear-gradient(120deg,#1  a7364 25%,#70fec0 25%,#70fec0 50%,#1a7364 50%,#1a7364 75%,#70fec0 75%,#70fec0 100%)",
+          backgroundSize: "40px 40px",
+          backgroundRepeat: "repeat",
+          filter: "shadow(0 0 16px #70fec0)",
+        }}
+      />
+    </div>
+  );
+}
+
 export function SettingsTab() {
   const { language, changeLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState('appearance');
@@ -320,51 +354,15 @@ export function SettingsTab() {
 
         {activeTab === 'security' && (
           <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
-            <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança</h3>
-
-            {/* 2FA Switch */}
-            <div className="flex items-center justify-between p-4 bg-[#24292D]/50 rounded-lg border border-white/10">
-              <div>
-                <p className="font-medium text-slate-200">Autenticação em Dois Fatores (2FA)</p>
-                <p className="text-xs text-slate-400 max-w-md">
-                  Adicione uma camada extra de segurança à sua conta.
-                </p>
-              </div>
-              <button
-                onClick={async () => {
-                  const newValue = !twoFactorEnabled;
-                  setTwoFactorEnabled(newValue);
-                  try {
-                    const token = localStorage.getItem('token');
-                    const res = await fetch('http://localhost:3000/api/user/two-factor', {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({ enabled: newValue, method: twoFactorMethod }),
-                    });
-                    if (!res.ok) {
-                      setTwoFactorEnabled(!newValue); // Reverte se falhar
-                      alert('Erro ao atualizar 2FA.');
-                    }
-                  } catch {
-                    setTwoFactorEnabled(!newValue);
-                    alert('Erro ao conectar ao servidor.');
-                  }
-                }}
-                className={`relative inline-flex h-5 w-10 flex-shrink-0 items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none
-                  ${twoFactorEnabled
-                    ? 'bg-slate-500'
-                    : 'bg-slate-700'}`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-300 ease-in-out
-                    ${twoFactorEnabled ? 'translate-x-[1.1rem]' : 'translate-x-1'}`}
-                />
-              </button>
+             <div className="flex items-center gap-4 mb-6">
+            <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança              
+            </h3>
+            <div className='flex-1 flex items-center '>
+              <AnimatedStripeProgressBar />
             </div>
+            </div>
+
+            {/* Two-Factor Authentication */}
 
             {/* Username */}
             <form
@@ -372,9 +370,9 @@ export function SettingsTab() {
                 e.preventDefault();
                 handleUpdateUsername();
               }}
-              className="p-4 bg-[#24292D]/50 rounded-lg border border-white/10"
+              className="p-4 bg-[#24292D]/50 rounded-lg border  border-white/10"
             >
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">{t('security.newUsername', language)}</label>
+              <label className="block text-xs font-medium text-slate-300  mb-1.5">{t('security.newUsername', language)}</label>
               <div className="flex gap-3">
                 <input
                   type="text"
@@ -386,7 +384,8 @@ export function SettingsTab() {
                 />
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                  className="px-5 py-2  bg-[#1a7364] text-white rounded-lg font-medium shadow-lg text-sm
+                  transition-all duration-150  hover:shadow-[0_0_5px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
                 >
                   {t('security.updateUsername', language)}
                 </button>
