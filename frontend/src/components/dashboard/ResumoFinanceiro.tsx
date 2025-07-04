@@ -1,11 +1,9 @@
-// c:\Users\gustavo.rosa8\Desktop\Kashy-Project\frontend\src\components\dashboard\ResumoFinanceiro.tsx
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ArrowDownCircle, ArrowUpCircle, TrendingUp, TrendingDown, DollarSign, Calendar, Eye } from "lucide-react"
 
 interface DadosFinanceiros {
-  totalVendido: number
   entradas: number
   saidas: number
   periodo: string
@@ -16,8 +14,7 @@ interface DadosFinanceiros {
   diasRestantes: number
 }
 
-const dadosFinanceiros: DadosFinanceiros = {
-  totalVendido: 12340.5,
+const initialDadosFinanceiros: DadosFinanceiros = {
   entradas: 8720.0,
   saidas: 3620.5,
   periodo: "Últimos 7 dias",
@@ -31,12 +28,81 @@ const dadosFinanceiros: DadosFinanceiros = {
 export default function ResumoFinanceiro() {
   const [isLoading, setIsLoading] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [totalVendido, setTotalVendido] = useState<number>(0)
+  const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros>(initialDadosFinanceiros)
+
+  useEffect(() => {
+    const fetchTotalVendido = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) throw new Error("Usuário não autenticado.")
+
+        const response = await fetch("http://localhost:3000/api/wallet/transactions", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || "Erro ao buscar transações.")
+        }
+
+        const transactions = await response.json()
+        const totalReceived = transactions
+          .filter((tx: any) => tx.type === "received" && tx.status === "confirmed")
+          .reduce((sum: number, tx: any) => sum + tx.amountBCH, 0)
+
+        setTotalVendido(totalReceived)
+      } catch (error) {
+        console.error("Erro ao buscar total vendido:", error.message)
+      }
+    }
+
+    fetchTotalVendido()
+  }, [])
+
+  useEffect(() => {
+    const fetchFinanceData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Usuário não autenticado.");
+
+        const response = await fetch("http://localhost:3000/api/wallet/transactions", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erro ao buscar transações.");
+        }
+
+        const transactions = await response.json();
+
+        const totalEntradas = transactions
+          .filter((tx: any) => tx.type === "received" && tx.status === "confirmed")
+          .reduce((sum: number, tx: any) => sum + tx.amountBRL, 0);
+
+        const totalSaidas = transactions
+          .filter((tx: any) => tx.type === "sent" && tx.status === "confirmed")
+          .reduce((sum: number, tx: any) => sum + tx.amountBRL, 0);
+
+        setDadosFinanceiros((prev) => ({
+          ...prev,
+          entradas: totalEntradas,
+          saidas: totalSaidas,
+        }));
+      } catch (error) {
+        console.error("Erro ao buscar dados financeiros:", error.message);
+      }
+    };
+
+    fetchFinanceData();
+  }, []);
 
   const metricas = useMemo(() => {
     const lucroLiquido = dadosFinanceiros.entradas - dadosFinanceiros.saidas
     const margemLucro = (lucroLiquido / dadosFinanceiros.entradas) * 100
-    const progressoMeta = (dadosFinanceiros.totalVendido / dadosFinanceiros.metaMensal) * 100
-    const projecaoMensal = (dadosFinanceiros.totalVendido / 7) * 30 // Projeção baseada nos últimos 7 dias
+    const progressoMeta = (totalVendido / dadosFinanceiros.metaMensal) * 100
+    const projecaoMensal = (totalVendido / 7) * 30 // Projeção baseada nos últimos 7 dias
 
     return {
       lucroLiquido,
@@ -44,7 +110,7 @@ export default function ResumoFinanceiro() {
       progressoMeta,
       projecaoMensal,
     }
-  }, [])
+  }, [totalVendido, dadosFinanceiros])
 
   if (isLoading) {
     return (
@@ -111,7 +177,7 @@ export default function ResumoFinanceiro() {
       <div className="relative z-10"> {/* Removido text-center */}
         <div className="mb-2">
           <p className="text-4xl font-bold tracking-tight">
-            R$ {dadosFinanceiros.totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            {totalVendido.toFixed(8)} BCH
           </p>
           <div className="flex items-center gap-2 mt-2"> {/* Removido justify-center */}
             <p className="text-sm text-white/70">Total vendido</p>

@@ -67,17 +67,17 @@ export function SettingsTab() {
         const token = localStorage.getItem('token');
         if (!token) {
           console.error('[SettingsTab] No token found. Cannot fetch 2FA status.');
-          // Optionally, set an error state here to inform the user or redirect to login
+          
           return;
         }
 
         try {
           const res = await fetch('http://localhost:3000/api/user/me', {
-            method: 'GET', // Explicitly state method
+            method: 'GET', 
             headers: {
               'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json', // Align with other requests
-              'Accept': 'application/json'        // Specify expected response type
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json'        
             }
           });
 
@@ -89,11 +89,11 @@ export function SettingsTab() {
           } else {
             const errorData = await res.json().catch(() => ({ message: "Failed to parse error response from server." }));
             console.error(`[SettingsTab] Error fetching 2FA status: ${res.status} - ${res.statusText}`, errorData);
-            // Optionally, set an error state here to inform the user
+          
           }
         } catch (error) {
           console.error('[SettingsTab] Network error or other issue fetching 2FA status:', error);
-          // Optionally, set an error state here
+          
         }
       };
       fetch2FA();
@@ -131,7 +131,6 @@ export function SettingsTab() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        {/* Hero Section for the active tab */}
         <div className="mb-8">
           <div className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
             <div className="flex items-center gap-3">
@@ -259,7 +258,6 @@ export function SettingsTab() {
         {activeTab === 'security' && (
           <section className="p-6 bg-[#2F363E]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
             <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança</h3>
-
             {/* 2FA Switch */}
             <div className="flex items-center justify-between p-4 bg-[#24292D]/50 rounded-lg border border-white/10">
               <div>

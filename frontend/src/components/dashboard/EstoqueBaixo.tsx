@@ -1,78 +1,43 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AlertCircle, Package, ArrowRight, Search } from "lucide-react"
 
-interface ProdutoCritico {
-  id: number
-  nome: string
-  quantidade: number
-  minimo: number
-  categoria: string
-  imagem?: string
-}
-
-const produtosCriticos: ProdutoCritico[] = [
-  {
-    id: 1,
-    nome: "Camiseta Kashy",
-    quantidade: 3,
-    minimo: 10,
-    categoria: "Roupas",
-    imagem: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 2,
-    nome: "Caneca Verde",
-    quantidade: 2,
-    minimo: 5,
-    categoria: "Acessórios",
-    imagem: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 3,
-    nome: "Adesivo",
-    quantidade: 1,
-    minimo: 20,
-    categoria: "Acessórios",
-    imagem: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 4,
-    nome: "Moletom Kashy",
-    quantidade: 4,
-    minimo: 8,
-    categoria: "Roupas",
-    imagem: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: 5,
-    nome: "Boné Kashy",
-    quantidade: 2,
-    minimo: 10,
-    categoria: "Acessórios",
-    imagem: "/placeholder.svg?height=40&width=40",
-  },
-]
-
-// Função para calcular o nível de criticidade
-function getNivelCriticidade(quantidade: number, minimo: number): "critico" | "baixo" | "medio" {
-  const percentual = (quantidade / minimo) * 100
-  if (percentual <= 20) return "critico"
-  if (percentual <= 50) return "baixo"
-  return "medio"
+interface Produto {
+  _id: string
+  name: string
+  quantity: number
+  category: string
 }
 
 export default function EstoqueBaixo() {
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [produtos, setProdutos] = useState<Produto[]>([])
 
-  const produtosFiltrados = produtosCriticos.filter((produto) =>
-    produto.nome.toLowerCase().includes(searchTerm.toLowerCase()),
+  useEffect(() => {
+    const fetchProdutosBaixoEstoque = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch("http://localhost:3000/api/products/low-stock")
+        if (!response.ok) {
+          throw new Error("Erro ao buscar produtos com estoque baixo")
+        }
+        const data: Produto[] = await response.json()
+        setProdutos(data)
+      } catch (error) {
+        console.error("Erro ao buscar produtos com estoque baixo:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProdutosBaixoEstoque()
+  }, [])
+
+  const produtosFiltrados = produtos.filter(
+    (produto) => produto.quantity > 0 && produto.quantity <= 15 && produto.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
-
-  const totalCritico = produtosCriticos.filter((p) => getNivelCriticidade(p.quantidade, p.minimo) === "critico").length
-  const totalBaixo = produtosCriticos.filter((p) => getNivelCriticidade(p.quantidade, p.minimo) === "baixo").length
 
   if (isLoading) {
     return (
@@ -102,17 +67,6 @@ export default function EstoqueBaixo() {
       </div>
 
       <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex gap-3 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-red-500 rounded-full" />
-            <span className="text-gray-300">{totalCritico} críticos</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-            <span className="text-gray-300">{totalBaixo} baixos</span>
-          </div>
-        </div>
-
         <div className="relative">
           <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
@@ -129,52 +83,42 @@ export default function EstoqueBaixo() {
         {produtosFiltrados.length === 0 ? (
           <li className="text-center py-4 text-gray-400 text-sm">Nenhum produto encontrado</li>
         ) : (
-          produtosFiltrados.map((produto) => {
-            const criticidade = getNivelCriticidade(produto.quantidade, produto.minimo)
-            return (
-              <li
-                key={produto.id}
-                className="flex justify-between items-center bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-colors duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <div className="w-8 h-8 bg-gray-700 rounded-md flex items-center justify-center">
-                      <Package className="w-4 h-4 text-gray-400" />
-                    </div>
-                    <div
-                      className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${
-                        criticidade === "critico"
-                          ? "bg-red-500"
-                          : criticidade === "baixo"
-                            ? "bg-yellow-500"
-                            : "bg-orange-500"
+          produtosFiltrados.map((produto) => (
+            <li
+              key={produto._id}
+              className={`flex justify-between items-center bg-gray-800/50 px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-colors duration-200 ${
+                produto.quantity === 0 ? "border-red-500" : produto.quantity <= 15 ? "border-yellow-500" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="w-8 h-8 bg-gray-700 rounded-md flex items-center justify-center">
+                    <Package
+                      className={`w-4 h-4 ${
+                        produto.quantity === 0 ? "text-red-400" : produto.quantity <= 15 ? "text-yellow-400" : "text-gray-400"
                       }`}
                     />
                   </div>
-                  <div>
-                    <div className="text-sm font-medium">{produto.nome}</div>
-                    <div className="text-xs text-gray-400">{produto.categoria}</div>
-                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs font-semibold ${
-                      criticidade === "critico"
-                        ? "text-red-400"
-                        : criticidade === "baixo"
-                          ? "text-yellow-400"
-                          : "text-orange-400"
-                    }`}
-                  >
-                    {produto.quantidade} un
-                  </span>
-                  <button className="text-gray-400 hover:text-[#14B498] transition-colors">
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                <div>
+                  <div className="text-sm font-medium">{produto.name}</div>
+                  <div className="text-xs text-gray-400">{produto.category}</div>
                 </div>
-              </li>
-            )
-          })
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-semibold ${
+                    produto.quantity === 0 ? "text-red-400" : produto.quantity <= 15 ? "text-yellow-400" : "text-gray-400"
+                  }`}
+                >
+                  {produto.quantity === 0 ? "Esgotado" : `${produto.quantity} un`}
+                </span>
+                <button className="text-gray-400 hover:text-[#14B498] transition-colors">
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </li>
+          ))
         )}
       </ul>
     </div>

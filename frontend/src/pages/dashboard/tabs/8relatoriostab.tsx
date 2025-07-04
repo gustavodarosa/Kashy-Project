@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Listbox } from '@headlessui/react';
-import { BarChart, PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Tooltip, ResponsiveContainer, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import {
   DollarSign,
   ShoppingBag,
@@ -11,14 +11,13 @@ import {
   Calculator,
   Info,
   Package,
-  Wallet, // Adicionado Wallet
+  Wallet,
   CheckCircle,
-  CalendarDays, // Adicionado CalendarDays
+  CalendarDays,
   GripVertical,
   X
 } from 'lucide-react';
 
-// Dnd-kit imports
 import {
   DndContext,
   DragOverlay,
@@ -42,23 +41,20 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 interface ReportRow {
-  [key: string]: any; // Allow any key since the backend flattens the _id
-  result: number; // The aggregated value (sum, average, count)
+  [key: string]: any; 
+  result: number; 
 }
 
-// Define o tipo Store
 interface Store {
   _id: string;
   name: string;
 }
 
-// Define o tipo Product
 interface Product {
   _id: string;
   name: string;
 }
 
-// Custom hook for debouncing
 function useDebounce(value: any, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -68,7 +64,6 @@ function useDebounce(value: any, delay: number) {
   return debouncedValue;
 }
 
-// Helper function for deep array comparison
 const arraysEqual = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -77,7 +72,6 @@ const arraysEqual = (a: string[], b: string[]) => {
   return true;
 };
 
-// New component for draggable available options
 interface DraggableLineOptionProps {
   option: { value: string; label: string; icon: JSX.Element };
 }
@@ -106,7 +100,6 @@ function DraggableLineOption({ option }: DraggableLineOptionProps) {
   );
 }
 
-// New component for sortable selected lines
 interface SortableSelectedLineProps {
   id: string;
   label: string;
@@ -154,19 +147,17 @@ export function RelatoriosTab() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado para os filtros selecionados
-  const [selectedLines, setSelectedLines] = useState<string[]>(['store']); // Alterado para array
-  const [selectedValue, setSelectedValue] = useState<string>(''); // Atualizado para string vazia
-  const [selectedFunction, setSelectedFunction] = useState<string>(''); // Atualizado para string vazia
-  const [retry, setRetry] = useState(0); // State to trigger a retry
+  const [selectedLines, setSelectedLines] = useState<string[]>(['store']); 
+  const [selectedValue, setSelectedValue] = useState<string>('');
+  const [selectedFunction, setSelectedFunction] = useState<string>('');
+  const [retry, setRetry] = useState(0); 
 
-  // Debounce the filter states to avoid excessive API calls
   const debouncedLines = useDebounce(selectedLines, 500);
   const debouncedValue = useDebounce(selectedValue, 500);
   const debouncedFunction = useDebounce(selectedFunction, 500);
 
-  const [stores, setStores] = useState<Store[]>([]); // Define o tipo do estado
-  const [products, setProducts] = useState<Product[]>([]); // Estado para armazenar os produtos
+  const [stores, setStores] = useState<Store[]>([]); 
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const fetchAllStores = async () => {
@@ -176,9 +167,9 @@ export function RelatoriosTab() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('Erro ao buscar todas as lojas');
-        const data: Store[] = await response.json(); // Define o tipo da resposta
-        console.log('Lojas encontradas:', data); // Loga as lojas no console do navegador
-        setStores(data); // Atualiza o estado com as lojas
+        const data: Store[] = await response.json(); 
+        console.log('Lojas encontradas:', data); 
+        setStores(data); 
       } catch (err: unknown) {
         if (err instanceof Error) {
           console.error('Erro ao buscar todas as lojas:', err.message);
@@ -199,9 +190,9 @@ export function RelatoriosTab() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error('Erro ao buscar todos os produtos');
-        const data: Product[] = await response.json(); // Define o tipo da resposta
-        console.log('Produtos encontrados:', data); // Loga os produtos no console do navegador
-        setProducts(data); // Atualiza o estado com os produtos
+        const data: Product[] = await response.json(); 
+        console.log('Produtos encontrados:', data); 
+        setProducts(data); 
       } catch (err: unknown) {
         if (err instanceof Error) {
           console.error('Erro ao buscar todos os produtos:', err.message);
@@ -216,9 +207,9 @@ export function RelatoriosTab() {
 
   const productOptions = useMemo(() => {
     return products.map(product => ({
-      value: `product.${product._id}`, // Identificador único para cada produto
-      label: product.name, // Nome do produto
-      icon: <Package size={16} />, // Ícone para representar produtos
+      value: `product.${product._id}`,
+      label: product.name, 
+      icon: <Package size={16} />, 
     }));
   }, [products]);
 
@@ -232,20 +223,19 @@ export function RelatoriosTab() {
   ];
 
   const valueOptions = [
-    { value: '', label: 'Selecione o valor', icon: <Info size={16} /> }, // Opção nula
+    { value: '', label: 'Selecione o valor', icon: <Info size={16} /> }, 
     { value: 'totalAmount', label: 'Valor Total do Pedido', icon: <DollarSign size={16} /> },
     { value: 'items.quantity', label: 'Quantidade de Itens', icon: <ShoppingBag size={16} /> },
-    { value: 'items.revenue', label: 'Faturamento por Produto', icon: <DollarSign size={16} /> }, // Nova opção
-    { value: 'netAmount', label: 'Valor Líquido', icon: <Wallet size={16} /> }, // Nova opção
+    { value: 'items.revenue', label: 'Faturamento por Produto', icon: <DollarSign size={16} /> },
+    { value: 'netAmount', label: 'Valor Líquido', icon: <Wallet size={16} /> }, 
   ];
   const functionOptions = [
-    { value: '', label: 'Selecione a função', icon: <Info size={16} /> }, // Opção nula
+    { value: '', label: 'Selecione a função', icon: <Info size={16} /> }, 
     { value: 'sum', label: 'Soma', icon: <Calculator size={16} /> },
     { value: 'avg', label: 'Média', icon: <TrendingUp size={16} /> },
     { value: 'count', label: 'Contagem', icon: <Hash size={16} /> },
   ];
 
-  // Memoized icon map to prevent re-creation on each render
   const lineIconMap = useMemo(() => {
     const map: { [key: string]: JSX.Element } = {};
     lineOptions.forEach(opt => {
@@ -253,51 +243,39 @@ export function RelatoriosTab() {
     });
     return map;
   }, [lineOptions]);
-  // Dnd-kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Get the active draggable item from DndContext
   const { active } = useDndContext();
 
-  // Lógica para ajustar seleções inválidas automaticamente
   useEffect(() => {
     let currentLines = [...selectedLines];
     let currentValue = selectedValue;
     let currentFunction = selectedFunction;
     let stateChanged = false;
 
-    // --- Start of Filter Adjustment Logic ---
-
-    // Rule A: If 'items.name' is selected, value must be 'items.quantity' or 'items.revenue'.
     if (currentLines.includes('items.name') && currentValue !== 'items.quantity' && currentValue !== 'items.revenue') {
-      currentValue = 'items.revenue'; // Define a valid default
+      currentValue = 'items.revenue'; 
       stateChanged = true;
     }
 
-    // Rule B: If value is 'items.quantity' or 'items.revenue', 'items.name' MUST be included.
     if ((currentValue === 'items.quantity' || currentValue === 'items.revenue') && !currentLines.includes('items.name')) {
       currentLines = [...currentLines, 'items.name'];
       stateChanged = true;
     }
 
-    // Rule C: If value is 'totalAmount' or 'netAmount', 'items.name' MUST NOT be included.
     if ((currentValue === 'totalAmount' || currentValue === 'netAmount') && currentLines.includes('items.name')) {
       currentLines = currentLines.filter(line => line !== 'items.name');
       stateChanged = true;
     }
 
-    // Rule D: If value is 'items.quantity', 'avg' function is not allowed.
     if (currentValue === 'items.quantity' && currentFunction === 'avg') {
       currentFunction = 'sum';
       stateChanged = true;
     }
 
-    // --- End of Filter Adjustment Logic ---
-
-    // Apply changes if any occurred and they are actually different from current state
     if (stateChanged) {
       if (!arraysEqual(selectedLines, currentLines)) {
         setSelectedLines(currentLines);
@@ -311,7 +289,6 @@ export function RelatoriosTab() {
     }
   }, [selectedLines, selectedValue, selectedFunction]);
 
-  // Dnd-kit onDragEnd handler
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (!over) return;
@@ -339,29 +316,24 @@ export function RelatoriosTab() {
     }
   };
 
-  // Droppable for the selected lines area
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
     id: 'selected-lines-droppable',
   });
 
-  // Function to remove a selected line
   const handleRemoveSelectedLine = (idToRemove: string) => {
     setSelectedLines((prev) => prev.filter((lineId) => lineId !== idToRemove));
   };
 
-  // Memoize selected line options for rendering
   const selectedLineOptions = useMemo(() => {
     return selectedLines
       .map((lineId) => lineOptions.find((opt) => opt.value === lineId))
       .filter(Boolean) as { value: string; label: string; icon: JSX.Element }[];
   }, [selectedLines, lineOptions]);
 
-  // Memoize available line options (not yet selected)
   const availableLineOptions = useMemo(() => {
     return lineOptions.filter((option) => !selectedLines.includes(option.value));
   }, [selectedLines, lineOptions]);
 
-  // Filtered value options based on selected lines
   const filteredValueOptions = useMemo(() => {
     if (selectedLines.includes('items.name')) {
       return valueOptions.filter(option =>
@@ -371,7 +343,6 @@ export function RelatoriosTab() {
     return valueOptions;
   }, [selectedLines, valueOptions]);
 
-  // Filtered function options based on selected value
   const filteredFunctionOptions = useMemo(() => {
     if (selectedValue === 'items.quantity') {
       return functionOptions.filter(option => option.value !== 'avg');
@@ -379,8 +350,6 @@ export function RelatoriosTab() {
     return functionOptions;
   }, [selectedValue, functionOptions]);
 
-
-  // Função para buscar os dados do relatório do backend
   const fetchReportData = useCallback(async () => {
     if (!selectedFunction) {
       setError('Por favor, selecione uma função de agregação.');
@@ -392,7 +361,7 @@ export function RelatoriosTab() {
     try {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams({
-        line: debouncedLines.join(','), // Inclui 'store' se selecionado
+        line: debouncedLines.join(','), 
         value: debouncedValue,
         func: debouncedFunction,
       });
@@ -408,7 +377,7 @@ export function RelatoriosTab() {
       }
 
       const data: ReportRow[] = await response.json();
-      setReportData(data); // Atualiza os dados do relatório
+      setReportData(data);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message || 'Erro inesperado ao carregar relatório.');
@@ -424,8 +393,6 @@ export function RelatoriosTab() {
     fetchReportData();
   }, [fetchReportData, retry]);
 
-
-  // Funções auxiliares para formatação
   const formatValue = (value: number) => {
     if (selectedFunction === 'count') {
       return value.toFixed(0);
@@ -453,7 +420,7 @@ export function RelatoriosTab() {
 
   const formatRowLabel = (row: ReportRow) => {
     if (selectedLines.includes('store')) {
-      return `Loja: ${row.store || 'N/A'}`; // Exibe o nome da loja
+      return `Loja: ${row.store || 'N/A'}`; 
     }
     const parts = selectedLines.map(lineKey => {
       const label = lineOptions.find(opt => opt.value === lineKey)?.label || lineKey;
@@ -463,7 +430,6 @@ export function RelatoriosTab() {
     return fullLabel.length > 40 ? fullLabel.substring(0, 37) + '...' : fullLabel;
   };
 
-  // Custom Tooltip component for Recharts
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const dataPoint = payload[0].payload;
@@ -484,26 +450,23 @@ export function RelatoriosTab() {
     return null;
   };
 
-  // Memoized chart and table data
   const displayData = useMemo(() => {
-    // Inclui lojas sempre
     const storeData = stores.map(store => {
       const matchingReport = reportData.find(row => row.store === store._id);
       return {
-        name: store.name, // Nome da loja
-        result: matchingReport ? matchingReport.result : 0, // Valor do relatório ou 0 se não houver dados
-        type: 'Loja', // Tipo para diferenciar no gráfico
+        name: store.name, 
+        result: matchingReport ? matchingReport.result : 0, 
+        type: 'Loja', 
       };
     });
 
-    // Inclui produtos apenas se o filtro 'items.name' estiver selecionado
     const productData = selectedLines.includes('items.name')
       ? products.map(product => {
           const matchingReport = reportData.find(row => row.product === product._id);
           return {
-            name: product.name, // Nome do produto
-            result: matchingReport ? matchingReport.result : 0, // Valor do relatório ou 0 se não houver dados
-            type: 'Produto', // Tipo para diferenciar no gráfico
+            name: product.name, 
+            result: matchingReport ? matchingReport.result : 0, 
+            type: 'Produto', 
           };
         })
       : [];
@@ -511,7 +474,6 @@ export function RelatoriosTab() {
     return [...storeData, ...productData];
   }, [stores, products, reportData, selectedLines]);
 
-  // Renderiza o gráfico apropriado
   const renderChart = () => {
     if (displayData.length === 0) {
       return <div className="flex-grow flex items-center justify-center"><p className="text-gray-400">Nenhum dado para exibir.</p></div>;
