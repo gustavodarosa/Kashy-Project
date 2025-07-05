@@ -19,7 +19,16 @@ export default function EstoqueBaixo() {
     const fetchProdutosBaixoEstoque = async () => {
       try {
         setIsLoading(true)
-        const response = await fetch("http://localhost:3000/api/products/low-stock")
+        const token = localStorage.getItem("token")
+        const store = localStorage.getItem("store") // <- pega a loja logada
+        if (!store) {
+          setProdutos([])
+          setIsLoading(false)
+          return
+        }
+        const response = await fetch(`http://localhost:3000/api/products/low-stock?store=${encodeURIComponent(store)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         if (!response.ok) {
           throw new Error("Erro ao buscar produtos com estoque baixo")
         }
@@ -36,7 +45,9 @@ export default function EstoqueBaixo() {
   }, [])
 
   const produtosFiltrados = produtos.filter(
-    (produto) => produto.quantity > 0 && produto.quantity <= 15 && produto.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    (produto) =>
+      (produto.quantity === 0 || (produto.quantity > 0 && produto.quantity <= 15)) &&
+      produto.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   if (isLoading) {
@@ -62,23 +73,9 @@ export default function EstoqueBaixo() {
       <div className="p-4 border-b border-gray-600">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-400" />
-          Estoque Baixo
+          Controle de Estoque
         </h2>
       </div>
-
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="relative">
-          <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-md text-xs pl-7 pr-2 py-1 w-24 focus:outline-none focus:ring-1 focus:ring-[#14B498] text-white"
-          />
-        </div>
-      </div>
-
       <ul className="flex-1 space-y-2 px-4 pb-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
         {produtosFiltrados.length === 0 ? (
           <li className="text-center py-4 text-gray-400 text-sm">Nenhum produto encontrado</li>

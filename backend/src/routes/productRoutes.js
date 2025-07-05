@@ -22,7 +22,17 @@ router.delete('/:id', productController.deleteProduct);
 
 router.get('/low-stock', async (req, res) => {
   try {
-    const lowStockProducts = await Product.find({ quantity: { $gt: 0, $lte: 15 } });
+    const { store } = req.query;
+    const filter = {
+      $or: [
+        { quantity: { $eq: 0 } },
+        { quantity: { $gt: 0, $lte: 15 } }
+      ]
+    };
+    if (store) {
+      filter.store = store;
+    }
+    const lowStockProducts = await Product.find(filter);
     res.status(200).json(lowStockProducts);
   } catch (error) {
     console.error('Erro ao buscar produtos com estoque baixo:', error);
