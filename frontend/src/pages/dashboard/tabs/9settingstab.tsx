@@ -22,7 +22,7 @@ function AccordionItem({ title, children }: { title: string, children: React.Rea
   return (
     <div className={`border rounded-lg bg-[#232428]/60 transition-all duration-300
       border-white/10
-      ${open ? " ring-1 ring-[#1b6a5d] transition-all ease-in-out duration-300 " : ""}
+      ${open ? "  transition-all ease-in-out duration-300 " : ""}
 
     `}>
       <button
@@ -55,39 +55,6 @@ function debounce(func: (...args: any[]) => void, delay: number) {
   };
 }
 
-function AnimatedStripeProgressBar() {
-  const barRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    let frame = 0;
-    let running = true;
-    const animate = () => {
-      if (barRef.current) {
-        barRef.current.style.backgroundPosition = `${frame}px 0`;
-      }
-      frame = (frame + 2) % 40;
-      if (running) requestAnimationFrame(animate);
-    };
-    animate();
-    return () => { running = false; };
-  }, []);
-
-  return (
-    <div className="relative w-full h-2 rounded-lg overflow-hidden bg-[#232428]/60 border border-white/10  ">
-      <div
-        ref={barRef}
-        className="absolute inset-0 opacity-80"
-        style={{
-          backgroundImage:
-            "linear-gradient(120deg,#1  a7364 25%,#70fec0 25%,#70fec0 50%,#1a7364 50%,#1a7364 75%,#70fec0 75%,#70fec0 100%)",
-          backgroundSize: "40px 40px",
-          backgroundRepeat: "repeat",
-          filter: "shadow(0 0 16px #70fec0)",
-        }}
-      />
-    </div>
-  );
-}
 
 export function SettingsTab() {
   const { language, changeLanguage } = useLanguage();
@@ -95,6 +62,7 @@ export function SettingsTab() {
   const [activeTheme, setActiveTheme] = useState<ThemeKey>(loadTheme());
   const [notifications, setNotifications] = useState({ email: true, push: true, promotions: false });
   const [dataPreferences, setDataPreferences] = useState({ autoBackup: true, analytics: true });
+  const [usernameError, setUsernameError] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -135,10 +103,19 @@ export function SettingsTab() {
 
   const handleUpdateUsername = async () => {
     if (!newUsername.trim()) {
-      toast.error('O nome de usuário não pode estar vazio.');
+      setUsernameError(true);
+      toast.error('O nome de usuário não pode estar vazio.',{
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: false,
+        progress: undefined,
+      });
       return;
     }
-    try {
+      setUsernameError(false);
+      try { 
       const response = await fetch('http://localhost:3000/api/user/update-username', {
         method: 'PUT',
         headers: {
@@ -148,12 +125,22 @@ export function SettingsTab() {
         body: JSON.stringify({ username: newUsername }),
       });
       if (response.ok) {
-        toast.success('Nome de usuário atualizado com sucesso.');
+        toast.success('Nome de usuário atualizado com sucesso.',{
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          progress: undefined,
+        });
+        setNewUsername('');
       } else {
+        setUsernameError(true);
         toast.error('Erro ao atualizar nome de usuário.');
       }
     } catch (error) {
       toast.error('Erro ao conectar ao servidor.');
+      setUsernameError(true);
     }
   };
 
@@ -229,7 +216,7 @@ export function SettingsTab() {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         {/* Hero Section for the active tab */}
         <div className="mb-8">
-          <div className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <div className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d] ">
             <div className="flex items-center gap-3">
               {TABS.find(t => t.key === activeTab)?.icon && (
                 React.createElement(TABS.find(t => t.key === activeTab)!.icon, { size: 28, className: "text-slate-300" })
@@ -249,7 +236,7 @@ export function SettingsTab() {
         </div>
 
         {activeTab === 'appearance' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
@@ -283,7 +270,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'notifications' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Preferências de Notificação</h3>
             <div className="space-y-5">
               {[
@@ -316,7 +303,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'language' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Configurações Regionais</h3>
             <div className="space-y-5">
               <div>
@@ -327,6 +314,7 @@ export function SettingsTab() {
                   id="language"
                   value={language}
                   onChange={(e) => changeLanguage(e.target.value as LanguageKey)}
+                                                                                                                                                                                 
                   className="w-full px-3 py-2.5 bg-[#24292D]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm"
                 >
                   <option value="pt-BR">Português (Brasil)</option>
@@ -353,12 +341,12 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'security' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl space-y-8">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d] space-y-8">
              <div className="flex items-center gap-4 mb-6">
             <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança              
             </h3>
             <div className='flex-1 flex items-center '>
-              <AnimatedStripeProgressBar />
+
             </div>
             </div>
 
@@ -377,15 +365,20 @@ export function SettingsTab() {
                 <input
                   type="text"
                   value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  className={`flex-grow px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border ${!newUsername.trim() ? 'border-red-500' : 'border-white/10'
-                    } rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/50 focus:border-slate-500/50 transition-all text-sm`}
+                  onChange={(e) => {
+                    setNewUsername(e.target.value);
+                    if (usernameError) {
+                      setUsernameError(false);
+                    }
+                  }}
+                  className={`flex-grow px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border ${ usernameError ? 'border-red-500' : 'border-white/10'
+                    } rounded-lg text-slate-200 focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300`}
                   placeholder={t('security.enterNewUsername', language)}
                 />
                 <button
                   type="submit"
                   className="px-5 py-2  bg-[#1a7364] text-white rounded-lg font-medium shadow-lg text-sm
-                  transition-all duration-150  hover:shadow-[0_0_5px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
+                  transition-colored duration-300 hover:shadow-[0_0_12px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
                 >
                   {t('security.updateUsername', language)}
                 </button>
@@ -457,7 +450,7 @@ export function SettingsTab() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                    className="px-5 py-2  bg-[#1a7364] text-white rounded-lg font-medium shadow-lg text-sm transition-colored duration-300 hover:shadow-[0_0_12px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
                   >
                     Atualizar Email
                   </button>
@@ -541,7 +534,7 @@ export function SettingsTab() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                    className="px-5 py-2  bg-[#1a7364] text-white rounded-lg font-medium shadow-lg text-sm transition-colored duration-300 hover:shadow-[0_0_12px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
                   >
                     {t('security.updatePassword', language)}
                   </button>
@@ -601,7 +594,7 @@ export function SettingsTab() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500 text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg text-sm"
+                    className="px-5 py-2  bg-[#1a7364] text-white rounded-lg font-medium shadow-lg text-sm transition-colored duration-300 hover:shadow-[0_0_12px_#70fec0] hover:bg-gratient-to-r hover:bg-[#30cc86] shadow-lg"
                   >
                     Atualizar Telefone
                   </button>
