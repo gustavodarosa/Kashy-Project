@@ -216,7 +216,7 @@ export function SettingsTab() {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto">
         {/* Hero Section for the active tab */}
         <div className="mb-8">
-          <div className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d] ">
+          <div className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 ">
             <div className="flex items-center gap-3">
               {TABS.find(t => t.key === activeTab)?.icon && (
                 React.createElement(TABS.find(t => t.key === activeTab)!.icon, { size: 28, className: "text-slate-300" })
@@ -236,7 +236,7 @@ export function SettingsTab() {
         </div>
 
         {activeTab === 'appearance' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 ">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Temas Disponíveis</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
               {(Object.keys(themes) as ThemeKey[]).map((key) => {
@@ -270,7 +270,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'notifications' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Preferências de Notificação</h3>
             <div className="space-y-5">
               {[
@@ -303,7 +303,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'language' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d]">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10">
             <h3 className="text-xl font-semibold mb-6 text-slate-200">Configurações Regionais</h3>
             <div className="space-y-5">
               <div>
@@ -341,7 +341,7 @@ export function SettingsTab() {
         )}
 
         {activeTab === 'security' && (
-          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-[#5dd89d] shadow-[0_0_12px_#1b6a5d] space-y-8">
+          <section className="p-6 bg-[#0a0c11]/60 backdrop-blur-xl rounded-2xl border border-white/10 space-y-8">
              <div className="flex items-center gap-4 mb-6">
             <h3 className="text-xl font-semibold text-slate-200">Opções de Segurança              
             </h3>
@@ -431,7 +431,7 @@ export function SettingsTab() {
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
                     placeholder="Digite seu novo email..."
                   />
                 </div>
@@ -441,7 +441,7 @@ export function SettingsTab() {
                     type="password"
                     value={currentPasswordForEmail}
                     onChange={(e) => setCurrentPasswordForEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
                     placeholder="Digite sua senha atual..."
                   />
                 </div>
@@ -498,7 +498,7 @@ export function SettingsTab() {
                       type={showPassword ? "text" : "password"}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                      className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
                       placeholder={t('security.enterCurrentPassword', language)}
                     />
                     <button
@@ -517,7 +517,7 @@ export function SettingsTab() {
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
+                    className="w-full px-3 py-3 pr-10 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 text-sm"
                     placeholder={t('security.enterNewPassword', language)}
                   />
                   <button
@@ -584,7 +584,7 @@ export function SettingsTab() {
                       setPhone(raw);
                     }}
                     pattern="^\+[1-9]\d{1,14}$"
-                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 transition-all text-sm"
+                    className="w-full px-3 py-2 bg-[#2F363E]/80 backdrop-blur-sm border border-white/10 rounded-lg text-slate-200 focus:outline-none focus:ring focus:ring-[#70fec0] focus:shadow-[0_0_12px_#70fec0] hover:shadow-[0_0_3px_#46c98e] transition-all ease-in-out duration-300 transition-all text-sm"
                     placeholder="+5511912345678"
                     maxLength={16}
                   />
