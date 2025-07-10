@@ -78,6 +78,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null
 }
 
+// Componente customizado para o ponto ativo brilhante no hover
+const CustomActiveDot = (props: any) => {
+  const { cx, cy } = props
+
+  // Não renderiza nada se as coordenadas não estiverem disponíveis
+  if (!cx || !cy) {
+    return null
+  }
+
+  return (
+    <g>
+      {/* Círculo maior que cria o efeito de brilho (glow) */}
+      <circle cx={cx} cy={cy} r={10} fill="#34d399" filter="url(#neon-glow-active)" />
+      {/* Círculo menor e sólido que representa o ponto exato */}
+      <circle cx={cx} cy={cy} r={5} fill="#14B498" stroke="#0f172a" strokeWidth={2} />
+    </g>
+  )
+}
+
 export function DashboardRevenueChart() {
   const [isLoading, setIsLoading] = useState(false)
   const [showMeta, setShowMeta] = useState(true)
@@ -116,7 +135,7 @@ export function DashboardRevenueChart() {
       <div className="p-6 border-b border-gray-600">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-[#14B498]" />
+            <TrendingUp className="w-6 h-6 text-[#14B498] drop-shadow-[0_0_5px_#14B498]" />
             <h2 className="text-xl font-semibold">Faturamento Diário</h2>
           </div>
 
@@ -167,10 +186,13 @@ export function DashboardRevenueChart() {
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={revenuePerDay}>
             <defs>
-              <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#14B498" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#14B498" stopOpacity={0} />
-              </linearGradient>
+              <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#14B498" floodOpacity="0.7" />
+              </filter>
+              {/* Filtro mais intenso e claro para o efeito de hover */}
+              <filter id="neon-glow-active" x="-150%" y="-150%" width="400%" height="400%">
+                <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor="#34d399" floodOpacity="1" />
+              </filter>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
             <XAxis
@@ -195,10 +217,10 @@ export function DashboardRevenueChart() {
               dataKey="total"
               stroke="#14B498"
               strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorTotal)"
+              fill="transparent"
               dot={{ r: 0 }}
-              activeDot={{ r: 6, fill: "#14B498", stroke: "#0f172a", strokeWidth: 2 }}
+              activeDot={<CustomActiveDot />}
+              filter="url(#neon-glow)"
             />
             {showMeta && (
               <Line type="monotone" dataKey="meta" stroke="#94a3b8" strokeWidth={1} strokeDasharray="5 5" dot={false} />

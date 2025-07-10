@@ -14,10 +14,10 @@ const dados = {
   Hoje: [
     { hora: "08h", vendas: 120, vendasAnterior: 100 },
     { hora: "10h", vendas: 200, vendasAnterior: 180 },
-    { hora: "12h", vendas: 150, vendasAnterior: 170 },
+    { hora: "12h", vendas: 120, vendasAnterior: 170 },
     { hora: "14h", vendas: 300, vendasAnterior: 250 },
     { hora: "16h", vendas: 180, vendasAnterior: 160 },
-    { hora: "18h", vendas: 220, vendasAnterior: 200 },
+    { hora: "18h", vendas: 220, vendasAnterior: 600 },
   ],
   Semana: [
     { dia: "Seg", vendas: 900, vendasAnterior: 850 },
@@ -57,13 +57,13 @@ function CustomTooltip({ active, payload, label }: any) {
                 {diferenca > 0 ? (
                   <TrendingUp className="w-3 h-3 text-[#14B498]" />
                 ) : diferenca < 0 ? (
-                  <TrendingDown className="w-3 h-3 text-red-400" />
+                  <TrendingDown className="w-3 h-3 text-[#ef476f]" />
                 ) : (
                   <Minus className="w-3 h-3 text-gray-400" />
                 )}
                 <span
                   className={`font-medium ${
-                    diferenca > 0 ? "text-[#14B498]" : diferenca < 0 ? "text-red-400" : "text-gray-400"
+                    diferenca > 0 ? "text-[#14B498]" : diferenca < 0 ? "text-[#ef476f]" : "text-gray-400"
                   }`}
                 >
                   {diferenca > 0 ? "+" : ""}
@@ -104,7 +104,7 @@ export default function VendasPorPeriodo() {
   const getBarColor = (value: number, previousValue?: number) => {
     if (!previousValue) return "#14B498"
     if (value > previousValue) return "#14B498" // Verde Kashy
-    if (value < previousValue) return "#F59E0B" // Amarelo/laranja
+    if (value < previousValue) return "#ef476f" // Amarelo/laranja
     return "#6B7280" // Cinza neutro
   }
 
@@ -162,16 +162,22 @@ export default function VendasPorPeriodo() {
           <div className="flex items-center gap-4">
             <div>
               <span className="text-gray-400">Total: </span>
-              <span className="font-semibold text-[#14B498]">R$ {metricas.totalAtual.toLocaleString("pt-BR")}</span>
+              <span
+                className={`font-semibold transition-colors duration-300 ${
+                  metricas.percentual > 0 ? "text-[#14B498]" : metricas.percentual < 0 ? "text-[#ef476f]" : "text-white"
+                }`}
+              >
+                R$ {metricas.totalAtual.toLocaleString("pt-BR")}
+              </span>
             </div>
             {metricas.diferenca !== 0 && (
               <div className="flex items-center gap-1">
                 {metricas.diferenca > 0 ? (
                   <TrendingUp className="w-4 h-4 text-[#14B498]" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-400" />
+                  <TrendingDown className="w-4 h-4 text-[#ef476f]" />
                 )}
-                <span className={`text-xs font-medium ${metricas.diferenca > 0 ? "text-[#14B498]" : "text-red-400"}`}>
+                <span className={`text-xs font-medium ${metricas.diferenca > 0 ? "text-[#14B498]" : "text-[#ef476f]"}`}>
                   {metricas.diferenca > 0 ? "+" : ""}
                   {metricas.percentual.toFixed(1)}%
                 </span>
@@ -186,10 +192,22 @@ export default function VendasPorPeriodo() {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }} barCategoryGap="15%">
             <defs>
-              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#14B498" stopOpacity={1} />
-                <stop offset="100%" stopColor="#14B498" stopOpacity={0.6} />
+              <linearGradient id="hoverGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#262e35" stopOpacity={0} />
+                  <stop offset="100%" stopColor="#475569" stopOpacity={1} />
               </linearGradient>
+              {/* Filtro para o brilho verde (neon) */}
+              <filter id="neon-green" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#14B498" floodOpacity="0.7" />
+              </filter>
+              {/* Filtro para o brilho amarelo (neon) */}
+              <filter id="neon-yellow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#ef476f" floodOpacity="0.7" />
+              </filter>
+              {/* Filtro para o brilho cinza (neon) */}
+              <filter id="neon-gray" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#6B7280" floodOpacity="0.6" />
+              </filter>
             </defs>
             <XAxis
               dataKey={periodo === "Hoje" ? "hora" : periodo === "Semana" ? "dia" : "semana"}
@@ -205,17 +223,22 @@ export default function VendasPorPeriodo() {
               axisLine={{ stroke: "#4B5563" }}
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "url(#hoverGradient)" }} />
             <Bar
               dataKey="vendas"
-              fill="url(#barGradient)"
               radius={[4, 4, 0, 0]}
               animationDuration={600}
               animationBegin={0}
             >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getBarColor(entry.vendas, entry.vendasAnterior)} />
-              ))}
+              {data.map((entry, index) => {
+                const color = getBarColor(entry.vendas, entry.vendasAnterior);
+                let filterId = "";
+                if (color === "#14B498") filterId = "neon-green";
+                if (color === "#ef476f") filterId = "neon-yellow";
+                if (color === "#6B7280") filterId = "neon-gray";
+
+                return <Cell key={`cell-${index}`} fill={color} filter={filterId ? `url(#${filterId})` : undefined} />;
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

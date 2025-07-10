@@ -14,6 +14,9 @@ const data = [
 
 const COLORS = ["#14B498", "#FFB547", "#FF8042", "#9F7AEA"]
 
+// Cores mais claras para o efeito de brilho (neon) no hover
+const GLOW_COLORS = ["#34d399", "#fcd34d", "#fb923c", "#c4b5fd"]
+
 // Tooltip customizado
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -78,7 +81,7 @@ export default function TopCategories() {
     <div className="h-full flex flex-col text-white">
       <div className="p-4 border-b border-gray-600">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <ChartPie className="w-5 h-5 text-[#14B498]" />
+          <ChartPie className="w-5 h-5 text-[#14B498] drop-shadow-[0_0_5px_#14B498]" />
           Top Categorias
         </h2>
       </div>
@@ -91,28 +94,35 @@ export default function TopCategories() {
         <div className="w-full md:w-2/5 md:h-full p-3 md:pr-1.5 flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
+              <defs>
+                {GLOW_COLORS.map((glowColor, index) => (
+                  <filter key={`neon-${index}`} id={`neon-glow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor={glowColor} floodOpacity="0.8" />
+                  </filter>
+                ))}
+              </defs>
               <Pie
                 data={data}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius="55%" // Ajuste para um anel mais fino ou mais grosso
-                outerRadius="85%"
-                paddingAngle={5}
+                innerRadius="60%"
+                outerRadius="80%"
+                paddingAngle={3}
+                startAngle={90}
+                endAngle={-270}
                 onMouseEnter={onPieEnter}
                 onMouseLeave={onPieLeave}
               >
                 {data.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={activeIndex === index ? COLORS[index % COLORS.length] : `${COLORS[index % COLORS.length]}99`} // Cor mais clara se não ativo
-                    stroke="transparent"
-                    style={{
-                      transition: "all 0.3s ease",
-                      transform: activeIndex === index ? "scale(1.03)" : "scale(1)",
-                      transformOrigin: "center center",
-                    }}
+                    fill={COLORS[index % COLORS.length]}
+                    stroke="none"
+                    style={{ cursor: "pointer", transition: "opacity 0.3s ease" }}
+                    filter={activeIndex === index ? `url(#neon-glow-${index})` : "none"}
+                    opacity={activeIndex === null || activeIndex === index ? 1 : 0.5}
                   />
                 ))}
               </Pie>
