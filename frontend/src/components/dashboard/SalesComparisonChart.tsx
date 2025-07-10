@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const crescimento = ((maio - abril) / abril) * 100
 
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
+      <div className="rounded-lg border border-white/10 bg-gray-800/50 p-3 shadow-xl backdrop-blur-sm">
         <p className="font-medium text-white mb-1">{label}</p>
         <div className="space-y-1 text-sm">
           <p className="text-gray-300">

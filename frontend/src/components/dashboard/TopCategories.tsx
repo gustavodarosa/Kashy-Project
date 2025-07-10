@@ -22,7 +22,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const item = payload[0].payload
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
+      <div className="rounded-lg border border-white/10 bg-gray-800/50 p-3 shadow-xl backdrop-blur-sm">
         <p className="font-medium text-white mb-1">{item.name}</p>
         <p className="text-sm text-gray-300">
           Vendas: <span className="text-white font-medium">R$ {item.value.toLocaleString("pt-BR")}</span>

@@ -46,7 +46,7 @@ function CustomTooltip({ active, payload, label }: any) {
     const percentual = anterior > 0 ? ((diferenca / anterior) * 100).toFixed(1) : 0
 
     return (
-      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-xl">
+      <div className="rounded-lg border border-white/10 bg-gray-800/50 p-3 shadow-xl backdrop-blur-sm">
         <p className="text-gray-300 text-xs mb-2">{label}</p>
         <div className="space-y-1">
           <p className="text-white font-semibold text-sm">R$ {atual.toLocaleString("pt-BR")}</p>
