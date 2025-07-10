@@ -82,6 +82,7 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function VendasPorPeriodo() {
   const [periodo, setPeriodo] = useState<"Hoje" | "Semana" | "Mês">("Semana")
   const [isLoading, setIsLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const data = dados[periodo] as DadosVenda[]
 
@@ -103,8 +104,8 @@ export default function VendasPorPeriodo() {
   // Função para determinar a cor da barra baseada na performance
   const getBarColor = (value: number, previousValue?: number) => {
     if (!previousValue) return "#14B498"
-    if (value > previousValue) return "#14B498" // Verde Kashy
-    if (value < previousValue) return "#ef476f" // Amarelo/laranja
+    if (value > previousValue) return "#14B498"
+    if (value < previousValue) return "#ef476f"
     return "#6B7280" // Cinza neutro
   }
 
@@ -229,6 +230,8 @@ export default function VendasPorPeriodo() {
               radius={[4, 4, 0, 0]}
               animationDuration={600}
               animationBegin={0}
+              onMouseEnter={(_, index) => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
             >
               {data.map((entry, index) => {
                 const color = getBarColor(entry.vendas, entry.vendasAnterior);
@@ -237,7 +240,16 @@ export default function VendasPorPeriodo() {
                 if (color === "#ef476f") filterId = "neon-yellow";
                 if (color === "#6B7280") filterId = "neon-gray";
 
-                return <Cell key={`cell-${index}`} fill={color} filter={filterId ? `url(#${filterId})` : undefined} />;
+                const isHovered = activeIndex === index;
+
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={color}
+                    filter={isHovered && filterId ? `url(#${filterId})` : undefined}
+                    style={{ transition: "opacity 0.2s ease", opacity: activeIndex === null || isHovered ? 1 : 0.7 }}
+                  />
+                );
               })}
             </Bar>
           </BarChart>
