@@ -224,7 +224,7 @@ export default function VendasPorPeriodo() {
               axisLine={{ stroke: "#4B5563" }}
               tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "url(#hoverGradient)" }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "url(#hoverGradient)" }} offset={30} />
             <Bar
               dataKey="vendas"
               radius={[4, 4, 0, 0]}

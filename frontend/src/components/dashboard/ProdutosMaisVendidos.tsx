@@ -167,7 +167,7 @@ export default function ProdutosMaisVendidos() {
                   return value.length > 7 ? `${value.substring(0, 7)}...` : value;
                 }}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(20, 180, 152, 0.08)" }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(20, 180, 152, 0.08)" }} offset={30} />
               <Bar dataKey="value" radius={[0, 4, 4, 0]} onMouseEnter={onBarEnter} onMouseLeave={onBarLeave} barSize={12}> {/* Tamanho da barra reduzido */}
                 {data.map((_, index) => (
                   <Cell

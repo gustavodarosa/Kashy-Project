@@ -110,7 +110,7 @@ export default function SalesComparisonChart() {
                 axisLine={{ stroke: "#4B5563" }}
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} offset={30} />
               <Bar dataKey="Abril" fill="#6B7280" radius={[4, 4, 0, 0]} maxBarSize={20} />
               <Bar dataKey="Maio" fill="#14B498" radius={[4, 4, 0, 0]} maxBarSize={20} />
             </BarChart>

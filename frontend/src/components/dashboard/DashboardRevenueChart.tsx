@@ -211,7 +211,7 @@ export function DashboardRevenueChart() {
               axisLine={{ stroke: "#4B5563" }}
               tickFormatter={(value) => `R$ ${value}`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} offset={30} />
             <Area
               type="monotone"
               dataKey="total"

@@ -342,6 +342,7 @@ const BitcoinCashCard = () => {
                   return `Ponto ${label + 1}`;
                 }}
                 formatter={tooltipValueFormatter}
+                offset={30}
               />
               <Line
                 type="linear"

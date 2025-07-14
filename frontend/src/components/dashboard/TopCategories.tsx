@@ -126,7 +126,7 @@ export default function TopCategories() {
                   />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} offset={30} />
             </PieChart>
           </ResponsiveContainer>
         </div>

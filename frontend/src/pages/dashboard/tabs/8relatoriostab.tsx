@@ -453,7 +453,7 @@ export function RelatoriosTab() {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number, name) => [formatValue(value), formatXAxisLabel(name)]} />
+            <Tooltip formatter={(value: number, name) => [formatValue(value), formatXAxisLabel(name)]} offset={30} />
             <Legend formatter={(value) => formatXAxisLabel(value)} />
           </PieChart>
         </ResponsiveContainer>
@@ -485,7 +485,7 @@ export function RelatoriosTab() {
               interval={0}
               fontSize={10}
             />
-            <Tooltip content={<CustomTooltip />} /> {/* Usando o Tooltip personalizado */}
+            <Tooltip content={<CustomTooltip />} offset={30} /> {/* Usando o Tooltip personalizado */}
             <Legend />
             <Bar dataKey="result" fill="#8884d8" name={`${getFunctionLabel(selectedFunction)} de ${getValueLabel(selectedValue)}`} />
           </BarChart>

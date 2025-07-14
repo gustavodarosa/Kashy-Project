@@ -837,6 +837,7 @@ export function WalletTab() {
                     formatter={(value: number, name: string) =>
                       [`${value.toFixed(8)} BCH`, name === "received" ? "Recebido" : "Enviado"]
                     }
+                    offset={30}
                   />
                   <Area
                     type="monotone"
