@@ -13,6 +13,7 @@ interface Venda {
   data: string
   status: "concluida" | "processando" | "cancelada"
   categoria: string
+  metodoPagamento: string // Adicionado método de pagamento
 }
 
 // Componente Button customizado
@@ -244,6 +245,7 @@ export default function VendasRecentes() {
           data: order.createdAt,
           status: order.status,
           categoria: order.items[0]?.product.category || "N/A",
+          metodoPagamento: order.paymentMethod || "N/A", // Adicionado método de pagamento
         }));
 
         setVendasRecentes(vendas);
@@ -345,8 +347,8 @@ export default function VendasRecentes() {
                 </th>
                 <th className="pb-2 px-2 pt-3 text-gray-400 font-medium text-xs">
                   <div className="flex items-center gap-1">
-                    <Hash className="w-3 h-3" />
-                    Qtd
+                    <DollarSign className="w-3 h-3" />
+                    Método de Pagamento
                   </div>
                 </th>
                 <th className="pb-2 px-2 pt-3 text-gray-400 font-medium text-xs">
@@ -380,14 +382,50 @@ export default function VendasRecentes() {
                       </Avatar>
                       <div>
                         <div className="font-medium text-white text-sm">{venda.loja}</div>
-                        <div className="text-xs text-gray-400">{venda.categoria}</div>
                       </div>
                     </div>
                   </td>
                   <td className="py-3 px-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 bg-gray-700 text-gray-300 rounded-full text-xs font-medium">
-                      {venda.quantidade}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {venda.metodoPagamento === 'bch' && (
+                        <span className="inline-block w-5 h-5 align-middle">
+                          <svg viewBox="0 0 788 788" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="394" cy="394" r="394" fill="#fff" />
+                            <path d="M516.9,261.7c-19.8-44.9-65.3-54.5-121-45.2L378,147.1l-42.2,10.9l17.6,69.2
+                              c-11.1,2.8-22.5,5.2-33.8,8.4L302,166.8l-42.2,10.9l17.9,69.4c-9.1,2.6-85.2,22.1-85.2,22.1l11.6,45.2c0,0,31-8.7,30.7-8
+                              c17.2-4.5,25.3,4.1,29.1,12.2l49.2,190.2c0.6,5.5-0.4,14.9-12.2,18.1c0.7,0.4-30.7,7.9-30.7,7.9l4.6,52.7c0,0,75.4-19.3,85.3-21.8
+                              l18.1,70.2l42.2-10.9l-18.1-70.7c11.6-2.7,22.9-5.5,33.9-8.4l18,70.3l42.2-10.9l-18.1-70.1c65-15.8,110.9-56.8,101.5-119.5
+                              c-6-37.8-47.3-68.8-81.6-72.3C519.3,324.7,530,297.4,516.9,261.7L516.9,261.7z M496.6,427.2c8.4,62.1-77.9,69.7-106.4,77.2
+                              l-24.8-92.9C394,404,482.4,372.5,496.6,427.2z M444.6,300.7c8.9,55.2-64.9,61.6-88.7,67.7l-22.6-84.3
+                              C357.2,278.2,426.5,249.6,444.6,300.7z"
+                              fill="#0AC18E" />
+                          </svg>
+                        </span>
+                      )}
+                      {venda.metodoPagamento === 'pix' && (
+                        <span className="inline-block w-5 h-5 align-middle">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
+                            <path fill="#4db6ac" d="M11.9,12h-0.68l8.04-8.04c2.62-2.61,6.86-2.61,9.48,0L36.78,12H36.1c-1.6,0-3.11,0.62-4.24,1.76	l-6.8,6.77c-0.59,0.59-1.53,0.59-2.12,0l-6.8-6.77C15.01,12.62,13.5,12,11.9,12z"></path>
+                            <path fill="#4db6ac" d="M36.1,36h0.68l-8.04,8.04c-2.62,2.61-6.86,2.61-9.48,0L11.22,36h0.68c1.6,0,3.11-0.62,4.24-1.76	l6.8-6.77c0.59,0.59,1.53,0.59,2.12,0l6.8,6.77C32.99,35.38,34.5,36,36.1,36z"></path>
+                            <path fill="#4db6ac" d="M44.04,28.74L38.78,34H36.1c-1.07,0-2.07-0.42-2.83-1.17l-6.8-6.78c-1.36-1.36-3.58-1.36-4.94,0	l-6.8,6.78C13.97,33.58,12.97,34,11.9,34H9.22l-5.26-5.26c-2.61-2.62-2.61-6.86,0-9.48L9.22,14h2.68c1.07,0,2.07,0.42,2.83,1.17	l6.8,6.78c0.68,0.68,1.58,1.02,2.47,1.02s1.79-0.34,2.47-1.02l6.8-6.78C34.03,14.42,35.03,14,36.1,14h2.68l5.26,5.26	C46.65,21.88,46.65,26.12,44.04,28.74z"></path>
+                          </svg>
+                        </span>
+                      )}
+                      {venda.metodoPagamento === 'card' && (
+                        <span className="inline-block w-5 h-5 align-middle">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <rect x="2" y="5" width="20" height="14" rx="2" fill="#3b82f6" />
+                            <rect x="2" y="8" width="20" height="2" fill="#fff" />
+                            <rect x="6" y="16" width="4" height="2" fill="#fff" />
+                          </svg>
+                        </span>
+                      )}
+                      <span className="font-medium text-gray-300 text-sm">
+                        {venda.metodoPagamento === 'bch' && 'Bitcoin Cash'}
+                        {venda.metodoPagamento === 'pix' && 'Pix'}
+                        {venda.metodoPagamento === 'card' && 'Cartão'}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-3 px-2">
                     <span className="font-semibold text-[#14B498] text-sm">
@@ -432,7 +470,6 @@ export default function VendasRecentes() {
                   </Avatar>
                   <div>
                     <div className="font-medium text-white text-sm">{venda.loja}</div>
-                    <div className="text-xs text-gray-400">{venda.categoria}</div>
                   </div>
                 </div>
                 {getStatusBadge(venda.status)}
@@ -440,8 +477,8 @@ export default function VendasRecentes() {
 
               <div className="grid grid-cols-3 gap-3 text-xs">
                 <div>
-                  <div className="text-gray-400 mb-1">Quantidade</div>
-                  <div className="font-medium text-white">{venda.quantidade}</div>
+                  <div className="text-gray-400 mb-1">Método de Pagamento</div>
+                  <div className="font-medium text-white">{venda.metodoPagamento}</div>
                 </div>
                 <div>
                   <div className="text-gray-400 mb-1">Total</div>
