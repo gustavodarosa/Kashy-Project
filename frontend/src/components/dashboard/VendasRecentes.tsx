@@ -7,61 +7,13 @@ import { useState, useRef, useEffect } from "react"
 
 interface Venda {
   id: string
-  produto: string
+  loja: string // Substitui produto pelo nome da loja
   quantidade: number
   total: number
   data: string
   status: "concluida" | "processando" | "cancelada"
   categoria: string
 }
-
-const vendasRecentes: Venda[] = [
-  {
-    id: "1",
-    produto: "Camiseta Kashy",
-    quantidade: 2,
-    total: 120.0,
-    data: "2025-05-26T14:12:00",
-    status: "concluida",
-    categoria: "Roupas",
-  },
-  {
-    id: "2",
-    produto: "Caneca Verde",
-    quantidade: 1,
-    total: 45.5,
-    data: "2025-05-26T13:50:00",
-    status: "concluida",
-    categoria: "Acessórios",
-  },
-  {
-    id: "3",
-    produto: "Adesivo",
-    quantidade: 3,
-    total: 30.0,
-    data: "2025-05-26T12:40:00",
-    status: "processando",
-    categoria: "Acessórios",
-  },
-  {
-    id: "4",
-    produto: "Moletom Kashy",
-    quantidade: 1,
-    total: 199.9,
-    data: "2025-05-25T18:30:00",
-    status: "concluida",
-    categoria: "Roupas",
-  },
-  {
-    id: "5",
-    produto: "Boné Kashy",
-    quantidade: 1,
-    total: 89.9,
-    data: "2025-05-25T16:20:00",
-    status: "concluida",
-    categoria: "Acessórios",
-  },
-]
 
 // Componente Button customizado
 function Button({
@@ -242,14 +194,18 @@ function getStatusBadge(status: Venda["status"]) {
       variant: "destructive" as const,
       label: "Cancelada",
     },
-  }
+  };
 
-  const config = variants[status]
-  return <Badge variant={config.variant}>{config.label}</Badge>
+  const config = variants[status] || {
+    variant: "default" as const,
+    label: "Desconhecido", // Fallback label for unknown statuses
+  };
+
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
-function getInitials(produto: string) {
-  return produto
+function getInitials(loja: string) {
+  return loja
     .split(" ")
     .map((word) => word[0])
     .join("")
@@ -259,6 +215,47 @@ function getInitials(produto: string) {
 
 export default function VendasRecentes() {
   const [isLoading, setIsLoading] = useState(false)
+  const [vendasRecentes, setVendasRecentes] = useState<Venda[]>([])
+
+  useEffect(() => {
+    const fetchVendasRecentes = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Usuário não autenticado.");
+        }
+
+        const response = await fetch("http://localhost:3000/api/orders", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erro ao buscar vendas recentes.");
+        }
+
+        const orders = await response.json();
+        const vendas = orders.map((order: any) => ({
+          id: order._id,
+          loja: order.store, // Substitui produto pelo nome da loja
+          quantidade: order.items.reduce((sum: number, item: any) => sum + item.quantity, 0),
+          total: order.totalAmount,
+          data: order.createdAt,
+          status: order.status,
+          categoria: order.items[0]?.product.category || "N/A",
+        }));
+
+        setVendasRecentes(vendas);
+      } catch (error) {
+        console.error("Erro ao buscar vendas recentes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendasRecentes();
+  }, []);
 
   const totalVendas = vendasRecentes.reduce((acc, venda) => acc + venda.total, 0)
   const vendasConcluidas = vendasRecentes.filter((v) => v.status === "concluida").length
@@ -343,7 +340,7 @@ export default function VendasRecentes() {
                 <th className="pb-2 px-4 pt-3 text-gray-400 font-medium text-xs">
                   <div className="flex items-center gap-2">
                     <Package className="w-3 h-3" />
-                    Produto
+                    Loja
                   </div>
                 </th>
                 <th className="pb-2 px-2 pt-3 text-gray-400 font-medium text-xs">
@@ -378,11 +375,11 @@ export default function VendasRecentes() {
                     <div className="flex items-center gap-2">
                       <Avatar className="w-7 h-7">
                         <AvatarFallback className="text-xs bg-[#14B498]/20 text-[#14B498]">
-                          {getInitials(venda.produto)}
+                          {getInitials(venda.loja)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium text-white text-sm">{venda.produto}</div>
+                        <div className="font-medium text-white text-sm">{venda.loja}</div>
                         <div className="text-xs text-gray-400">{venda.categoria}</div>
                       </div>
                     </div>
@@ -430,11 +427,11 @@ export default function VendasRecentes() {
                 <div className="flex items-center gap-2">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="text-xs bg-[#14B498]/20 text-[#14B498]">
-                      {getInitials(venda.produto)}
+                      {getInitials(venda.loja)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium text-white text-sm">{venda.produto}</div>
+                    <div className="font-medium text-white text-sm">{venda.loja}</div>
                     <div className="text-xs text-gray-400">{venda.categoria}</div>
                   </div>
                 </div>
